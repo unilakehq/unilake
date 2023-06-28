@@ -1,4 +1,4 @@
-# unilake
+# Unilake
 
 TODO: add information about the project
 
