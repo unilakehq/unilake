@@ -4,6 +4,7 @@ on:
   pull_request_target:
     branches:
       - main
+
     types:
       - opened
       - reopened
@@ -13,17 +14,8 @@ jobs:
   title-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: thehanimo/pr-title-checker@v1.4.0
+      - uses: thehanimo/pr-title-checker@v1.3.5
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           pass_on_octokit_error: false
           configuration_path: ".github/pr-title-checker-config.json"
-
-  branch-info-check:
-    needs: title-check
-    runs-on: ubuntu-latest
-    if: >
-      (startsWith(github.event.pull_request.title, '[BugFix]') ||
-       startsWith(github.event.pull_request.title, '[Enhancement]'))&&
-      !contains(github.event.pull_request.title, 'cherry-pick') &&
-      !contains(github.event.pull_request.title, 'backport')

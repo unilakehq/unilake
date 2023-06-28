@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Worker", "Unilake.Worker\Unilake.Worker.csproj", "{858AD43A-9AB8-40CF-8789-FBC18FD1D5D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Worker.Tests", "Unilake.Worker.Tests\Unilake.Worker.Tests.csproj", "{F82E9299-76C1-4109-ABBE-0D946607D658}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{858AD43A-9AB8-40CF-8789-FBC18FD1D5D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{858AD43A-9AB8-40CF-8789-FBC18FD1D5D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{858AD43A-9AB8-40CF-8789-FBC18FD1D5D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{858AD43A-9AB8-40CF-8789-FBC18FD1D5D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F82E9299-76C1-4109-ABBE-0D946607D658}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F82E9299-76C1-4109-ABBE-0D946607D658}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F82E9299-76C1-4109-ABBE-0D946607D658}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F82E9299-76C1-4109-ABBE-0D946607D658}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

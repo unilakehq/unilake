@@ -1,0 +1,1 @@
+Directory for webapp ui and integration tests, makes use of: https://playwright.dev/dotnet/

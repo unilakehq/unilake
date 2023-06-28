@@ -1,0 +1,75 @@
+Functions needed:
+
+- Git
+  - Post
+    - [/] Clone repository
+    - [/] Checkout branch
+    - [/] Create new branch
+    - [/] Delete existing branch
+    - [/] Commit changes
+    - [/] Push changes
+    - [/] Pull changes
+    - [/] Fetch
+    - [/] Revert file or all current files
+    - [ ] Merge changes (request)
+    - [/] Abort merge 
+    - [ ] Init? or on another endpoint?
+    - [/] Reset local (remove folder and do a git clone again, essentially resetting everything)
+  - Get
+    - [ ] Merge changes (response)
+    - [/] Get list of branches
+    - [/] Return file changes (diff)
+- File operations
+  - Post
+    - [/] Create Directory
+    - [/] Delete Directory
+    - [/] Move/Rename Directory
+    - [/] Create file
+    - [/] Delete file
+    - [/] Move/Rename file
+  - Put
+    - [/] Put file changes (or new file with content)
+  - Get
+    - [/] Get list of files and directories
+    - [/] Get file content
+- DBT Operations (https://github.com/innoverio/vscode-dbt-power-user/blob/master/dbt_integration.py)
+  - Get
+    - [ ] Compile Macro/Statement
+    - [ ] Other statements where needed
+    - [ ] Get log file
+  - Post
+    - [ ] DBT Build
+    - [ ] DBT Compile
+    - [ ] DBT Deps
+    - [ ] DBT Init?
+    - [ ] Docs
+    - [ ] Run
+    - [ ] Seed
+    - [ ] Snapshot
+    - [ ] Source
+    - [ ] Test
+- Activity
+  - Put
+    - [/] Update shutdown (add time to current shutdown expected time)
+  - Post
+    - [/] Activity tracker
+  - Get
+    - [/] Get activity status (for showing a warning when ide will be shutdown)
+    - [/] Get current shutdown status (time/date and if this instance is already out of commission)
+  - Pre-Processor
+    - [/] Pre-Process each request as activity (except for a blacklist, such as health checks)
+    - [/] Pre-Process should also check if current state is pending shutdown so new requests are rejected
+- Authentication
+  - [ ] Change from api key to jwt token
+  - [ ] Check claims on token with environment variable so only 1 user uses this instance (email)
+  - [/] Add auth endpoint (only returns a 202 Accepted response or a 401 Unauthorized response)
+- YARP
+  - [/] Proxy requests for Theia, check authentication
+- Logging
+  - [/] Properly handle logging
+- Monitoring
+  - [/] Monitoring export for Prometheus
+- SSE for streaming results or other messages
+  - [/] Streaming of logs information or other data/messages, instead of making use of SignalR
+  - [/] Might be best to add this for client and code instance, so we can stream changes to code instance as well (such as changing theme to dark instead of light or other changes that need to be sent)
+- [ ] Github, proper pipelines for testing and packaging

@@ -1,0 +1,23 @@
+[package]
+name = "umi"
+description = "Unilake query proxy"
+authors = ["Unilake Authors <oss@unilake.com>"]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+repository = "https://github.com/unilakehq/unilake"
+publish = false
+
+[workspace]
+resolver = "2"
+members = [
+    "src/backend",
+    "src/parser",
+    "src/security",
+    "src/server",
+    "src/tds"
+]
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+opt-level = "z"  # Optimize for size.

@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/Debug/
+**/debug/
+**/target/
+**/.idea/
+**/.vscode/
+**/Folder.DotSettings.user

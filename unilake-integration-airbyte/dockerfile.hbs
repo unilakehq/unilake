@@ -1,0 +1,10 @@
+################
+##### Runtime
+FROM {{image}} AS runtime
+
+# Copy application binary from builder image
+#COPY --from=builder /usr/src/bmi/target/x86_64-unknown-linux-musl/release/bmi /usr/local/bin
+#COPY target/x86_64-unknown-linux-gnu/release/bmi /usr/local/bin
+
+# Change entrypoint
+#ENTRYPOINT ["/usr/local/bin/bmi", "airbyte"]
