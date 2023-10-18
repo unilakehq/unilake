@@ -52,8 +52,6 @@ RUN wget "https://dot.net/v1/dotnet-install.sh" \
     && rm dotnet-install.sh \
     && sudo ln -s /workspace/dotnet/dotnet /usr/bin/dotnet
 
-ENV DOTNET_ROOT /workspace/dotnet/sdk/7.0.102/
-
 #### ---> INSTALL Kubectl
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
     sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
