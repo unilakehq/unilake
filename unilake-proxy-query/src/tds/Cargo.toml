@@ -6,7 +6,7 @@ name = "tds"
 version = "0.1.0"
 description = "TDS Protocol Implementation"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "AGPL-3.0-only"
 
 [dependencies]
 tokio = { version = "1.20.1", features = ["full"] }
