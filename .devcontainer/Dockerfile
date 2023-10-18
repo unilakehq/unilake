@@ -11,6 +11,7 @@ RUN DEBIAN_FRONTEND="noninteractive" apt-get update -y && \
     libxrender1 \
     libfontconfig1 \
     libxi6 \
+    nano \
     libgtk-3-0
 
 #### ---> INSTALL Rust
