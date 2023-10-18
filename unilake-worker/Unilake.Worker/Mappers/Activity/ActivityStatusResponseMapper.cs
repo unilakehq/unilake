@@ -3,7 +3,7 @@ using Unilake.Worker.Models.Activity;
 
 namespace Unilake.Worker.Mappers.Activity;
 
-public class ActivityStatusResponseMapper  : ResponseMapper<ActivityStatusResponse, ActivityStatus>
+public class ActivityStatusResponseMapper : ResponseMapper<ActivityStatusResponse, ActivityStatus>
 {
     public override ActivityStatusResponse FromEntity(ActivityStatus e) => new()
     {

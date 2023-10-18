@@ -1,0 +1,22 @@
+{
+    "name": "Unilake",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+		"vscode": {
+			"extensions": [
+				"rust-lang.rust-analyzer",
+				"serayuzgur.crates",
+				"vadimcn.vscode-lldb",
+                "ms-dotnettools.csdevkit"
+			],
+			"settings": {
+				"editor.formatOnSave": true,
+				"files.exclude": {
+					"**/LICENSE": true
+				}
+			}
+		}
+	}
+  }

@@ -12,17 +12,17 @@ public class Health : EndpointWithoutRequest<HealthResponse>
     private readonly ILogger _logger;
     private readonly IConfiguration _configuration;
     private readonly Gauge _checkStatus = Metrics.CreateGauge(
-        WorkerMetrics.AspnetcoreHealthcheckStatus, 
-        WorkerMetrics.AspnetcoreHealthcheckStatusDesc, 
-        labelNames: new []{"name"}
+        WorkerMetrics.AspnetcoreHealthcheckStatus,
+        WorkerMetrics.AspnetcoreHealthcheckStatusDesc,
+        labelNames: new[] { "name" }
         );
-    
+
     public Health(ILogger<Health> logger, IConfiguration configuration)
     {
         _logger = logger;
         _configuration = configuration;
     }
-    
+
     public override void Configure()
     {
         Get("/health");
@@ -39,7 +39,7 @@ public class Health : EndpointWithoutRequest<HealthResponse>
         };
 
         foreach (var check in checks)
-            _checkStatus.WithLabels(check.Component).Set(check.Status == HealthStatus.Healthy ? 1:0);
+            _checkStatus.WithLabels(check.Component).Set(check.Status == HealthStatus.Healthy ? 1 : 0);
 
         var status = checks.Any(x => x.Status != HealthStatus.Healthy) ? HealthStatus.Unhealthy : HealthStatus.Healthy;
         await SendAsync(new HealthResponse
@@ -71,7 +71,7 @@ public class Health : EndpointWithoutRequest<HealthResponse>
         {
             _logger.LogError(e, "Failed: CheckOrchestratorConnectivity");
         }
-        
+
         return new IndividualHealthResponse
         {
             Status = HealthStatus.Unhealthy,
