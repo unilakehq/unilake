@@ -11,6 +11,7 @@ RUN DEBIAN_FRONTEND="noninteractive" apt-get update -y && \
     libxrender1 \
     libfontconfig1 \
     libxi6 \
+    nano \
     libgtk-3-0
 
 #### ---> INSTALL Rust
@@ -51,8 +52,6 @@ RUN wget "https://dot.net/v1/dotnet-install.sh" \
     && ./dotnet-install.sh --install-dir /workspace/dotnet --channel STS \
     && rm dotnet-install.sh \
     && sudo ln -s /workspace/dotnet/dotnet /usr/bin/dotnet
-
-ENV DOTNET_ROOT /workspace/dotnet/sdk/7.0.102/
 
 #### ---> INSTALL Kubectl
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
