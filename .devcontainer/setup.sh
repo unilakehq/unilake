@@ -16,17 +16,32 @@ function install_multi_editor_support() {
 
 function install_rust() {
     echo "Installing Rust..."
+
+    # Define RUSTUP_HOME and CARGO_HOME if they aren't already
+    RUSTUP_HOME="/home/coder/.rustup"
+    CARGO_HOME="/home/coder/.cargo"
+
+    # Ensure the home directory for coder exists (just in case)
+    mkdir -p /home/coder && chown coder:coder /home/coder
+
+    # Download rustup script
     curl -o /tmp/rustup.sh https://sh.rustup.rs
     chmod +x /tmp/rustup.sh
-    /tmp/rustup.sh -y \
-    --no-modify-path \
-    --profile minimal \
-    --default-toolchain stable \
-    --default-host x86_64-unknown-linux-gnu
+
+    # Install rust as coder user
+    sudo -u coder env RUSTUP_HOME=${RUSTUP_HOME} CARGO_HOME=${CARGO_HOME} /tmp/rustup.sh -y \
+        --no-modify-path \
+        --profile minimal \
+        --default-host x86_64-unknown-linux-gnu
+
     rm -f /tmp/rustup.sh
-    chmod -R a+w ${RUSTUP_HOME} ${CARGO_HOME}
-    cargo --version
-    rustc --version
+
+    # Add Cargo's bin directory to PATH for current and future sessions
+    sudo -u coder echo 'export PATH=$PATH:'${CARGO_HOME}'/bin' >> /home/coder/.bashrc
+
+    # Check installed versions (as coder user for environment consistency)
+    sudo -u coder ${CARGO_HOME}/bin/cargo --version
+    sudo -u coder ${CARGO_HOME}/bin/rustc --version
 }
 
 function install_dotnet() {
@@ -58,11 +73,23 @@ function install_gh_cli() {
 function install_pulumi() {
     echo "Installing Pulumi..."
     curl -fsSL https://get.pulumi.com | sh
+    echo 'export PATH=$PATH:/root/.pulumi/bin' >> /home/coder/.bashrc
+    chown -R coder:coder /root/.pulumi/bin
 }
 
 function install_abp_cli() {
     echo "Installing ABP CLI..."
     dotnet tool install -g Volo.Abp.Cli
+    echo 'export PATH=$PATH:/root/.dotnet/tools' >> /home/coder/.bashrc
+
+    # wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+    # dpkg -i packages-microsoft-prod.deb
+    # apt-get update && apt-get install -y dotnet-runtime-7.0
+}
+
+function setup_docker() {
+    echo "Setting up Docker..."
+    sudo gpasswd -a coder docker
 }
 
 if [[ $EUID -ne 0 ]]; then
@@ -71,9 +98,6 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 export DEBIAN_FRONTEND="noninteractive"
-export RUSTUP_HOME=/opt/rustup
-export CARGO_HOME=/opt/cargo
-export PATH=/opt/cargo/bin:$PATH
 
 install_multi_editor_support
 install_rust
@@ -82,7 +106,9 @@ install_kubectl
 install_gh_cli
 install_pulumi
 install_abp_cli
+setup_docker
 
 export PATH=$PATH:/usr/bin/pulumi:/home/coder/.dotnet/tools
+chmod o+x /root
 
 echo "Installation completed!"

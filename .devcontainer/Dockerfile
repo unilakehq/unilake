@@ -10,3 +10,4 @@ RUN chmod +x /tmp/setup.sh && /tmp/setup.sh
 
 # Set back to coder user
 USER coder
+RUN /bin/bash -c "source ~/.bashrc"

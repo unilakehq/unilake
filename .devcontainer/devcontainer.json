@@ -1,15 +1,20 @@
 {
-    "name": "Unilake",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "customizations": {
+	"name": "Unilake",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+		"source=${localEnv:HOME}/.cargo/registry,target=/home/coder/.cargo/registry,type=bind,consistency=cached",
+		"source=${localEnv:HOME}/.cargo/git,target=/home/coder/.cargo/git,type=bind,consistency=cached"
+	],
+	"customizations": {
 		"vscode": {
 			"extensions": [
 				"rust-lang.rust-analyzer",
 				"serayuzgur.crates",
 				"vadimcn.vscode-lldb",
-                "ms-dotnettools.csdevkit"
+				"ms-dotnettools.csdevkit"
 			],
 			"settings": {
 				"editor.formatOnSave": true,
@@ -19,4 +24,4 @@
 			}
 		}
 	}
-  }
+}
