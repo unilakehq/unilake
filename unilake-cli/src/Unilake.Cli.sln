@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Cli", "Unilake.Cli\Unilake.Cli.csproj", "{A38955BC-A980-4782-8226-1C4841143ED8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Cli.Tests", "Unilake.Cli.Tests\Unilake.Cli.Tests.csproj", "{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A38955BC-A980-4782-8226-1C4841143ED8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A38955BC-A980-4782-8226-1C4841143ED8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A38955BC-A980-4782-8226-1C4841143ED8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A38955BC-A980-4782-8226-1C4841143ED8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
