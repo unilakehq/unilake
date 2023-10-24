@@ -94,7 +94,7 @@ function install_k3d() {
 function setup_docker() {
     echo "Setting up Docker..."
     sudo gpasswd -a coder docker
-    sudo chown coder /var/run/docker.sock
+    sudo chown coder /var/run/docker.sock || true
 }
 
 if [[ $EUID -ne 0 ]]; then
@@ -116,7 +116,5 @@ setup_docker
 
 export PATH=$PATH:/usr/bin/pulumi:/home/coder/.dotnet/tools
 chmod o+x /root
-
-# TODO: somehow my .bashrc are gone, fix is based on changes done before 23/10/2023
 
 echo "Installation completed!"
