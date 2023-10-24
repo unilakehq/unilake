@@ -87,9 +87,14 @@ function install_abp_cli() {
     # apt-get update && apt-get install -y dotnet-runtime-7.0
 }
 
+function install_k3d() {
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
+}
+
 function setup_docker() {
     echo "Setting up Docker..."
     sudo gpasswd -a coder docker
+    sudo chown coder /var/run/docker.sock
 }
 
 if [[ $EUID -ne 0 ]]; then
@@ -106,9 +111,12 @@ install_kubectl
 install_gh_cli
 install_pulumi
 install_abp_cli
+install_k3d
 setup_docker
 
 export PATH=$PATH:/usr/bin/pulumi:/home/coder/.dotnet/tools
 chmod o+x /root
+
+# TODO: somehow my .bashrc are gone, fix is based on changes done before 23/10/2023
 
 echo "Installation completed!"
