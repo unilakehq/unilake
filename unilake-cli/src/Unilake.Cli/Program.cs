@@ -1,30 +1,48 @@
-﻿using CommandLine;
+﻿using System.Text;
+using CommandLine;
 using CommandLine.Text;
+using Spectre.Console;
 using Unilake.Cli.Args;
 
-var parserResult = Parser.Default.ParseArguments<UpOptions, DestroyOptions>(args);
-int result = parserResult.MapResult(
-    (UpOptions opts) => Run(opts),
-    (DestroyOptions opts) => Run(opts),
-    errs => DisplayHelp(parserResult, errs)
-);
-return result;
+namespace Unilake.Cli;
 
-int Run(Options option) => option.Execute();
-
-int DisplayHelp<T>(ParserResult<T> result, IEnumerable<Error> errs)
+public static class Program
 {
-    var helpText = HelpText.AutoBuild(result, h =>
+    public static async Task<int> Main(params string[] args)
     {
-        h.AdditionalNewLineAfterOption = true;
-        h.Heading = "Your Custom Heading";
-        return HelpText.DefaultParsingErrorsHandler(result, h);
-    }, e => e);
+        var parser = new Parser(config => config.HelpWriter = null);
+        var parserResult = parser.ParseArguments<UpOptions, DestroyOptions, InitOptions>(args);
+        int result = await parserResult.MapResult(
+            (UpOptions opts) => RunAsync(opts),
+            (DestroyOptions opts) => RunAsync(opts),
+            (InitOptions opts) => RunAsync(opts),
+            errs => Task.FromResult(DisplayHelp(parserResult, errs))
+        );
+        return result;
+    }
     
-    helpText.Copyright = "Your Custom Copyright Information";
-    helpText.AdditionalNewLineAfterOption = false;
-
-    Console.WriteLine(helpText);
-
-    return 0;
+    private static async Task<int> RunAsync(Options option) => await option.ExecuteAsync(CancellationToken.None);
+    
+    private static int DisplayHelp<T>(ParserResult<T> result, IEnumerable<Error> errs)
+    {
+        var helpText = HelpText.AutoBuild(result, h =>
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("UniLake CLI :rocket: \n" +
+                      "[bold][red]>>> THIS CLI IS UNDER DEVELOPMENT <<<[/][/]");
+            if (errs.Any(x => x.Tag == ErrorType.NoVerbSelectedError))
+                sb.Append("\n\nTo begin using this CLI, you need to run the following command: \n\n" +
+                          "       $ unilake init \n\n" +
+                          "This will generate a new unilake.config.yaml file in the current directory.");
+            
+            h.AdditionalNewLineAfterOption = false;
+            h.Heading = sb.ToString();
+            return HelpText.DefaultParsingErrorsHandler(result, h);
+        }, e => e);
+    
+        helpText.Copyright = String.Empty;
+        helpText.AdditionalNewLineAfterOption = false;
+        AnsiConsole.Markup(helpText);
+        return 0;
+    }
 }

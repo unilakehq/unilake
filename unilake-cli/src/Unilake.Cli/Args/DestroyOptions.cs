@@ -5,9 +5,8 @@ namespace Unilake.Cli.Args;
 [Verb("destroy", HelpText = "Destroy and remove all resources of a UniLake deployment.")]
 public class DestroyOptions : Options
 {
-    public override int Execute()
+    public override Task<int> ExecuteAsync(CancellationToken cancellationToken)
     {
-        Console.WriteLine("Running destroy command...");
-        return 1;
+        throw new NotImplementedException();
     }
 }
