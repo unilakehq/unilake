@@ -33,7 +33,7 @@ public static class Program
             if (errs.Any(x => x.Tag == ErrorType.NoVerbSelectedError))
                 sb.Append("\n\nTo begin using this CLI, you need to run the following command: \n\n" +
                           "       $ unilake init \n\n" +
-                          "This will generate a new unilake.config.yaml file in the current directory.");
+                          "This will generate a new unilake.yaml file in the current directory.");
             
             h.AdditionalNewLineAfterOption = false;
             h.Heading = sb.ToString();

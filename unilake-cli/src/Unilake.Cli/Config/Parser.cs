@@ -9,7 +9,7 @@ public class Parser
         ParseFromString(File.ReadAllText(filePath));
 
     public static EnvironmentConfig ParseFromEmbeddedResource(string resourceLocation) =>
-        ParseFromString(new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceLocation))
+        ParseFromString(new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceLocation)?? throw new Exception($"Could not find resourcec {resourceLocation}"))
             .ReadToEnd());
 
     public static EnvironmentConfig ParseFromString(string contents)
