@@ -7,15 +7,15 @@ public class Kafka : IValidate
     public string? Server { get; set; }
     public string? SchemaRegistry { get; set; }
 
-    public IEnumerable<(string section, string error)> Validate(EnvironmentConfig config)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
     {
-        if(Enabled == false)
+        if(!Enabled)
             yield break;
 
         if(string.IsNullOrWhiteSpace(Server))
-            yield return ("Cloud.Kafka.Server", "Server is undefined");
+            yield return new ValidateResult("Cloud.Kafka.Server", "Server is undefined");
            
         if(string.IsNullOrWhiteSpace(SchemaRegistry))
-            yield return ("Cloud.Kafka.SchemaRegistry", "SchemaRegistry is undefined");
+            yield return new ValidateResult("Cloud.Kafka.SchemaRegistry", "SchemaRegistry is undefined");
     }
 }

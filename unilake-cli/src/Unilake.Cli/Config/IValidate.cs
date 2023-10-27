@@ -4,5 +4,5 @@ namespace Unilake.Cli;
 
 public interface IValidate
 {
-    IEnumerable<(string section, string error)> Validate(EnvironmentConfig config);
+    IEnumerable<ValidateResult> Validate(EnvironmentConfig config);
 }

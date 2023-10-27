@@ -8,12 +8,12 @@ public class Opensearch : IValidate
     public string? Host { get; set; }
     public int Port { get; set; } = 9200;
 
-    public IEnumerable<(string section, string error)> Validate(EnvironmentConfig config)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
     {
-        if(Enabled == false)
+        if(!Enabled)
             yield break;
 
         if(string.IsNullOrWhiteSpace(Host))
-            yield return ("Cloud.OpenSearch.Host", "Host is undefined");
+            yield return new ValidateResult("Cloud.OpenSearch.Host", "Host is undefined");
     }
 }

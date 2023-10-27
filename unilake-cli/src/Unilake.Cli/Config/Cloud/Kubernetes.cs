@@ -10,13 +10,13 @@ public class Kubernetes : IValidate
     public Karapace? Karapace { get; set; }
     public Redis? Redis { get; set; }
 
-    public IEnumerable<(string section, string error)> Validate(EnvironmentConfig config)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
     {
-        return (Postgresql?.Validate(config) ?? Enumerable.Empty<(string, string)>())
-            .Concat(Opensearch?.Validate(config) ?? Enumerable.Empty<(string, string)>())
-            .Concat(Kafka?.Validate(config) ?? Enumerable.Empty<(string, string)>())
-            .Concat(Storage?.Validate(config) ?? Enumerable.Empty<(string, string)>())
-            .Concat(Karapace?.Validate(config) ?? Enumerable.Empty<(string, string)>())
-            .Concat(Redis?.Validate(config) ?? Enumerable.Empty<(string, string)>());
+        return (Postgresql?.Validate(config) ?? Enumerable.Empty<ValidateResult>())
+            .Concat(Opensearch?.Validate(config) ?? Enumerable.Empty<ValidateResult>())
+            .Concat(Kafka?.Validate(config) ?? Enumerable.Empty<ValidateResult>())
+            .Concat(Storage?.Validate(config) ?? Enumerable.Empty<ValidateResult>())
+            .Concat(Karapace?.Validate(config) ?? Enumerable.Empty<ValidateResult>())
+            .Concat(Redis?.Validate(config) ?? Enumerable.Empty<ValidateResult>());
     }
 }

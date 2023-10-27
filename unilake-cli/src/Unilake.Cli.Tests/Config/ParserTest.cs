@@ -4,7 +4,7 @@ using FluentAssertions;
 namespace Unilake.Cli.Tests.Config;
 
 [TestClass]
-public class ParserTest
+public class ParserTests
 {
     [TestMethod]
     public void Parser_HappyFlow_FromFilePath_Succeeds()

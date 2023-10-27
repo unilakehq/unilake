@@ -5,8 +5,8 @@ public class Storage : IValidate
 {
     public Minio? Minio { get; set; }
 
-    public IEnumerable<(string section, string error)> Validate(EnvironmentConfig config)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
     {
-        throw new NotImplementedException();
+        return (Minio?.Validate(config) ?? Enumerable.Empty<ValidateResult>());
     }
 }

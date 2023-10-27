@@ -11,21 +11,21 @@ public class Postgresql : IValidate
     public string? Name { get; set; }
     public string? Schema { get; set; }
 
-    public IEnumerable<(string section, string error)> Validate(EnvironmentConfig config)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
     {
-        if(Enabled == false)
+        if(!Enabled)
             yield break;
         
         if(string.IsNullOrWhiteSpace(Username))
-            yield return ("Cloud.PostgreSql.Username", "Username is undefined");
+            yield return new ValidateResult("Cloud.PostgreSql.Username", "Username is undefined");
 
         if(string.IsNullOrWhiteSpace(Host))
-            yield return ("Cloud.PostgreSql.Host", "Host is undefined");
+            yield return new ValidateResult("Cloud.PostgreSql.Host", "Host is undefined");
 
         if(string.IsNullOrWhiteSpace(Name))
-            yield return ("Cloud.PostgreSql.Name", "Name is undefined (which is used as the name of the database)");
+            yield return new ValidateResult("Cloud.PostgreSql.Name", "Name is undefined (which is used as the name of the database)");
 
         if(string.IsNullOrWhiteSpace(Schema))
-            yield return ("Cloud.PostgreSql.Schema", "Schema is undefined");
+            yield return new ValidateResult("Cloud.PostgreSql.Schema", "Schema is undefined");
     }
 }
