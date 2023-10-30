@@ -11,6 +11,7 @@ function install_multi_editor_support() {
     libfontconfig1 \
     libxi6 \
     nano \
+    iproute2 \
     libgtk-3-0
 }
 
