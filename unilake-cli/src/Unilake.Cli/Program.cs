@@ -11,18 +11,19 @@ public static class Program
     public static async Task<int> Main(params string[] args)
     {
         var parser = new Parser(config => config.HelpWriter = null);
-        var parserResult = parser.ParseArguments<UpOptions, DestroyOptions, InitOptions>(args);
-        int result = await parserResult.MapResult(
+        var parserResult = parser.ParseArguments<UpOptions, DestroyOptions, InitOptions, TelemetryOptions>(args);
+        var result = await parserResult.MapResult(
             (UpOptions opts) => RunAsync(opts),
             (DestroyOptions opts) => RunAsync(opts),
             (InitOptions opts) => RunAsync(opts),
+            (TelemetryOptions opts) => RunAsync(opts),
             errs => Task.FromResult(DisplayHelp(parserResult, errs))
         );
         return result;
     }
-    
+
     private static async Task<int> RunAsync(Options option) => await option.ExecuteAsync(CancellationToken.None);
-    
+
     private static int DisplayHelp<T>(ParserResult<T> result, IEnumerable<Error> errs)
     {
         var helpText = HelpText.AutoBuild(result, h =>
@@ -34,12 +35,12 @@ public static class Program
                 sb.Append("\n\nTo begin using this CLI, you need to run the following command: \n\n" +
                           "       $ unilake init \n\n" +
                           "This will generate a new unilake.yaml file in the current directory.");
-            
+
             h.AdditionalNewLineAfterOption = false;
             h.Heading = sb.ToString();
             return HelpText.DefaultParsingErrorsHandler(result, h);
         }, e => e);
-    
+
         helpText.Copyright = String.Empty;
         helpText.AdditionalNewLineAfterOption = false;
         AnsiConsole.Markup(helpText);

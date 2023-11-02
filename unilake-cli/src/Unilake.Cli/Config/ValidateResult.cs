@@ -10,4 +10,18 @@ public class ValidateResult
         Section = section;
         Error = error;
     }
+    
+    public ValidateResult(IConfigNode node, string section, string error)
+    {
+        Section = node.Section + "->" + section;
+        Error = error;
+    }
+
+    public ValidateResult AddSection(IConfigNode node) => AddSection(node.Section);
+    
+    public ValidateResult AddSection(string section)
+    {
+        Section = section + "->" + Section;
+        return this;
+    }
 }

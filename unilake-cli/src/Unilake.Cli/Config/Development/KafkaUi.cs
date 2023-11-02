@@ -1,20 +1,26 @@
 
+using YamlDotNet.Serialization;
+
 namespace Unilake.Cli.Config;
 
-public class KafkaUi : IValidate
+public class KafkaUi : IConfigNode
 {
+    public string Section { get; } = "kafka-ui";
+    
+    [YamlMember(Alias = "enabled")]
     public bool Enabled { get; set; }
+    [YamlMember(Alias = "target")]
     public Target? Target { get; set; }
-
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
+    
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
     {
         if(!Enabled)
             yield break;
 
         if(Target == null)
-            yield return new ValidateResult("Components.Development.KafkaUi.Target", "Target is undefined");
-        else 
-            foreach(var err in Target.Validate(config))
-                yield return new ValidateResult("Components.Development.KafkaUi.Target", err.Error);
+            yield return new ValidateResult(this, "target", "target is undefined");
+        else
+            foreach (var err in Target.Validate(config, this))
+                yield return err.AddSection(this);
     }
 }

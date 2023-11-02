@@ -1,17 +1,17 @@
 
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Storage;
 
-public class Boxyhq : IConfigNode
+public class Karapace : IConfigNode
 {
-    public string Section { get; } = "boxyhq";
+    public string Section { get; } = "karapace";
     
     [YamlMember(Alias = "enabled")]
     public bool Enabled { get; set; }
 
     public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
     {
-        return Enumerable.Empty<ValidateResult>();
+        yield break;
     }
 }

@@ -1,6 +1,7 @@
 using CommandLine;
 using Pulumi.Automation;
 using Unilake.Cli.Config;
+using Parser = Unilake.Cli.Config.Parser;
 
 namespace Unilake.Cli.Args;
 
@@ -16,6 +17,23 @@ public class UpOptions : Options
     public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
     {
         Console.WriteLine("Running up command...");
+        string configFile = ConfigFile?? Path.Combine(Directory.GetCurrentDirectory(), "unilake.default.yaml");
+        if (!File.Exists(configFile))
+        {
+            Console.Error.WriteLine($"Config file not found: {configFile}");
+            return 1;
+        }
+
+        var parsed = Parser.ParseFromPath(configFile);
+        if (!parsed.IsValid())
+        {
+            parsed.PrettyPrintErrors();
+            return 1;
+        }
+
+
+        return 0;
+        
         // TODO: see, https://github.com/pulumi/automation-api-examples/blob/main/dotnet/LocalProgram/automation/Program.cs
         var stackArgs = new LocalProgramArgs("", "");
         var stack = await LocalWorkspace.CreateOrSelectStackAsync(stackArgs);

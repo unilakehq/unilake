@@ -11,7 +11,7 @@ public class InitOptions : Options
     {
         var currentDirectory = Directory.GetCurrentDirectory();
         await ExtractEmbeddedResourceAsync(currentDirectory, "Unilake.Cli.unilake.default.yaml", "unilake.yaml");
-        AnsiConsole.MarkupLine("[green]Done![/]");
+        AnsiConsole.MarkupLine(Message.GreenDone);
         return 0;
     }
 

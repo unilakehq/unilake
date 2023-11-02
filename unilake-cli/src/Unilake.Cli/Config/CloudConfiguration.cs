@@ -1,16 +1,22 @@
 
+using Unilake.Cli.Config.Cloud;
+using YamlDotNet.Serialization;
+
 namespace Unilake.Cli.Config;
 
-public class CloudConfiguration : IValidate
+public class CloudConfiguration : IConfigNode
 {
-    public Kubernetes? Kubernetes { get; set; }
+    public string Section { get; } = "cloud";
+    
+    [YamlMember(Alias = "kubernetes")]
+    public KubernetesConf? Kubernetes { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
     {
         if(Kubernetes == null)
-            yield return new ValidateResult("cloud", "Kubernetes is undefined");
+            yield return new ValidateResult(this, "kubernetes", "kubernetes is undefined");
         else
-            foreach (var err in Kubernetes.Validate(config))
-                yield return err;
+            foreach (var err in Kubernetes.Validate(config, this))
+                yield return err.AddSection(this);
     }
 }

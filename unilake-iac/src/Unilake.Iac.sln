@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Iac", "Unilake.Iac\Unilake.Iac.csproj", "{8C11C8CD-EA7B-48AD-B514-89D232FB6F31}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Iac.Stacks", "Unilake.Iac.Stacks\Unilake.Iac.Stacks.csproj", "{7E35A2A5-7560-4485-AF05-F369C511D760}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{8C11C8CD-EA7B-48AD-B514-89D232FB6F31}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C11C8CD-EA7B-48AD-B514-89D232FB6F31}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C11C8CD-EA7B-48AD-B514-89D232FB6F31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E35A2A5-7560-4485-AF05-F369C511D760}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E35A2A5-7560-4485-AF05-F369C511D760}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E35A2A5-7560-4485-AF05-F369C511D760}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E35A2A5-7560-4485-AF05-F369C511D760}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

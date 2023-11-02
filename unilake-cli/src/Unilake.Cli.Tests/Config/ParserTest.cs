@@ -10,7 +10,7 @@ public class ParserTests
     public void Parser_HappyFlow_FromFilePath_Succeeds()
     {
         string filePath = Path.Combine(Enumerable.Range(0, 4)
-            .Aggregate(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), (current, _) => Directory.GetParent(current)?.FullName ?? current), "Unilake.Cli", "unilake.default.yaml");
+            .Aggregate(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), (current, _) => Directory.GetParent(current!)?.FullName ?? current)!, "Unilake.Cli", "unilake.default.yaml");
 
         File.Exists(filePath).Should().BeTrue();
         var result = Unilake.Cli.Config.Parser.ParseFromPath(filePath);
@@ -21,7 +21,7 @@ public class ParserTests
     public void Parser_HappyFlow_FromString_Succeeds()
     {        
         string filePath = Path.Combine(Enumerable.Range(0, 4)
-            .Aggregate(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), (current, _) => Directory.GetParent(current)?.FullName ?? current), "Unilake.Cli", "unilake.default.yaml");
+            .Aggregate(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), (current, _) => Directory.GetParent(current!)?.FullName ?? current)!, "Unilake.Cli", "unilake.default.yaml");
         string fileContents = File.ReadAllText(filePath);
         
         var result = Unilake.Cli.Config.Parser.ParseFromString(fileContents);

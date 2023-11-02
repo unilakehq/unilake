@@ -1,13 +1,18 @@
 
+using YamlDotNet.Serialization;
+
 namespace Unilake.Cli.Config;
 
-public class Target : IValidate
+public class Target : IConfigNode
 {
+    public string Section { get; } = "target";
+    
+    [YamlMember(Alias = "cloud")]
     public string? Cloud { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
     {
         if(string.IsNullOrWhiteSpace(Cloud))
-            yield return new ValidateResult("Target", "Target is undefined");
+            yield return new ValidateResult(this, "cloud", "cloud is undefined");
     }
 }

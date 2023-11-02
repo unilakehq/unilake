@@ -11,7 +11,7 @@ cloud:
       single-node: true # default is to deploy a single node instance
     kafka:
       enabled: true # if true, will deploy a kafka cluster
-    storage:
+    datalake:
       minio: # for local installations, minio can be used for storage
         enabled: true # if true, will deploy a single minio storage node
         root-user: admin # minio default username
@@ -79,6 +79,7 @@ components:
       admin-password: admin
       admin-email: admin@admin.com
       postgresql:
+        enabled: true
         host: cloud.kubernetes
         port: 5432
         name: gitea
