@@ -22,4 +22,8 @@
     <EmbeddedResource Include="unilake.default.yaml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\unilake-iac\src\Unilake.Iac\Unilake.Iac.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,4 @@
 using CommandLine;
-using Pulumi.Automation;
-using Unilake.Cli.Config;
 using Parser = Unilake.Cli.Config.Parser;
 
 namespace Unilake.Cli.Args;
@@ -31,26 +29,20 @@ public class UpOptions : Options
             return 1;
         }
 
-
-        return 0;
-        
         // TODO: see, https://github.com/pulumi/automation-api-examples/blob/main/dotnet/LocalProgram/automation/Program.cs
-        var stackArgs = new LocalProgramArgs("", "");
-        var stack = await LocalWorkspace.CreateOrSelectStackAsync(stackArgs);
-        
-        var registration = cancellationToken.Register(() => stack.CancelAsync(CancellationToken.None));
-
         try
         {
-            // TODO: create environment as set in the config
-            var config = new EnvironmentConfig();
-            
-        }
-        finally
-        {
-            await registration.DisposeAsync();
-        }
+            // install plugins
+            var result = await (await new StackHandler<Kubernetes>(new Kubernetes(parsed)).InitWorkspace("", "", cancellationToken)).UpAsync(cancellationToken);
 
+
+            // run stack command
+            //var result = await stack.UpAsync(new UpOptions { OnStandardOutput = Console.WriteLine });
+        }
+        catch(Exception exc)
+        {
+
+        }
         return 1;
     }
 }
