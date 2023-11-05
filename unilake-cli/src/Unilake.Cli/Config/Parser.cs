@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
 
-public class Parser
+public static class Parser
 {
     public static EnvironmentConfig ParseFromPath(string filePath) =>
         ParseFromString(File.ReadAllText(filePath));

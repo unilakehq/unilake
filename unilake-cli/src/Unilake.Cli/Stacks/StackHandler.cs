@@ -1,13 +1,14 @@
 ﻿using Pulumi;
 using Pulumi.Automation;
+using Pulumi.Automation.Events;
 using Unilake.Cli.Config;
 
 namespace Unilake.Cli;
 
-public class StackHandler<T> where T : UnilakeStack
+public sealed class StackHandler<T> where T : UnilakeStack
 {
-    private T _unilakeStack;
-    private PulumiFn _pulumiFn;
+    private readonly T _unilakeStack;
+    private readonly PulumiFn _pulumiFn;
     private WorkspaceStack? _workspaceStack;
     private CancellationTokenRegistration? _registration;
 
@@ -28,17 +29,23 @@ public class StackHandler<T> where T : UnilakeStack
     public async Task InstallPluginsAsync(CancellationToken cancellationToken)
     {
         foreach(var p in _unilakeStack.Packages)
-            await _workspaceStack.Workspace.InstallPluginAsync(p.name, p.version, PluginKind.Resource, cancellationToken);
+            await _workspaceStack!.Workspace.InstallPluginAsync(p.name, p.version, PluginKind.Resource, cancellationToken);
     }
 
     public async Task<UpResult> UpAsync(CancellationToken cancellationToken) => 
-    await _workspaceStack?.UpAsync(new UpOptions(), cancellationToken) ?? throw new Exception("Cannot run ");
+        await (_workspaceStack?.UpAsync(new UpOptions() { OnEvent = OnEvent }, cancellationToken) ?? throw new Exception("Cannot run "));
 
     public async Task<UpdateResult> DestroyAsync(CancellationToken cancellationToken) => 
-    await _workspaceStack?.DestroyAsync(new DestroyOptions(), cancellationToken) ?? throw new Exception("Cannot run ");
+        await (_workspaceStack?.DestroyAsync(new DestroyOptions() { OnEvent = OnEvent }, cancellationToken) ?? throw new Exception("Cannot run "));
+
+    private void OnEvent(EngineEvent @event)
+    {
+        throw new NotImplementedException();
+    }
 
     public void Dispose()
     {
 
     }
+
 }

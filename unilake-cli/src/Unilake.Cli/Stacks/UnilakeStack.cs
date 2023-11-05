@@ -1,9 +1,8 @@
-﻿using Pulumi;
-using Unilake.Cli.Config;
+﻿using Unilake.Cli.Config;
 
 namespace Unilake.Cli;
 
-public abstract class UnilakeStack : Stack
+public abstract class UnilakeStack
 {
     protected EnvironmentConfig Config {get; set;}
 
