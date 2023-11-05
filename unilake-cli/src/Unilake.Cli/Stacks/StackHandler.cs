@@ -28,8 +28,8 @@ public sealed class StackHandler<T> where T : UnilakeStack
 
     public async Task InstallPluginsAsync(CancellationToken cancellationToken)
     {
-        foreach(var p in _unilakeStack.Packages)
-            await _workspaceStack!.Workspace.InstallPluginAsync(p.name, p.version, PluginKind.Resource, cancellationToken);
+        foreach(var package in _unilakeStack.Packages)
+            await _workspaceStack!.Workspace.InstallPluginAsync(package.name, package.version, PluginKind.Resource, cancellationToken);
     }
 
     public async Task<UpResult> UpAsync(CancellationToken cancellationToken) => 

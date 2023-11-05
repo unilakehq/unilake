@@ -41,6 +41,14 @@ components:
       enabled: true
     proxy-storage: # unilake storage proxy
       enabled: true
+  nessie:
+    enabled: true
+    postgresql:
+      host: cloud.kubernetes
+      port: 5432
+      name: nessie
+      username: admin
+      password: admin
   datahub: # dependency, used as data catalog
     enabled: true
     postgresql:

@@ -1,3 +1,4 @@
+
 namespace Unilake.Cli;
 
 public static class Message

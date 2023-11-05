@@ -4,6 +4,7 @@ public class ValidateResult
 {
     public string Section { get; set; }
     public string Error { get; set; }
+    private const string SEPERATOR = "->";
 
     public ValidateResult(string section, string error)
     {
@@ -13,7 +14,7 @@ public class ValidateResult
     
     public ValidateResult(IConfigNode node, string section, string error)
     {
-        Section = node.Section + "->" + section;
+        Section = node.Section + SEPERATOR + section;
         Error = error;
     }
 
@@ -21,7 +22,7 @@ public class ValidateResult
     
     public ValidateResult AddSection(string section)
     {
-        Section = section + "->" + Section;
+        Section = section + SEPERATOR + Section;
         return this;
     }
 }
