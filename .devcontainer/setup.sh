@@ -3,8 +3,9 @@
 set -e
 
 function install_multi_editor_support() {
-    echo "Installing multi-editor support packages..."
+    echo "Upgrading existing and Installing multi-editor support packages..."
     sudo apt-get update -y
+    sudo apt-get upgrade -y
     sudo apt-get install -y \
     libxtst6 \
     libxrender1 \
