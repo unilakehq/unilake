@@ -23,21 +23,22 @@ public class Postgresql : IConfigNode
     [YamlMember(Alias = "schema")]
     public string? Schema { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(!Enabled)
             yield break;
         
-        if(string.IsNullOrWhiteSpace(Username))
+        if(IConfigNode.CheckProp(nameof(Username), checkProps) && string.IsNullOrWhiteSpace(Username))
             yield return new ValidateResult(this, "username", "username is undefined");
         
-        if(string.IsNullOrWhiteSpace(Password))
+        if(IConfigNode.CheckProp(nameof(Password), checkProps) && string.IsNullOrWhiteSpace(Password))
             yield return new ValidateResult(this, "password", "password is undefined");
         
-        if(parentNode is not KubernetesConf && string.IsNullOrWhiteSpace(Host))
+        if(IConfigNode.CheckProp(nameof(Host), checkProps) && string.IsNullOrWhiteSpace(Host))
             yield return new ValidateResult(this, "host", "host is undefined");
         
-        if(parentNode is Gitea && string.IsNullOrWhiteSpace(Schema))
+        if(IConfigNode.CheckProp(nameof(Schema), checkProps) && string.IsNullOrWhiteSpace(Schema))
             yield return new ValidateResult(this, "schema", "schema is undefined");
     }
 }

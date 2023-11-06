@@ -23,18 +23,19 @@ public class Gitea : IConfigNode
     [YamlMember(Alias = "redis")]
     public Redis? Redis { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(!Enabled)
             yield break;
         
-        if(string.IsNullOrWhiteSpace(AdminUsername))
+        if(IConfigNode.CheckProp(nameof(AdminUsername), checkProps) && string.IsNullOrWhiteSpace(AdminUsername))
             yield return new ValidateResult(this, "admin-username", "admin-username is undefined");
 
-        if(string.IsNullOrWhiteSpace(AdminPassword))
+        if(IConfigNode.CheckProp(nameof(AdminPassword), checkProps) && string.IsNullOrWhiteSpace(AdminPassword))
             yield return new ValidateResult(this, "admin-password", "admin-password is undefined");
 
-        if(string.IsNullOrWhiteSpace(AdminEmail))
+        if(IConfigNode.CheckProp(nameof(AdminEmail), checkProps) && string.IsNullOrWhiteSpace(AdminEmail))
             yield return new ValidateResult(this, "admin-email", "admin-email is undefined");
 
         foreach (var err in (Postgresql?.Validate(config, this) ?? Enumerable.Empty<ValidateResult>())

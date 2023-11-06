@@ -19,7 +19,8 @@ public class Datahub : IConfigNode
     [YamlMember(Alias = "kafka")]
     public Kafka? Kafka { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if (!Enabled)
             yield break;

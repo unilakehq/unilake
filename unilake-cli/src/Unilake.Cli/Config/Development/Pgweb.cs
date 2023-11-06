@@ -12,7 +12,8 @@ public class Pgweb : IConfigNode
     [YamlMember(Alias = "target")]
     public Target? Target { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(!Enabled)
             yield break;

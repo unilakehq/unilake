@@ -17,12 +17,13 @@ public class Opensearch : IConfigNode
     [YamlMember(Alias = "port")]
     public int Port { get; set; } = 9200;
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(!Enabled)
             yield break;
 
-        if(parentNode is not KubernetesConf && string.IsNullOrWhiteSpace(Host))
+        if(IConfigNode.CheckProp(nameof(Host), checkProps) && string.IsNullOrWhiteSpace(Host))
             yield return new ValidateResult(this, "host", "host is undefined");
     }
 }

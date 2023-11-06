@@ -11,7 +11,8 @@ public class CloudConfiguration : IConfigNode
     [YamlMember(Alias = "kubernetes")]
     public KubernetesConf? Kubernetes { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(Kubernetes == null)
             yield return new ValidateResult(this, "kubernetes", "kubernetes is undefined");

@@ -20,7 +20,8 @@ public class MinioBucket : IConfigNode
 
     
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(string.IsNullOrWhiteSpace(Name))
             yield return new ValidateResult(this, "name", "name is undefined");

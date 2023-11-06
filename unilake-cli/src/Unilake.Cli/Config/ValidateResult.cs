@@ -1,10 +1,12 @@
-﻿namespace Unilake.Cli;
+﻿using Unilake.Cli.Config;
+
+namespace Unilake.Cli;
 
 public class ValidateResult
 {
     public string Section { get; set; }
     public string Error { get; set; }
-    private const string SEPERATOR = "->";
+    private const string Seperator = "->";
 
     public ValidateResult(string section, string error)
     {
@@ -14,7 +16,7 @@ public class ValidateResult
     
     public ValidateResult(IConfigNode node, string section, string error)
     {
-        Section = node.Section + SEPERATOR + section;
+        Section = node.Section + Seperator + section;
         Error = error;
     }
 
@@ -22,7 +24,7 @@ public class ValidateResult
     
     public ValidateResult AddSection(string section)
     {
-        Section = section + SEPERATOR + Section;
+        Section = section + Seperator + Section;
         return this;
     }
 }

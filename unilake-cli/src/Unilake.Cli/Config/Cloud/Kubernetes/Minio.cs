@@ -18,18 +18,19 @@ public class Minio : IConfigNode
     [YamlMember(Alias = "buckets")]
     public List<MinioBucket>? Buckets { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(!Enabled)
             yield break;
 
-        if(string.IsNullOrWhiteSpace(RootUser))
+        if(IConfigNode.CheckProp(nameof(RootUser), checkProps) && string.IsNullOrWhiteSpace(RootUser))
             yield return new ValidateResult(this, "root-user", "root-user is undefined");
            
-        if(string.IsNullOrWhiteSpace(RootPassword))
+        if(IConfigNode.CheckProp(nameof(RootPassword), checkProps) && string.IsNullOrWhiteSpace(RootPassword))
             yield return new ValidateResult(this, "root-password", "root-password is undefined");
 
-        if(Replicas < 1)
+        if(IConfigNode.CheckProp(nameof(Replicas), checkProps) && Replicas < 1)
             yield return new ValidateResult(this, "replicas", "replicas cannot be below 1");
 
         if(Buckets == null || !Buckets.Any())

@@ -1,6 +1,8 @@
-﻿using CommandLine;
+﻿using System.ComponentModel.DataAnnotations;
+using CommandLine;
 using Spectre.Console;
 using Unilake.Cli.Args;
+using Parser = Unilake.Cli.Config.Parser;
 
 namespace Unilake.Cli;
 
@@ -13,11 +15,21 @@ public class ValidateOptions : Options
 
     public override Task<int> ExecuteAsync(CancellationToken cancellationToken)
     {
-        AnsiConsole.MarkupLine(Message.ValiditionErrorsHeader);
         if(!File.Exists(FilePath))
         {
-            AnsiConsole.MarkupLineInterpolated(Message.ValidationConfigFileNotFound, FilePath);
+            PrintErrorFoundHeader();
+            AnsiConsole.MarkupLine(Message.ValidationConfigFileNotFound, FilePath);
         }
+
+        var result = Parser.ParseFromPath(FilePath);
+        if (!result.IsValid())
+            result.PrettyPrintErrors();
+        else
+            PrintNoErrorsFoundHeader();
+        
         return Task.FromResult(0);
     }
+
+    private void PrintErrorFoundHeader() => AnsiConsole.MarkupLine(Message.ValiditionErrorsHeader);
+    private void PrintNoErrorsFoundHeader() => AnsiConsole.MarkupLine(Message.ValidationNoErrorsHeader);
 }

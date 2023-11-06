@@ -11,12 +11,13 @@ public static class Program
     public static async Task<int> Main(params string[] args)
     {
         var parser = new Parser(config => config.HelpWriter = null);
-        var parserResult = parser.ParseArguments<UpOptions, DestroyOptions, InitOptions, TelemetryOptions>(args);
+        var parserResult = parser.ParseArguments<UpOptions, DestroyOptions, InitOptions, TelemetryOptions, ValidateOptions>(args);
         var result = await parserResult.MapResult(
             (UpOptions opts) => RunAsync(opts),
             (DestroyOptions opts) => RunAsync(opts),
             (InitOptions opts) => RunAsync(opts),
             (TelemetryOptions opts) => RunAsync(opts),
+            (ValidateOptions opts) => RunAsync(opts),
             errs => Task.FromResult(DisplayHelp(parserResult, errs))
         );
         return result;

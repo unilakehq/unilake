@@ -1,5 +1,3 @@
-
-using Unilake.Cli.Config.Cloud;
 using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Storage;
@@ -7,25 +5,24 @@ namespace Unilake.Cli.Config.Storage;
 public class Redis : IConfigNode
 {
     public string Section { get; } = "redis";
-    
-    [YamlMember(Alias = "enabled")]
+
+    [YamlMember(Alias = "enabled")] 
     public bool Enabled { get; set; }
-    [YamlMember(Alias = "host")]
+    [YamlMember(Alias = "host")] 
     public string? Host { get; set; }
-    [YamlMember(Alias = "database")]
+    [YamlMember(Alias = "database")] 
     public int Database { get; set; } = 0;
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
-        if(!Enabled)
+        if (!Enabled)
             yield break;
-        if(parentNode is KubernetesConf)
-            yield break;
-        
-        if(string.IsNullOrWhiteSpace(Host))
+
+        if (IConfigNode.CheckProp(nameof(Host), checkProps) && string.IsNullOrWhiteSpace(Host))
             yield return new ValidateResult(this, "host", "host is undefined");
 
-        if(Database < 0)
-            yield return new ValidateResult(this, "database", "database cannot be lower than 0");        
+        if (IConfigNode.CheckProp(nameof(Database), checkProps) && Database < 0)
+            yield return new ValidateResult(this, "database", "database cannot be lower than 0");
     }
 }

@@ -10,7 +10,8 @@ public class Karapace : IConfigNode
     [YamlMember(Alias = "enabled")]
     public bool Enabled { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         yield break;
     }

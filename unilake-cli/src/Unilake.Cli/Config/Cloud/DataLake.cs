@@ -10,7 +10,8 @@ public class DataLake : IConfigNode
     [YamlMember(Alias = "minio")]
     public Minio? Minio { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         return (Minio?.Validate(config, this) ?? Enumerable.Empty<ValidateResult>());
     }

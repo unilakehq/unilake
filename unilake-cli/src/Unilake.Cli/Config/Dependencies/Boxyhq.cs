@@ -13,7 +13,8 @@ public class Boxyhq : IConfigNode
     [YamlMember(Alias = "postgresql")]
     public Postgresql? Postgresql { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(!Enabled)
             yield break;

@@ -15,17 +15,16 @@ public class Kafka : IConfigNode
     [YamlMember(Alias = "schema-registry")]
     public string? SchemaRegistry { get; set; }
 
-    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode)
+    public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
+        params string[] checkProps)
     {
         if(!Enabled)
             yield break;
-        if(parentNode is KubernetesConf)
-            yield break;
 
-        if(string.IsNullOrWhiteSpace(Server))
+        if(IConfigNode.CheckProp(nameof(Server), checkProps) && string.IsNullOrWhiteSpace(Server))
             yield return new ValidateResult(this, "server", "server is undefined");
            
-        if(string.IsNullOrWhiteSpace(SchemaRegistry))
+        if(IConfigNode.CheckProp(nameof(SchemaRegistry), checkProps) && string.IsNullOrWhiteSpace(SchemaRegistry))
             yield return new ValidateResult(this, "schema-registry", "schema-registry is undefined");
     }
 }
