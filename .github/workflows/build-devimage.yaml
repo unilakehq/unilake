@@ -21,7 +21,7 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ secrets.GHCR_TOKEN }}
         
     - name: Extract metadata (tags, labels) for Docker
       id: meta
@@ -29,8 +29,9 @@ jobs:
       with:
         images: ghcr.io/${{ github.repository_owner }}/dev-oss
         tags: |
-          type=schedule
-          format=yyyy-MM-dd
+          type=ref,event=branch
+          type=schedule,pattern={{date 'YYYYMMDD'}}
+          type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
         
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
