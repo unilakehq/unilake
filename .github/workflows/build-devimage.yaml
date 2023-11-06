@@ -29,8 +29,8 @@ jobs:
       with:
         images: ghcr.io/${{ github.repository_owner }}/dev-oss
         tags: |
-          type=schedule
-          format={{year}}-{{month}}-{{day}}
+          type=schedule,pattern={{date 'YYYYMMDD'}}
+          type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
         
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
