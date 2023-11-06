@@ -29,6 +29,7 @@ jobs:
       with:
         images: ghcr.io/${{ github.repository_owner }}/dev-oss
         tags: |
+          type=ref,event=branch
           type=schedule,pattern={{date 'YYYYMMDD'}}
           type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
         
