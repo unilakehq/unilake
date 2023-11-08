@@ -1,0 +1,1 @@
+TODO: make sure of https://servicestack.net/posts/razor-ssg

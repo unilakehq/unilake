@@ -12,6 +12,7 @@ function install_multi_editor_support() {
     libfontconfig1 \
     libxi6 \
     nano \
+    iproute2 \
     libgtk-3-0
 }
 
@@ -88,9 +89,14 @@ function install_abp_cli() {
     # apt-get update && apt-get install -y dotnet-runtime-7.0
 }
 
+function install_k3d() {
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
+}
+
 function setup_docker() {
     echo "Setting up Docker..."
     sudo gpasswd -a coder docker
+    sudo chown coder /var/run/docker.sock || true
 }
 
 if [[ $EUID -ne 0 ]]; then
@@ -107,6 +113,7 @@ install_kubectl
 install_gh_cli
 install_pulumi
 install_abp_cli
+install_k3d
 setup_docker
 
 export PATH=$PATH:/usr/bin/pulumi:/home/coder/.dotnet/tools
