@@ -8,7 +8,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 public class UnilakeApi : KubernetesComponentResource
 {
     public UnilakeApi(string name, ComponentResourceOptions? options = null) 
-        : base("pkg:kubernetes:deployment:unilake:webapioss", name, options)
+        : base("pkg:kubernetes:deployment:unilake:webapi", name, options)
     {
         throw new NotImplementedException();
     }

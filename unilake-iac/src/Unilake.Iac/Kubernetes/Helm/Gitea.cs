@@ -8,9 +8,6 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-/// <summary>
-/// TODO: this can probably be removed, as we will be using github instead? - or use for testing purposes when developing against a git repo.
-/// </summary>
 public class Gitea : KubernetesComponentResource
 {
     public Gitea(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, GiteaArgs? inputArgs = null, 

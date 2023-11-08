@@ -19,11 +19,11 @@ public class EnvironmentContext
         int environmentSequence = 0, string tenant = "", int resourceSequence = 0,
         Dictionary<string, string>? customTags = null)
     {
-        Domain = string.IsNullOrWhiteSpace(domain) ? Domain : domain;
+        Domain = (string.IsNullOrWhiteSpace(domain) ? Domain : domain) ?? string.Empty;
         Environment = string.IsNullOrWhiteSpace(environment) ? Environment : environment;
         Region = string.IsNullOrWhiteSpace(region) ? Region : region;
         EnvironmentSequence = environmentSequence > 0 ? environmentSequence : EnvironmentSequence;
-        Tenant = string.IsNullOrWhiteSpace(tenant) ? Tenant : tenant;
+        Tenant = (string.IsNullOrWhiteSpace(tenant) ? Tenant : tenant) ?? string.Empty;
         CloudProvider = string.IsNullOrWhiteSpace(cloudProvider) ? CloudProvider : cloudProvider;
         ResourceSequence = resourceSequence > 0 ? resourceSequence : ResourceSequence;
         CustomTags = customTags ?? CustomTags;
@@ -68,19 +68,19 @@ public class EnvironmentContext
             }
     }
 
-    public string Tenant { get; set; } = "INTERNAL";
+    public string Tenant { get; set; }
 
     public int EnvironmentSequence { get; set; } = 1;
 
-    public string Domain { get; set; } = "CORE";
+    public string Domain { get; set; }
 
     public string Environment { get; set; } = "D";
 
-    public string CloudProvider { get; set; } = "AZURE";
+    public string CloudProvider { get; set; } = "KUBERNETES";
 
-    public string Region { get; set; } = "EUNL";
+    public string Region { get; set; } = "WE";
 
-    public int ResourceSequence { get; set; } = 0;
+    public int ResourceSequence { get; set; }
 
     public Dictionary<string, string> CustomTags { get; set; } = new();
 

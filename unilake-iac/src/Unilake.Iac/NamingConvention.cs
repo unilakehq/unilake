@@ -46,14 +46,14 @@ public abstract class NamingConvention
             : throw new FormatException("Environment must be either D, T, A or P, but found " + environment);
 
     protected string GetCloudProvider(string cloudProvider)
-        => new[] { "AZURE", "AWS", "GCP", "EQUINIX", "AIVEN", "K8S", "CF", "OVH" }.Contains(cloudProvider.ToUpper())
+        => new[] { "K8S" }.Contains(cloudProvider.ToUpper())
             ? cloudProvider.ToUpper()
             : throw new FormatException(
-                "CloudProvider must be either AZURE, AWS, GCP, EQUINIX, AIVEN, OVH, K8S (for Kubernetes) or CF (for CloudFlare), but current value is " +
+                "CloudProvider must be K8S (for Kubernetes), but current value is " +
                 cloudProvider);
 
     protected string GetRegion(string region)
-        => new[] { "EUNL" }.Contains(region.ToUpper())
+        => new[] { "WE" }.Contains(region.ToUpper())
             ? region.ToUpper()
-            : throw new FormatException("Region must be EUNL, but current value is " + region);
+            : throw new FormatException("Region must be WE, but current value is " + region);
 }

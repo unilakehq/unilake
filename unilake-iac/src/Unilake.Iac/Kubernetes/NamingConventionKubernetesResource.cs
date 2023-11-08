@@ -44,5 +44,5 @@ public class NamingConventionKubernetesResource : NamingConvention
         return string.Join("-", names.ToArray()).ToLower();
     }
 
-    public override string GetAbbreviation<T>() => throw new NotImplementedException("äbbreviation not supported for kubernetes deployments");
+    public override string GetAbbreviation<T>() => throw new NotImplementedException("abbreviation not supported for kubernetes deployments");
 }

@@ -64,20 +64,20 @@ public sealed class Kubernetes : UnilakeStack
 
     private StarRockCluster? CreateStarRocksCluster(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
     {
-        if(Config.Components.Starrocks.Enabled)
+        if(Config?.Components?.Starrocks?.Enabled ?? false)
         {
-            var starRocksClusterConfig = Config.Components.Starrocks;
+            //var starRocksClusterConfig = Config.Components.Starrocks;
             return new StarRockCluster(kubernetesEnvironmentContext, "");
         }
         return null;
     }
 
-    private Iac.Kubernetes.Helm.Minio? CreateMinioInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private Minio? CreateMinioInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
     {
         if(Config.Cloud?.Kubernetes?.DataLake?.Minio?.Enabled ?? false)
         {
             var minioConfig = Config.Cloud.Kubernetes.DataLake.Minio;
-            return new Iac.Kubernetes.Helm.Minio(kubernetesEnvironmentContext, @namespace, new Iac.Kubernetes.Helm.Input.MinioArgs
+            return new Minio(kubernetesEnvironmentContext, @namespace, new MinioArgs
             {
                 Replicas = minioConfig!.Replicas,
                 RootUser = minioConfig.RootUser!,
@@ -95,12 +95,12 @@ public sealed class Kubernetes : UnilakeStack
         return null;
     }
 
-    private Unilake.Iac.Kubernetes.Helm.Kafka? CreateKafkaInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private Kafka? CreateKafkaInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
     {
         if(Config.Cloud?.Kubernetes?.Kafka?.Enabled ?? false)
         {
             var kafkaConfig = Config.Cloud.Kubernetes.Kafka;
-            return new Iac.Kubernetes.Helm.Kafka(kubernetesEnvironmentContext, @namespace, new Iac.Kubernetes.Helm.Input.KafkaInputArgs
+            return new Kafka(kubernetesEnvironmentContext, @namespace, new KafkaInputArgs
             {
                 SchemaRegistryUrl = kafkaConfig.SchemaRegistry!
             });
@@ -113,7 +113,7 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Cloud?.Kubernetes?.Opensearch?.Enabled ?? false)
         {
             var openSearchConf = Config.Cloud.Kubernetes.Opensearch;
-            return new OpenSearch(kubernetesEnvironmentContext, @namespace, new Iac.Kubernetes.Helm.Input.OpenSearchArgs
+            return new OpenSearch(kubernetesEnvironmentContext, @namespace, new OpenSearchArgs
             {
                 SingleNode = openSearchConf.SingleNode
             });
@@ -121,12 +121,12 @@ public sealed class Kubernetes : UnilakeStack
         return null;
     }
 
-    private Iac.Kubernetes.Helm.Redis? CreateRedisInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private Redis? CreateRedisInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
     {
         if(Config.Cloud?.Kubernetes?.Redis?.Enabled ?? false)
         {
-            var redisConf = Config.Cloud.Kubernetes.Redis;
-            return new Iac.Kubernetes.Helm.Redis(kubernetesEnvironmentContext, @namespace, new Iac.Kubernetes.Helm.Input.RedisArgs
+            //var _ = Config.Cloud.Kubernetes.Redis;
+            return new Redis(kubernetesEnvironmentContext, @namespace, new RedisArgs
             {
                 // Nothing?
             });
@@ -135,12 +135,12 @@ public sealed class Kubernetes : UnilakeStack
         return null;
     }
 
-    private Iac.Kubernetes.Helm.PostgreSql? CreatePostgreSqlInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private PostgreSql? CreatePostgreSqlInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
     {
         if(Config.Cloud?.Kubernetes?.Postgresql?.Enabled ?? false)
         {
             var postgresqlConf = Config.Cloud.Kubernetes.Postgresql;
-            return new PostgreSql(kubernetesEnvironmentContext, @namespace, new Iac.Kubernetes.Helm.Input.PostgreSqlArgs
+            return new PostgreSql(kubernetesEnvironmentContext, @namespace, new PostgreSqlArgs
             {
                 AppName = "unilake",
                 DatabaseName = "",
@@ -178,7 +178,7 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Components?.Datahub?.Enabled ?? false)
         {
             var datahubConfig = Config.Components.Datahub;
-            return new Iac.Kubernetes.Helm.Datahub(kubernetesEnvironmentContext, @namespace, new Iac.Kubernetes.Helm.Input.DatahubArgs
+            return new Iac.Kubernetes.Helm.Datahub(kubernetesEnvironmentContext, @namespace, new DatahubArgs
             {
                 PostgreSqlDatabaseName = datahubConfig.Postgresql!.Schema!,
                 PostgreSqlHost = datahubConfig.Postgresql.Host!,

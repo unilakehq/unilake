@@ -167,26 +167,4 @@ public class KubernetesComponentResource : InternalComponentResource<NamingConve
 
     protected Namespace SetNamespace(CustomResourceOptions resourceOptions, string name, Namespace? @namespace = null) 
         => @namespace ?? Namespace.Get($"{name}defaultns", "default", resourceOptions);
-    
-    // TODO: add these, no need to add application labels to a namespace, or make this optional, in case of a multi application namespace
-
-    // protected void AddLabelsToNamespace(KubernetesEnvironmentContext ctx, string name, CustomResourceOptions options) => new NamespacePatch($"{name}-label", new()
-    //     {
-    //         Metadata = new ObjectMetaPatchArgs
-    //         {
-    //             Name = name,
-    //             Labels = GetLabels()
-    //         },
-    //     }, options);
-
-    // protected void AddLabelsToSecret(KubernetesEnvironmentContext ctx, string name, CustomResourceOptions options) => new SecretPatch($"{name}-label", new()
-    //     {
-    //         Metadata = new ObjectMetaPatchArgs
-    //         {
-    //             Name = name,
-    //             Labels = GetLabels()
-    //         },
-    //     }, options);
-
-    
 }
