@@ -61,9 +61,9 @@ RUN curl -fsSL https://get.pulumi.com | sh \
     && echo 'export PATH=$PATH:/root/.pulumi/bin' >> /home/coder/.bashrc \
     && chown -R coder:coder /root/.pulumi
 
-# # Install ABP CLI (Dotnet Global Tool)
-# RUN dotnet tool install -g Volo.Abp.Cli \
-#     && echo 'export PATH=$PATH:/root/.dotnet/tools' >> /home/coder/.bashrc
+# Install ABP CLI (Dotnet Global Tool)
+RUN dotnet tool install -g Volo.Abp.Cli \
+    && echo 'export PATH=$PATH:/root/.dotnet/tools' >> /home/coder/.bashrc
 
 # Install k3d
 RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
