@@ -1,0 +1,8 @@
+﻿@namespace Unilake.WebApp.Shared.Forms
+
+@if (Visible)
+{
+	<CascadingValue Value="@CreateNewCascadingFormState()">
+		@ChildContent
+	</CascadingValue>
+}
