@@ -83,5 +83,3 @@ ENV PATH="${PATH}:${CARGO_HOME}/bin:/usr/local/bin/pulumi"
 
 # Final clean up
 RUN sudo chmod o+x /root
-
-# Final ENTRYPOINT or CMD can be set here as needed
