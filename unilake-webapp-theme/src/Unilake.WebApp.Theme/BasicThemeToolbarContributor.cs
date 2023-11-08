@@ -1,12 +1,11 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
-using Volo.Abp.AspNetCore.Components.Web.BasicTheme.Themes.Basic;
+using Unilake.WebApp.Theme.Themes.Basic;
 using Volo.Abp.AspNetCore.Components.Web.Theming.Toolbars;
-using Volo.Abp.AspNetCore.Components.WebAssembly.BasicTheme.Themes.Basic;
-using Volo.Abp.DependencyInjection;
+using LoginDisplay = Unilake.WebApp.Theme.Themes.Basic.LoginDisplay;
 
-namespace Volo.Abp.AspNetCore.Components.WebAssembly.BasicTheme;
+namespace Unilake.WebApp.Theme;
 
 public class BasicThemeToolbarContributor : IToolbarContributor
 {

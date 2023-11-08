@@ -252,14 +252,14 @@ paket-files/
 *.sln.iml
 
 # WebApi
-src/Unilake.WebApi.Web/Logs/*
-src/Unilake.WebApi.Web.Host/Logs/*
-src/Unilake.WebApi.AuthServer/Logs/*
-src/Unilake.WebApi.HttpApi.Host/Logs/*
-src/Unilake.WebApi.HttpApi.Host/Logs/*
-src/Unilake.WebApi.DbMigrator/Logs/*
-src/Unilake.WebApi.Blazor.Server/Logs/*
-src/Unilake.WebApi.Blazor.Server.Tiered/Logs/*
+Unilake.WebApi.Web/Logs/*
+Unilake.WebApi.Web.Host/Logs/*
+Unilake.WebApi.AuthServer/Logs/*
+Unilake.WebApi.HttpApi.Host/Logs/*
+Unilake.WebApi.HttpApi.Host/Logs/*
+Unilake.WebApi.DbMigrator/Logs/*
+Unilake.WebApi.Blazor.Server/Logs/*
+Unilake.WebApi.Blazor.Server.Tiered/Logs/*
 
 # Use abp install-libs to restore.
 **/wwwroot/libs/*

@@ -1,6 +1,6 @@
 ﻿@page "/authentication/{action}"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Volo.Abp.AspNetCore.Components.Web.Security
+@using Volo.Abp.AspNetCore.Components.WebAssembly
 <RemoteAuthenticatorView Action="@Action" OnLogInSucceeded="OnLogInSucceeded" OnLogOutSucceeded="OnLogOutSucceeded" />
 @inject WebAssemblyCachedApplicationConfigurationClient WebAssemblyCachedApplicationConfigurationClient
 @code{

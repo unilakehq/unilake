@@ -5,7 +5,7 @@ using Volo.Abp.AspNetCore.Components.WebAssembly.Theming;
 using Volo.Abp.Http.Client.IdentityModel.WebAssembly;
 using Volo.Abp.Modularity;
 
-namespace Volo.Abp.AspNetCore.Components.WebAssembly.BasicTheme;
+namespace Unilake.WebApp.Theme;
 
 [DependsOn(
     typeof(AbpAspNetCoreComponentsWebBasicThemeModule),

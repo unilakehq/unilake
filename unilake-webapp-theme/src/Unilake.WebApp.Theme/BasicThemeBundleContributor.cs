@@ -1,6 +1,6 @@
 ﻿using Volo.Abp.Bundling;
 
-namespace Volo.Abp.AspNetCore.Components.WebAssembly.BasicTheme;
+namespace Unilake.WebApp.Theme;
 
 public class BasicThemeBundleContributor : IBundleContributor
 {
