@@ -4,10 +4,84 @@ FROM codercom/enterprise-base:ubuntu
 # Run everything as root
 USER root
 
-# Load and run setup script
-COPY setup.sh /tmp/setup.sh
-RUN chmod +x /tmp/setup.sh && /tmp/setup.sh
+# Set the environment for non-interactive installations
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update and upgrade the existing packages
+RUN apt-get update -y \
+    && apt-get upgrade -y \
+    # Install dependencies
+    && apt-get install -y \
+        libxtst6 \
+        libxrender1 \
+        libfontconfig1 \
+        libxi6 \
+        nano \
+        iproute2 \
+        libgtk-3-0 \
+        wget \
+        curl \
+    # Clean up
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust
+ENV RUSTUP_HOME="/home/coder/.rustup" \
+    CARGO_HOME="/home/coder/.cargo"
+RUN mkdir -p /home/coder && chown coder:coder /home/coder \
+    && curl -o /tmp/rustup.sh https://sh.rustup.rs \
+    && chmod +x /tmp/rustup.sh \
+    && sudo -u coder /tmp/rustup.sh -y --no-modify-path --profile minimal --default-host x86_64-unknown-linux-gnu \
+    && rm /tmp/rustup.sh \
+    # Add Cargo's bin directory to PATH
+    && echo 'export PATH=$PATH:'${CARGO_HOME}'/bin' >> /home/coder/.bashrc
+
+# Install Dotnet
+ENV DOTNET_ROOT="/workspace/dotnet"
+ENV PATH="${PATH}:${DOTNET_ROOT}"
+RUN wget -qO- "https://dot.net/v1/dotnet-install.sh" | bash -s -- --install-dir ${DOTNET_ROOT} -Channel 7.0 \
+    && ln -s ${DOTNET_ROOT}/dotnet /usr/local/bin/dotnet \
+    # Check to ensure the 'dotnet' command is available
+    && dotnet --version
+
+# Install Kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm kubectl
+
+# Install GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list \
+    && apt update \
+    && apt install gh -y
+
+# Install Pulumi
+RUN curl -fsSL https://get.pulumi.com | sh \
+    && echo 'export PATH=$PATH:/root/.pulumi/bin' >> /home/coder/.bashrc \
+    && chown -R coder:coder /root/.pulumi
+
+# Install ABP CLI (Dotnet Global Tool)
+RUN dotnet tool install -g Volo.Abp.Cli \
+    && echo 'export PATH=$PATH:/root/.dotnet/tools' >> /home/coder/.bashrc
+
+# Install k3d
+RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
+
+# Setup Docker
+RUN gpasswd -a coder docker \
+    && chown coder /var/run/docker.sock || true
 
 # Set back to coder user
 USER coder
+
+# Apply PATH changes
 RUN /bin/bash -c "source ~/.bashrc"
+
+# Set the PATH explicitly for the tools installed
+ENV PATH="${PATH}:${CARGO_HOME}/bin:/usr/local/bin/pulumi"
+
+# Final clean up
+RUN sudo chmod o+x /root
+
+# Final ENTRYPOINT or CMD can be set here as needed
