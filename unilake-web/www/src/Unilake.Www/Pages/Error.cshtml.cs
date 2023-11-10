@@ -16,16 +16,6 @@ public class ErrorModel : PageModel
     public string? Permission { get; set; }
     public string? RequestId { get; set; }
     public int Status { get; set; } = 500;
-
-    public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-
-    private readonly ILogger<ErrorModel> _logger;
-
-    public ErrorModel(ILogger<ErrorModel> logger)
-    {
-        _logger = logger;
-    }
-
     public void OnGet()
     {
         RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;

@@ -9,8 +9,6 @@ public class AppHost : AppHostBase, IHostingStartup
             // Configure ASP.NET Core IOC Dependencies
         });
 
-    public AppHost() : base("Unilake.Docs", typeof(MyServices).Assembly) {}
-
     public override void Configure(Funq.Container container)
     {
         ConfigurePlugin<NativeTypesFeature>(feature =>
@@ -18,6 +16,8 @@ public class AppHost : AppHostBase, IHostingStartup
             feature.MetadataTypesConfig.ExportAttributes.Add(typeof(FieldAttribute));
         });
     }
+    
+    public AppHost() : base("Unilake.Docs", typeof(MyServices).Assembly) {}
 }
 
 public class Hello : IReturn<StringResponse> {}

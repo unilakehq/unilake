@@ -8,12 +8,10 @@ public class AppHost : AppHostBase, IHostingStartup
         .ConfigureServices(services => {
             // Configure ASP.NET Core IOC Dependencies
         });
-
-    public AppHost() : base("Unilake.Www", typeof(MyServices).Assembly) {}
-
     public override void Configure(Funq.Container container)
     {
     }
+    public AppHost() : base("Unilake.Www", typeof(MyServices).Assembly) {}
 }
 
 public class Hello : IReturn<StringResponse> {}

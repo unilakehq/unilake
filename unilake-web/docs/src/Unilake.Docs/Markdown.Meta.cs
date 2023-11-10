@@ -22,9 +22,9 @@ public class MarkdownMeta
                 .ThenBy(x => x.FileName)
                 .ToList();
             allDocs.ForEach(x => {
-                if (x.Url?.StartsWith("/"))
+                if (x.Url?.StartsWith('/') ?? false)
                     x.Url = baseUrl.CombineWith(x.Url);
-                if (x.Image?.StartsWith("/"))
+                if (x.Image?.StartsWith('/') ?? false)
                     x.Image = baseUrl.CombineWith(x.Image);
             });
             featureDocs[feature.Id] = allDocs;

@@ -18,7 +18,7 @@ export default {
         
         onMounted(async () => {
             const api = await client.api(new Authenticate({ 
-                provider: 'credentials', userName:'admin@email.com', password:'p@55wOrd' }))
+                provider: 'credentials', userName:'admin@email.com', password:'' }))
             if (api.succeeded) {
                 const { signIn } = useAuth()
                 signIn(api.response)
