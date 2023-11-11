@@ -9,7 +9,7 @@ using Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Outputs;
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1;
 
 [CrdsResourceType("kubernetes:starrocks.com/v1alpha1:StarRocksCluster")]
-public partial class StarRocksCluster : KubernetesResource
+public class StarRocksCluster : KubernetesResource
 {
     [Output("apiVersion")]
     public Output<string> ApiVersion { get; private set; } = null!;
@@ -48,7 +48,7 @@ public partial class StarRocksCluster : KubernetesResource
     {
     }
 
-    private static StarRocksClusterArgs? MakeArgs(StarRocksClusterArgs? args)
+    private static StarRocksClusterArgs MakeArgs(StarRocksClusterArgs? args)
     {
         args ??= new StarRocksClusterArgs();
         args.ApiVersion = "starrocks.com/v1alpha1";
@@ -81,7 +81,7 @@ public partial class StarRocksCluster : KubernetesResource
     }
 }
 
-public class StarRocksClusterArgs : global::Pulumi.ResourceArgs
+public class StarRocksClusterArgs : ResourceArgs
 {
     [Input("apiVersion")]
     public Input<string>? ApiVersion { get; set; }
@@ -97,9 +97,6 @@ public class StarRocksClusterArgs : global::Pulumi.ResourceArgs
 
     [Input("status")]
     public Input<StarRocksClusterStatusArgs>? Status { get; set; }
-
-    public StarRocksClusterArgs()
-    {
-    }
+    
     public static new StarRocksClusterArgs Empty => new StarRocksClusterArgs();
 }

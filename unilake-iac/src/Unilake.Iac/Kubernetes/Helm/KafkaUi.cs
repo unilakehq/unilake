@@ -13,7 +13,7 @@ public class KafkaUi : KubernetesComponentResource
 
     public Service @Service { get; private set; }
     
-    public KafkaUi(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, KafkaUiInputArgs? inputArgs = null, string name = "kafkaui", 
+    public KafkaUi(KubernetesEnvironmentContext ctx, KafkaUiInputArgs inputArgs, Namespace? @namespace = null, string name = "kafkaui", 
         ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
         : base("pkg:kubernetes:helm:kafkaui", name, options, checkNamingConvention)
     {

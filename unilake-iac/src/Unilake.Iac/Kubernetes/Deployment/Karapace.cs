@@ -15,7 +15,7 @@ public class Karapace : KubernetesComponentResource
     public Service RegistryService { get; private set; }
     public Service RestService { get; private set; }
     
-    public Karapace(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, KarapaceInputArgs inputArgs = null, string name = "karapace", 
+    public Karapace(KubernetesEnvironmentContext ctx, KarapaceInputArgs? inputArgs = null, Namespace? @namespace = null, string name = "karapace", 
         ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:deployment:karapace", name, options, checkNamingConvention)
     {
@@ -24,6 +24,10 @@ public class Karapace : KubernetesComponentResource
         // Step 2: translate to pulumi https://www.pulumi.com/kube2pulumi/
         
         // Also check: https://github.com/aiven/karapace/pull/257
+        
+        // Check input
+        if (inputArgs == null)
+            throw new ArgumentNullException(nameof(inputArgs), "inputArgs cannot be null");
         
         // Set default options
         var resourceOptions = CreateOptions(options);

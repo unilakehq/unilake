@@ -13,13 +13,10 @@ public class Kafka : KubernetesComponentResource
 
     public Service @Service { get; private set; }
     
-    public Kafka(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, KafkaInputArgs? inputArgs = null, 
+    public Kafka(KubernetesEnvironmentContext ctx, KafkaInputArgs inputArgs, Namespace? @namespace = null, 
         string name = "kafka", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
         : base("pkg:kubernetes:helm:kafka", name, options, checkNamingConvention)
     {
-        // Check input
-        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
-
         // Set default options
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
@@ -73,8 +70,8 @@ public class Kafka : KubernetesComponentResource
         if(inputArgs.UsePrivateRegsitry)
         {
             var registrySecret = CreateRegistrySecret(ctx, resourceOptions, @namespace.Metadata.Apply(x => x.Name));
-            string PrivateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
-            releaseArgs.Values.Add("global.imageRegistry", PrivateRegistryBase);
+            string privateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
+            releaseArgs.Values.Add("global.imageRegistry", privateRegistryBase);
             releaseArgs.Values.Add("global.imagePullSecrets", new [] {registrySecret.Metadata.Apply(x => x.Name)});
         }
 

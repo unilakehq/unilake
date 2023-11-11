@@ -7,11 +7,11 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 
 public abstract class KubernetesDeploymentResource : KubernetesComponentResource
 {
-    public KubernetesDeploymentResource(string type, string name, ComponentResourceOptions? options = null, bool checkNamingConvention = true) : base(type, name, options, checkNamingConvention)
+    protected KubernetesDeploymentResource(string type, string name, ComponentResourceOptions? options = null, bool checkNamingConvention = true) : base(type, name, options, checkNamingConvention)
     {
     }
 
-    public KubernetesDeploymentResource(string type, string name, ResourceArgs? args, ComponentResourceOptions? options = null, bool remote = false) : base(type, name, args, options, remote)
+    protected KubernetesDeploymentResource(string type, string name, ResourceArgs? args, ComponentResourceOptions? options = null, bool remote = false) : base(type, name, args, options, remote)
     {
     }
     

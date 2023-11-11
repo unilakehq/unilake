@@ -35,7 +35,7 @@ public abstract class InternalComponentResource<T> : ComponentResource
         };
     }
 
-    protected ComponentResourceOptions? CopyOptions(ComponentResourceOptions? options = null, Resource? parent = null)
+    protected ComponentResourceOptions CopyOptions(ComponentResourceOptions? options = null, Resource? parent = null)
     {
         return options == null
             ? new ComponentResourceOptions

@@ -6,7 +6,7 @@ using Pulumi;
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecArgs : ResourceArgs
     {
         [Input("serviceAccount")]
         public Input<string>? ServiceAccount { get; set; }
@@ -20,9 +20,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
         [Input("starRocksFeSpec")]
         public Input<StarRocksClusterSpecStarrocksfespecArgs>? StarRocksFeSpec { get; set; }
 
-        public StarRocksClusterSpecArgs()
-        {
-        }
         public static new StarRocksClusterSpecArgs Empty => new StarRocksClusterSpecArgs();
     }
 }
@@ -34,20 +31,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("nodeAffinity")]
+        [Input("nodeAffinity")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityArgs>? NodeAffinity { get; set; }
 
-        [Pulumi.Input("podAffinity")]
+        [Input("podAffinity")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityArgs>? PodAffinity { get; set; }
 
-        [Pulumi.Input("podAntiAffinity")]
+        [Input("podAntiAffinity")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityArgs>? PodAntiAffinity { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityArgs();
     }
 }
@@ -59,9 +53,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -69,12 +63,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs>? RequiredDuringSchedulingIgnoredDuringExecution { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityArgs();
     }
 }
@@ -86,17 +77,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("preference", required: true)]
+        [Input("preference", required: true)]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs> Preference { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -108,9 +96,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs> MatchExpressions
         {
@@ -118,7 +106,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchFields")]
+        [Input("matchFields")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs>? _matchFields;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs> MatchFields
         {
@@ -126,9 +114,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchFields = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs();
     }
 }
@@ -140,15 +125,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -156,9 +141,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs();
     }
 }
@@ -170,15 +152,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -186,9 +168,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs();
     }
 }
@@ -200,9 +179,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("nodeSelectorTerms", required: true)]
+        [Input("nodeSelectorTerms", required: true)]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs>? _nodeSelectorTerms;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs> NodeSelectorTerms
         {
@@ -210,9 +189,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _nodeSelectorTerms = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -224,9 +200,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs> MatchExpressions
         {
@@ -234,7 +210,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchFields")]
+        [Input("matchFields")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs>? _matchFields;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs> MatchFields
         {
@@ -242,9 +218,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchFields = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs();
     }
 }
@@ -256,15 +229,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -272,9 +245,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs();
     }
 }
@@ -286,15 +256,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -302,9 +272,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs();
     }
 }
@@ -316,9 +283,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -326,7 +293,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs>? _requiredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs> RequiredDuringSchedulingIgnoredDuringExecution
         {
@@ -334,9 +301,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requiredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityArgs();
     }
 }
@@ -348,17 +312,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("podAffinityTerm", required: true)]
+        [Input("podAffinityTerm", required: true)]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs> PodAffinityTerm { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -370,15 +331,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -386,12 +347,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs();
     }
 }
@@ -403,9 +361,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -413,7 +371,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -421,9 +379,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs();
     }
 }
@@ -435,15 +390,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -451,9 +406,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs();
     }
 }
@@ -465,9 +417,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -475,7 +427,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -483,9 +435,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs();
     }
 }
@@ -497,15 +446,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -513,9 +462,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -527,15 +473,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -543,12 +489,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -560,9 +503,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -570,7 +513,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -578,9 +521,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs();
     }
 }
@@ -592,15 +532,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -608,9 +548,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs();
     }
 }
@@ -622,9 +559,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -632,7 +569,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -640,9 +577,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs();
     }
 }
@@ -654,15 +588,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -670,9 +604,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -684,9 +615,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -694,7 +625,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs>? _requiredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs> RequiredDuringSchedulingIgnoredDuringExecution
         {
@@ -702,9 +633,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requiredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityArgs();
     }
 }
@@ -716,17 +644,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("podAffinityTerm", required: true)]
+        [Input("podAffinityTerm", required: true)]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs> PodAffinityTerm { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -738,15 +663,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -754,12 +679,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs();
     }
 }
@@ -771,9 +693,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -781,7 +703,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -789,9 +711,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs();
     }
 }
@@ -803,15 +722,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -819,9 +738,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs();
     }
 }
@@ -833,9 +749,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -843,7 +759,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -851,9 +767,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs();
     }
 }
@@ -865,15 +778,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -881,9 +794,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -895,15 +805,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -911,12 +821,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -928,9 +835,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -938,7 +845,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -946,9 +853,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs();
     }
 }
@@ -960,15 +864,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -976,9 +880,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs();
     }
 }
@@ -990,9 +891,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -1000,7 +901,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -1008,9 +909,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs();
     }
 }
@@ -1022,15 +920,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -1038,9 +936,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksbespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -1052,12 +947,12 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecArgs : ResourceArgs
     {
-        [Pulumi.Input("affinity")]
+        [Input("affinity")]
         public Input<StarRocksClusterSpecStarrocksbespecAffinityArgs>? Affinity { get; set; }
 
-        [Pulumi.Input("annotations")]
+        [Input("annotations")]
         private InputMap<string>? _annotations;
         public InputMap<string> Annotations
         {
@@ -1065,7 +960,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _annotations = value;
         }
 
-        [Pulumi.Input("beEnvVars")]
+        [Input("beEnvVars")]
         private InputList<StarRocksClusterSpecStarrocksbespecBeenvvarsArgs>? _beEnvVars;
         public InputList<StarRocksClusterSpecStarrocksbespecBeenvvarsArgs> BeEnvVars
         {
@@ -1073,13 +968,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _beEnvVars = value;
         }
 
-        [Pulumi.Input("configMapInfo")]
+        [Input("configMapInfo")]
         public Input<StarRocksClusterSpecStarrocksbespecConfigmapinfoArgs>? ConfigMapInfo { get; set; }
 
-        [Pulumi.Input("fsGroup")]
+        [Input("fsGroup")]
         public Input<int>? FsGroup { get; set; }
 
-        [Pulumi.Input("hostAliases")]
+        [Input("hostAliases")]
         private InputList<StarRocksClusterSpecStarrocksbespecHostaliasesArgs>? _hostAliases;
         public InputList<StarRocksClusterSpecStarrocksbespecHostaliasesArgs> HostAliases
         {
@@ -1087,10 +982,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _hostAliases = value;
         }
 
-        [Pulumi.Input("image", required: true)]
+        [Input("image", required: true)]
         public Input<string> Image { get; set; } = null!;
 
-        [Pulumi.Input("imagePullSecrets")]
+        [Input("imagePullSecrets")]
         private InputList<StarRocksClusterSpecStarrocksbespecImagepullsecretsArgs>? _imagePullSecrets;
         public InputList<StarRocksClusterSpecStarrocksbespecImagepullsecretsArgs> ImagePullSecrets
         {
@@ -1098,7 +993,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _imagePullSecrets = value;
         }
 
-        [Pulumi.Input("limits")]
+        [Input("limits")]
         private InputMap<Union<int, string>>? _limits;
         public InputMap<Union<int, string>> Limits
         {
@@ -1106,10 +1001,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _limits = value;
         }
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("nodeSelector")]
+        [Input("nodeSelector")]
         private InputMap<string>? _nodeSelector;
         public InputMap<string> NodeSelector
         {
@@ -1117,7 +1012,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _nodeSelector = value;
         }
 
-        [Pulumi.Input("podLabels")]
+        [Input("podLabels")]
         private InputMap<string>? _podLabels;
         public InputMap<string> PodLabels
         {
@@ -1125,10 +1020,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _podLabels = value;
         }
 
-        [Pulumi.Input("probe")]
+        [Input("probe")]
         public Input<StarRocksClusterSpecStarrocksbespecProbeArgs>? Probe { get; set; }
 
-        [Pulumi.Input("replicaInstances")]
+        [Input("replicaInstances")]
         private InputList<string>? _replicaInstances;
         public InputList<string> ReplicaInstances
         {
@@ -1136,10 +1031,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _replicaInstances = value;
         }
 
-        [Pulumi.Input("replicas")]
+        [Input("replicas")]
         public Input<int>? Replicas { get; set; }
 
-        [Pulumi.Input("requests")]
+        [Input("requests")]
         private InputMap<Union<int, string>>? _requests;
         public InputMap<Union<int, string>> Requests
         {
@@ -1147,13 +1042,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requests = value;
         }
 
-        [Pulumi.Input("service")]
+        [Input("service")]
         public Input<StarRocksClusterSpecStarrocksbespecServiceArgs>? Service { get; set; }
 
-        [Pulumi.Input("serviceAccount")]
+        [Input("serviceAccount")]
         public Input<string>? ServiceAccount { get; set; }
 
-        [Pulumi.Input("storageVolumes")]
+        [Input("storageVolumes")]
         private InputList<StarRocksClusterSpecStarrocksbespecStoragevolumesArgs>? _storageVolumes;
         public InputList<StarRocksClusterSpecStarrocksbespecStoragevolumesArgs> StorageVolumes
         {
@@ -1161,7 +1056,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _storageVolumes = value;
         }
 
-        [Pulumi.Input("tolerations")]
+        [Input("tolerations")]
         private InputList<StarRocksClusterSpecStarrocksbespecTolerationsArgs>? _tolerations;
         public InputList<StarRocksClusterSpecStarrocksbespecTolerationsArgs> Tolerations
         {
@@ -1169,9 +1064,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _tolerations = value;
         }
 
-        public StarRocksClusterSpecStarrocksbespecArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecArgs Empty => new StarRocksClusterSpecStarrocksbespecArgs();
     }
 }
@@ -1183,20 +1075,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecBeenvvarsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecBeenvvarsArgs : ResourceArgs
     {
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public Input<string>? Value { get; set; }
 
-        [Pulumi.Input("valueFrom")]
+        [Input("valueFrom")]
         public Input<StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromArgs>? ValueFrom { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecBeenvvarsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecBeenvvarsArgs Empty => new StarRocksClusterSpecStarrocksbespecBeenvvarsArgs();
     }
 }
@@ -1208,23 +1097,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromArgs : ResourceArgs
     {
-        [Pulumi.Input("configMapKeyRef")]
+        [Input("configMapKeyRef")]
         public Input<StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromConfigmapkeyrefArgs>? ConfigMapKeyRef { get; set; }
 
-        [Pulumi.Input("fieldRef")]
+        [Input("fieldRef")]
         public Input<StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromFieldrefArgs>? FieldRef { get; set; }
 
-        [Pulumi.Input("resourceFieldRef")]
+        [Input("resourceFieldRef")]
         public Input<StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromResourcefieldrefArgs>? ResourceFieldRef { get; set; }
 
-        [Pulumi.Input("secretKeyRef")]
+        [Input("secretKeyRef")]
         public Input<StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromSecretkeyrefArgs>? SecretKeyRef { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromArgs Empty => new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromArgs();
     }
 }
@@ -1236,20 +1122,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromConfigmapkeyrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromConfigmapkeyrefArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("optional")]
+        [Input("optional")]
         public Input<bool>? Optional { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromConfigmapkeyrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromConfigmapkeyrefArgs Empty => new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromConfigmapkeyrefArgs();
     }
 }
@@ -1261,17 +1144,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromFieldrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromFieldrefArgs : ResourceArgs
     {
-        [Pulumi.Input("apiVersion")]
+        [Input("apiVersion")]
         public Input<string>? ApiVersion { get; set; }
 
-        [Pulumi.Input("fieldPath", required: true)]
+        [Input("fieldPath", required: true)]
         public Input<string> FieldPath { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromFieldrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromFieldrefArgs Empty => new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromFieldrefArgs();
     }
 }
@@ -1283,20 +1163,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromResourcefieldrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromResourcefieldrefArgs : ResourceArgs
     {
-        [Pulumi.Input("containerName")]
+        [Input("containerName")]
         public Input<string>? ContainerName { get; set; }
 
-        [Pulumi.Input("divisor")]
+        [Input("divisor")]
         public InputUnion<int, string>? Divisor { get; set; }
 
-        [Pulumi.Input("resource", required: true)]
+        [Input("resource", required: true)]
         public Input<string> Resource { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromResourcefieldrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromResourcefieldrefArgs Empty => new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromResourcefieldrefArgs();
     }
 }
@@ -1308,20 +1185,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromSecretkeyrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromSecretkeyrefArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("optional")]
+        [Input("optional")]
         public Input<bool>? Optional { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromSecretkeyrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromSecretkeyrefArgs Empty => new StarRocksClusterSpecStarrocksbespecBeenvvarsValuefromSecretkeyrefArgs();
     }
 }
@@ -1333,17 +1207,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecConfigmapinfoArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecConfigmapinfoArgs : ResourceArgs
     {
-        [Pulumi.Input("configMapName")]
+        [Input("configMapName")]
         public Input<string>? ConfigMapName { get; set; }
 
-        [Pulumi.Input("resolveKey")]
+        [Input("resolveKey")]
         public Input<string>? ResolveKey { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecConfigmapinfoArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecConfigmapinfoArgs Empty => new StarRocksClusterSpecStarrocksbespecConfigmapinfoArgs();
     }
 }
@@ -1355,9 +1226,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecHostaliasesArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecHostaliasesArgs : ResourceArgs
     {
-        [Pulumi.Input("hostnames")]
+        [Input("hostnames")]
         private InputList<string>? _hostnames;
         public InputList<string> Hostnames
         {
@@ -1365,12 +1236,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _hostnames = value;
         }
 
-        [Pulumi.Input("ip")]
+        [Input("ip")]
         public Input<string>? Ip { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecHostaliasesArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecHostaliasesArgs Empty => new StarRocksClusterSpecStarrocksbespecHostaliasesArgs();
     }
 }
@@ -1382,14 +1250,11 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecImagepullsecretsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecImagepullsecretsArgs : ResourceArgs
     {
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecImagepullsecretsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecImagepullsecretsArgs Empty => new StarRocksClusterSpecStarrocksbespecImagepullsecretsArgs();
     }
 }
@@ -1401,20 +1266,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecProbeArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecProbeArgs : ResourceArgs
     {
-        [Pulumi.Input("initialDelaySeconds")]
+        [Input("initialDelaySeconds")]
         public Input<int>? InitialDelaySeconds { get; set; }
 
-        [Pulumi.Input("periodSeconds")]
+        [Input("periodSeconds")]
         public Input<int>? PeriodSeconds { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecProbeArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecProbeArgs Empty => new StarRocksClusterSpecStarrocksbespecProbeArgs();
     }
 }
@@ -1426,15 +1288,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecServiceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecServiceArgs : ResourceArgs
     {
-        [Pulumi.Input("loadBalancerIP")]
-        public Input<string>? LoadBalancerIP { get; set; }
+        [Input("loadBalancerIP")]
+        public Input<string>? LoadBalancerIp { get; set; }
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("ports")]
+        [Input("ports")]
         private InputList<StarRocksClusterSpecStarrocksbespecServicePortsArgs>? _ports;
         public InputList<StarRocksClusterSpecStarrocksbespecServicePortsArgs> Ports
         {
@@ -1442,12 +1304,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _ports = value;
         }
 
-        [Pulumi.Input("type")]
+        [Input("type")]
         public Input<string>? Type { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecServiceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecServiceArgs Empty => new StarRocksClusterSpecStarrocksbespecServiceArgs();
     }
 }
@@ -1459,23 +1318,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecServicePortsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecServicePortsArgs : ResourceArgs
     {
-        [Pulumi.Input("containerPort", required: true)]
+        [Input("containerPort", required: true)]
         public Input<int> ContainerPort { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("nodePort")]
+        [Input("nodePort")]
         public Input<int>? NodePort { get; set; }
 
-        [Pulumi.Input("port", required: true)]
+        [Input("port", required: true)]
         public Input<int> Port { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecServicePortsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecServicePortsArgs Empty => new StarRocksClusterSpecStarrocksbespecServicePortsArgs();
     }
 }
@@ -1487,23 +1343,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecStoragevolumesArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecStoragevolumesArgs : ResourceArgs
     {
-        [Pulumi.Input("mountPath")]
+        [Input("mountPath")]
         public Input<string>? MountPath { get; set; }
 
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("storageClassName")]
+        [Input("storageClassName")]
         public Input<string>? StorageClassName { get; set; }
 
-        [Pulumi.Input("storageSize", required: true)]
+        [Input("storageSize", required: true)]
         public Input<string> StorageSize { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksbespecStoragevolumesArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecStoragevolumesArgs Empty => new StarRocksClusterSpecStarrocksbespecStoragevolumesArgs();
     }
 }
@@ -1515,26 +1368,23 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksbespecTolerationsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksbespecTolerationsArgs : ResourceArgs
     {
-        [Pulumi.Input("effect")]
+        [Input("effect")]
         public Input<string>? Effect { get; set; }
 
-        [Pulumi.Input("key")]
+        [Input("key")]
         public Input<string>? Key { get; set; }
 
-        [Pulumi.Input("operator")]
+        [Input("operator")]
         public Input<string>? Operator { get; set; }
 
-        [Pulumi.Input("tolerationSeconds")]
+        [Input("tolerationSeconds")]
         public Input<int>? TolerationSeconds { get; set; }
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public Input<string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrocksbespecTolerationsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksbespecTolerationsArgs Empty => new StarRocksClusterSpecStarrocksbespecTolerationsArgs();
     }
 }
@@ -1546,20 +1396,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("nodeAffinity")]
+        [Input("nodeAffinity")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityArgs>? NodeAffinity { get; set; }
 
-        [Pulumi.Input("podAffinity")]
+        [Input("podAffinity")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityArgs>? PodAffinity { get; set; }
 
-        [Pulumi.Input("podAntiAffinity")]
+        [Input("podAntiAffinity")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityArgs>? PodAntiAffinity { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityArgs();
     }
 }
@@ -1571,9 +1418,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -1581,12 +1428,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs>? RequiredDuringSchedulingIgnoredDuringExecution { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityArgs();
     }
 }
@@ -1598,17 +1442,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("preference", required: true)]
+        [Input("preference", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs> Preference { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -1620,9 +1461,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs> MatchExpressions
         {
@@ -1630,7 +1471,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchFields")]
+        [Input("matchFields")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs>? _matchFields;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs> MatchFields
         {
@@ -1638,9 +1479,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchFields = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs();
     }
 }
@@ -1652,15 +1490,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -1668,9 +1506,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs();
     }
 }
@@ -1682,15 +1517,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -1698,9 +1533,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs();
     }
 }
@@ -1712,9 +1544,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("nodeSelectorTerms", required: true)]
+        [Input("nodeSelectorTerms", required: true)]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs>? _nodeSelectorTerms;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs> NodeSelectorTerms
         {
@@ -1722,9 +1554,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _nodeSelectorTerms = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -1736,9 +1565,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs> MatchExpressions
         {
@@ -1746,7 +1575,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchFields")]
+        [Input("matchFields")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs>? _matchFields;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs> MatchFields
         {
@@ -1754,9 +1583,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchFields = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs();
     }
 }
@@ -1768,15 +1594,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -1784,9 +1610,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs();
     }
 }
@@ -1798,15 +1621,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -1814,9 +1637,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs();
     }
 }
@@ -1828,9 +1648,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -1838,7 +1658,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs>? _requiredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs> RequiredDuringSchedulingIgnoredDuringExecution
         {
@@ -1846,9 +1666,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requiredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityArgs();
     }
 }
@@ -1860,17 +1677,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("podAffinityTerm", required: true)]
+        [Input("podAffinityTerm", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs> PodAffinityTerm { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -1882,15 +1696,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -1898,12 +1712,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs();
     }
 }
@@ -1915,9 +1726,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -1925,7 +1736,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -1933,9 +1744,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs();
     }
 }
@@ -1947,15 +1755,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -1963,9 +1771,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs();
     }
 }
@@ -1977,9 +1782,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -1987,7 +1792,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -1995,9 +1800,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs();
     }
 }
@@ -2009,15 +1811,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -2025,9 +1827,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -2039,15 +1838,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -2055,12 +1854,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -2072,9 +1868,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -2082,7 +1878,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -2090,9 +1886,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs();
     }
 }
@@ -2104,15 +1897,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -2120,9 +1913,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs();
     }
 }
@@ -2134,9 +1924,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -2144,7 +1934,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -2152,9 +1942,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs();
     }
 }
@@ -2166,15 +1953,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -2182,9 +1969,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -2196,9 +1980,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -2206,7 +1990,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs>? _requiredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs> RequiredDuringSchedulingIgnoredDuringExecution
         {
@@ -2214,9 +1998,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requiredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityArgs();
     }
 }
@@ -2228,17 +2009,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("podAffinityTerm", required: true)]
+        [Input("podAffinityTerm", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs> PodAffinityTerm { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -2250,15 +2028,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -2266,12 +2044,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs();
     }
 }
@@ -2283,9 +2058,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -2293,7 +2068,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -2301,9 +2076,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs();
     }
 }
@@ -2315,15 +2087,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -2331,9 +2103,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs();
     }
 }
@@ -2345,9 +2114,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -2355,7 +2124,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -2363,9 +2132,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs();
     }
 }
@@ -2377,15 +2143,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -2393,9 +2159,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -2407,15 +2170,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -2423,12 +2186,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -2440,9 +2200,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -2450,7 +2210,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -2458,9 +2218,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs();
     }
 }
@@ -2472,15 +2229,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -2488,9 +2245,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs();
     }
 }
@@ -2502,9 +2256,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -2512,7 +2266,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -2520,9 +2274,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs();
     }
 }
@@ -2534,15 +2285,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -2550,9 +2301,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -2564,12 +2312,12 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecArgs : ResourceArgs
     {
-        [Pulumi.Input("affinity")]
+        [Input("affinity")]
         public Input<StarRocksClusterSpecStarrockscnspecAffinityArgs>? Affinity { get; set; }
 
-        [Pulumi.Input("annotations")]
+        [Input("annotations")]
         private InputMap<string>? _annotations;
         public InputMap<string> Annotations
         {
@@ -2577,10 +2325,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _annotations = value;
         }
 
-        [Pulumi.Input("autoScalingPolicy")]
+        [Input("autoScalingPolicy")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyArgs>? AutoScalingPolicy { get; set; }
 
-        [Pulumi.Input("cnEnvVars")]
+        [Input("cnEnvVars")]
         private InputList<StarRocksClusterSpecStarrockscnspecCnenvvarsArgs>? _cnEnvVars;
         public InputList<StarRocksClusterSpecStarrockscnspecCnenvvarsArgs> CnEnvVars
         {
@@ -2588,13 +2336,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _cnEnvVars = value;
         }
 
-        [Pulumi.Input("configMapInfo")]
+        [Input("configMapInfo")]
         public Input<StarRocksClusterSpecStarrockscnspecConfigmapinfoArgs>? ConfigMapInfo { get; set; }
 
-        [Pulumi.Input("fsGroup")]
+        [Input("fsGroup")]
         public Input<int>? FsGroup { get; set; }
 
-        [Pulumi.Input("hostAliases")]
+        [Input("hostAliases")]
         private InputList<StarRocksClusterSpecStarrockscnspecHostaliasesArgs>? _hostAliases;
         public InputList<StarRocksClusterSpecStarrockscnspecHostaliasesArgs> HostAliases
         {
@@ -2602,10 +2350,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _hostAliases = value;
         }
 
-        [Pulumi.Input("image", required: true)]
+        [Input("image", required: true)]
         public Input<string> Image { get; set; } = null!;
 
-        [Pulumi.Input("imagePullSecrets")]
+        [Input("imagePullSecrets")]
         private InputList<StarRocksClusterSpecStarrockscnspecImagepullsecretsArgs>? _imagePullSecrets;
         public InputList<StarRocksClusterSpecStarrockscnspecImagepullsecretsArgs> ImagePullSecrets
         {
@@ -2613,7 +2361,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _imagePullSecrets = value;
         }
 
-        [Pulumi.Input("limits")]
+        [Input("limits")]
         private InputMap<Union<int, string>>? _limits;
         public InputMap<Union<int, string>> Limits
         {
@@ -2621,10 +2369,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _limits = value;
         }
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("nodeSelector")]
+        [Input("nodeSelector")]
         private InputMap<string>? _nodeSelector;
         public InputMap<string> NodeSelector
         {
@@ -2632,7 +2380,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _nodeSelector = value;
         }
 
-        [Pulumi.Input("podLabels")]
+        [Input("podLabels")]
         private InputMap<string>? _podLabels;
         public InputMap<string> PodLabels
         {
@@ -2640,13 +2388,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _podLabels = value;
         }
 
-        [Pulumi.Input("probe")]
+        [Input("probe")]
         public Input<StarRocksClusterSpecStarrockscnspecProbeArgs>? Probe { get; set; }
 
-        [Pulumi.Input("replicas")]
+        [Input("replicas")]
         public Input<int>? Replicas { get; set; }
 
-        [Pulumi.Input("requests")]
+        [Input("requests")]
         private InputMap<Union<int, string>>? _requests;
         public InputMap<Union<int, string>> Requests
         {
@@ -2654,13 +2402,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requests = value;
         }
 
-        [Pulumi.Input("service")]
+        [Input("service")]
         public Input<StarRocksClusterSpecStarrockscnspecServiceArgs>? Service { get; set; }
 
-        [Pulumi.Input("serviceAccount")]
+        [Input("serviceAccount")]
         public Input<string>? ServiceAccount { get; set; }
 
-        [Pulumi.Input("tolerations")]
+        [Input("tolerations")]
         private InputList<StarRocksClusterSpecStarrockscnspecTolerationsArgs>? _tolerations;
         public InputList<StarRocksClusterSpecStarrockscnspecTolerationsArgs> Tolerations
         {
@@ -2668,9 +2416,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _tolerations = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecArgs Empty => new StarRocksClusterSpecStarrockscnspecArgs();
     }
 }
@@ -2682,18 +2427,18 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyArgs : ResourceArgs
     {
-        [Pulumi.Input("hpaPolicy")]
+        [Input("hpaPolicy")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyArgs>? HpaPolicy { get; set; }
 
-        [Pulumi.Input("maxReplicas")]
+        [Input("maxReplicas")]
         public Input<int>? MaxReplicas { get; set; }
 
-        [Pulumi.Input("minReplicas")]
+        [Input("minReplicas")]
         public Input<int>? MinReplicas { get; set; }
 
-        [Pulumi.Input("version")]
+        [Input("version")]
         public Input<string>? Version { get; set; }
 
         public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyArgs()
@@ -2711,12 +2456,12 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyArgs : ResourceArgs
     {
-        [Pulumi.Input("behavior")]
+        [Input("behavior")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorArgs>? Behavior { get; set; }
 
-        [Pulumi.Input("metrics")]
+        [Input("metrics")]
         private InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsArgs>? _metrics;
         public InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsArgs> Metrics
         {
@@ -2724,9 +2469,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _metrics = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyArgs();
     }
 }
@@ -2738,17 +2480,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorArgs : ResourceArgs
     {
-        [Pulumi.Input("scaleDown")]
+        [Input("scaleDown")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownArgs>? ScaleDown { get; set; }
 
-        [Pulumi.Input("scaleUp")]
+        [Input("scaleUp")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupArgs>? ScaleUp { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorArgs();
     }
 }
@@ -2760,9 +2499,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownArgs : ResourceArgs
     {
-        [Pulumi.Input("policies")]
+        [Input("policies")]
         private InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownPoliciesArgs>? _policies;
         public InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownPoliciesArgs> Policies
         {
@@ -2770,15 +2509,12 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _policies = value;
         }
 
-        [Pulumi.Input("selectPolicy")]
+        [Input("selectPolicy")]
         public Input<string>? SelectPolicy { get; set; }
 
-        [Pulumi.Input("stabilizationWindowSeconds")]
+        [Input("stabilizationWindowSeconds")]
         public Input<int>? StabilizationWindowSeconds { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownArgs();
     }
 }
@@ -2790,20 +2526,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownPoliciesArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownPoliciesArgs : ResourceArgs
     {
-        [Pulumi.Input("periodSeconds", required: true)]
+        [Input("periodSeconds", required: true)]
         public Input<int> PeriodSeconds { get; set; } = null!;
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        [Pulumi.Input("value", required: true)]
+        [Input("value", required: true)]
         public Input<int> Value { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownPoliciesArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownPoliciesArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaledownPoliciesArgs();
     }
 }
@@ -2815,9 +2548,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupArgs : ResourceArgs
     {
-        [Pulumi.Input("policies")]
+        [Input("policies")]
         private InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupPoliciesArgs>? _policies;
         public InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupPoliciesArgs> Policies
         {
@@ -2825,15 +2558,12 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _policies = value;
         }
 
-        [Pulumi.Input("selectPolicy")]
+        [Input("selectPolicy")]
         public Input<string>? SelectPolicy { get; set; }
 
-        [Pulumi.Input("stabilizationWindowSeconds")]
+        [Input("stabilizationWindowSeconds")]
         public Input<int>? StabilizationWindowSeconds { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupArgs();
     }
 }
@@ -2845,20 +2575,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupPoliciesArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupPoliciesArgs : ResourceArgs
     {
-        [Pulumi.Input("periodSeconds", required: true)]
+        [Input("periodSeconds", required: true)]
         public Input<int> PeriodSeconds { get; set; } = null!;
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        [Pulumi.Input("value", required: true)]
+        [Input("value", required: true)]
         public Input<int> Value { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupPoliciesArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupPoliciesArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyBehaviorScaleupPoliciesArgs();
     }
 }
@@ -2870,29 +2597,26 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsArgs : ResourceArgs
     {
-        [Pulumi.Input("containerResource")]
+        [Input("containerResource")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceArgs>? ContainerResource { get; set; }
 
-        [Pulumi.Input("external")]
+        [Input("external")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalArgs>? External { get; set; }
 
-        [Pulumi.Input("object")]
+        [Input("object")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectArgs>? Object { get; set; }
 
-        [Pulumi.Input("pods")]
+        [Input("pods")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsArgs>? Pods { get; set; }
 
-        [Pulumi.Input("resource")]
+        [Input("resource")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceArgs>? Resource { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsArgs();
     }
 }
@@ -2904,20 +2628,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceArgs : ResourceArgs
     {
-        [Pulumi.Input("container", required: true)]
+        [Input("container", required: true)]
         public Input<string> Container { get; set; } = null!;
 
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("target", required: true)]
+        [Input("target", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceTargetArgs> Target { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceArgs();
     }
 }
@@ -2929,23 +2650,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceTargetArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceTargetArgs : ResourceArgs
     {
-        [Pulumi.Input("averageUtilization")]
+        [Input("averageUtilization")]
         public Input<int>? AverageUtilization { get; set; }
 
-        [Pulumi.Input("averageValue")]
+        [Input("averageValue")]
         public InputUnion<int, string>? AverageValue { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public InputUnion<int, string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceTargetArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceTargetArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsContainerresourceTargetArgs();
     }
 }
@@ -2957,17 +2675,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalArgs : ResourceArgs
     {
-        [Pulumi.Input("metric", required: true)]
+        [Input("metric", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricArgs> Metric { get; set; } = null!;
 
-        [Pulumi.Input("target", required: true)]
+        [Input("target", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalTargetArgs> Target { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalArgs();
     }
 }
@@ -2979,17 +2694,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricArgs : ResourceArgs
     {
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("selector")]
+        [Input("selector")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorArgs>? Selector { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricArgs();
     }
 }
@@ -3001,9 +2713,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorMatchexpressionsArgs> MatchExpressions
         {
@@ -3011,7 +2723,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -3019,9 +2731,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorArgs();
     }
 }
@@ -3033,15 +2742,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -3049,9 +2758,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalMetricSelectorMatchexpressionsArgs();
     }
 }
@@ -3063,23 +2769,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalTargetArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalTargetArgs : ResourceArgs
     {
-        [Pulumi.Input("averageUtilization")]
+        [Input("averageUtilization")]
         public Input<int>? AverageUtilization { get; set; }
 
-        [Pulumi.Input("averageValue")]
+        [Input("averageValue")]
         public InputUnion<int, string>? AverageValue { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public InputUnion<int, string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalTargetArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalTargetArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsExternalTargetArgs();
     }
 }
@@ -3091,20 +2794,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectArgs : ResourceArgs
     {
-        [Pulumi.Input("describedObject", required: true)]
+        [Input("describedObject", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectDescribedobjectArgs> DescribedObject { get; set; } = null!;
 
-        [Pulumi.Input("metric", required: true)]
+        [Input("metric", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricArgs> Metric { get; set; } = null!;
 
-        [Pulumi.Input("target", required: true)]
+        [Input("target", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectTargetArgs> Target { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectArgs();
     }
 }
@@ -3116,20 +2816,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectDescribedobjectArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectDescribedobjectArgs : ResourceArgs
     {
-        [Pulumi.Input("apiVersion")]
+        [Input("apiVersion")]
         public Input<string>? ApiVersion { get; set; }
 
-        [Pulumi.Input("kind", required: true)]
+        [Input("kind", required: true)]
         public Input<string> Kind { get; set; } = null!;
 
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectDescribedobjectArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectDescribedobjectArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectDescribedobjectArgs();
     }
 }
@@ -3141,17 +2838,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricArgs : ResourceArgs
     {
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("selector")]
+        [Input("selector")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorArgs>? Selector { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricArgs();
     }
 }
@@ -3163,9 +2857,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorMatchexpressionsArgs> MatchExpressions
         {
@@ -3173,7 +2867,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -3181,9 +2875,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorArgs();
     }
 }
@@ -3195,15 +2886,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -3211,9 +2902,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectMetricSelectorMatchexpressionsArgs();
     }
 }
@@ -3225,23 +2913,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectTargetArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectTargetArgs : ResourceArgs
     {
-        [Pulumi.Input("averageUtilization")]
+        [Input("averageUtilization")]
         public Input<int>? AverageUtilization { get; set; }
 
-        [Pulumi.Input("averageValue")]
+        [Input("averageValue")]
         public InputUnion<int, string>? AverageValue { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public InputUnion<int, string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectTargetArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectTargetArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsObjectTargetArgs();
     }
 }
@@ -3253,17 +2938,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsArgs : ResourceArgs
     {
-        [Pulumi.Input("metric", required: true)]
+        [Input("metric", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricArgs> Metric { get; set; } = null!;
 
-        [Pulumi.Input("target", required: true)]
+        [Input("target", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsTargetArgs> Target { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsArgs();
     }
 }
@@ -3275,17 +2957,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricArgs : ResourceArgs
     {
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("selector")]
+        [Input("selector")]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorArgs>? Selector { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricArgs();
     }
 }
@@ -3297,9 +2976,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorMatchexpressionsArgs> MatchExpressions
         {
@@ -3307,7 +2986,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -3315,9 +2994,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorArgs();
     }
 }
@@ -3329,15 +3005,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -3345,9 +3021,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsMetricSelectorMatchexpressionsArgs();
     }
 }
@@ -3359,23 +3032,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsTargetArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsTargetArgs : ResourceArgs
     {
-        [Pulumi.Input("averageUtilization")]
+        [Input("averageUtilization")]
         public Input<int>? AverageUtilization { get; set; }
 
-        [Pulumi.Input("averageValue")]
+        [Input("averageValue")]
         public InputUnion<int, string>? AverageValue { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public InputUnion<int, string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsTargetArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsTargetArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsPodsTargetArgs();
     }
 }
@@ -3387,17 +3057,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceArgs : ResourceArgs
     {
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("target", required: true)]
+        [Input("target", required: true)]
         public Input<StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceTargetArgs> Target { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceArgs();
     }
 }
@@ -3409,23 +3076,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceTargetArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceTargetArgs : ResourceArgs
     {
-        [Pulumi.Input("averageUtilization")]
+        [Input("averageUtilization")]
         public Input<int>? AverageUtilization { get; set; }
 
-        [Pulumi.Input("averageValue")]
+        [Input("averageValue")]
         public InputUnion<int, string>? AverageValue { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public InputUnion<int, string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceTargetArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceTargetArgs Empty => new StarRocksClusterSpecStarrockscnspecAutoscalingpolicyHpapolicyMetricsResourceTargetArgs();
     }
 }
@@ -3437,20 +3101,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecCnenvvarsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecCnenvvarsArgs : ResourceArgs
     {
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public Input<string>? Value { get; set; }
 
-        [Pulumi.Input("valueFrom")]
+        [Input("valueFrom")]
         public Input<StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromArgs>? ValueFrom { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecCnenvvarsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecCnenvvarsArgs Empty => new StarRocksClusterSpecStarrockscnspecCnenvvarsArgs();
     }
 }
@@ -3462,23 +3123,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromArgs : ResourceArgs
     {
-        [Pulumi.Input("configMapKeyRef")]
+        [Input("configMapKeyRef")]
         public Input<StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromConfigmapkeyrefArgs>? ConfigMapKeyRef { get; set; }
 
-        [Pulumi.Input("fieldRef")]
+        [Input("fieldRef")]
         public Input<StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromFieldrefArgs>? FieldRef { get; set; }
 
-        [Pulumi.Input("resourceFieldRef")]
+        [Input("resourceFieldRef")]
         public Input<StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromResourcefieldrefArgs>? ResourceFieldRef { get; set; }
 
-        [Pulumi.Input("secretKeyRef")]
+        [Input("secretKeyRef")]
         public Input<StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromSecretkeyrefArgs>? SecretKeyRef { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromArgs Empty => new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromArgs();
     }
 }
@@ -3490,20 +3148,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromConfigmapkeyrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromConfigmapkeyrefArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("optional")]
+        [Input("optional")]
         public Input<bool>? Optional { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromConfigmapkeyrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromConfigmapkeyrefArgs Empty => new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromConfigmapkeyrefArgs();
     }
 }
@@ -3515,17 +3170,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromFieldrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromFieldrefArgs : ResourceArgs
     {
-        [Pulumi.Input("apiVersion")]
+        [Input("apiVersion")]
         public Input<string>? ApiVersion { get; set; }
 
-        [Pulumi.Input("fieldPath", required: true)]
+        [Input("fieldPath", required: true)]
         public Input<string> FieldPath { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromFieldrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromFieldrefArgs Empty => new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromFieldrefArgs();
     }
 }
@@ -3537,20 +3189,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromResourcefieldrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromResourcefieldrefArgs : ResourceArgs
     {
-        [Pulumi.Input("containerName")]
+        [Input("containerName")]
         public Input<string>? ContainerName { get; set; }
 
-        [Pulumi.Input("divisor")]
+        [Input("divisor")]
         public InputUnion<int, string>? Divisor { get; set; }
 
-        [Pulumi.Input("resource", required: true)]
+        [Input("resource", required: true)]
         public Input<string> Resource { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromResourcefieldrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromResourcefieldrefArgs Empty => new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromResourcefieldrefArgs();
     }
 }
@@ -3562,20 +3211,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromSecretkeyrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromSecretkeyrefArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("optional")]
+        [Input("optional")]
         public Input<bool>? Optional { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromSecretkeyrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromSecretkeyrefArgs Empty => new StarRocksClusterSpecStarrockscnspecCnenvvarsValuefromSecretkeyrefArgs();
     }
 }
@@ -3587,17 +3233,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecConfigmapinfoArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecConfigmapinfoArgs : ResourceArgs
     {
-        [Pulumi.Input("configMapName")]
+        [Input("configMapName")]
         public Input<string>? ConfigMapName { get; set; }
 
-        [Pulumi.Input("resolveKey")]
+        [Input("resolveKey")]
         public Input<string>? ResolveKey { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecConfigmapinfoArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecConfigmapinfoArgs Empty => new StarRocksClusterSpecStarrockscnspecConfigmapinfoArgs();
     }
 }
@@ -3609,9 +3252,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecHostaliasesArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecHostaliasesArgs : ResourceArgs
     {
-        [Pulumi.Input("hostnames")]
+        [Input("hostnames")]
         private InputList<string>? _hostnames;
         public InputList<string> Hostnames
         {
@@ -3619,12 +3262,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _hostnames = value;
         }
 
-        [Pulumi.Input("ip")]
+        [Input("ip")]
         public Input<string>? Ip { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecHostaliasesArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecHostaliasesArgs Empty => new StarRocksClusterSpecStarrockscnspecHostaliasesArgs();
     }
 }
@@ -3636,14 +3276,11 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecImagepullsecretsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecImagepullsecretsArgs : ResourceArgs
     {
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecImagepullsecretsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecImagepullsecretsArgs Empty => new StarRocksClusterSpecStarrockscnspecImagepullsecretsArgs();
     }
 }
@@ -3655,20 +3292,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecProbeArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecProbeArgs : ResourceArgs
     {
-        [Pulumi.Input("initialDelaySeconds")]
+        [Input("initialDelaySeconds")]
         public Input<int>? InitialDelaySeconds { get; set; }
 
-        [Pulumi.Input("periodSeconds")]
+        [Input("periodSeconds")]
         public Input<int>? PeriodSeconds { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecProbeArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecProbeArgs Empty => new StarRocksClusterSpecStarrockscnspecProbeArgs();
     }
 }
@@ -3680,15 +3314,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecServiceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecServiceArgs : ResourceArgs
     {
-        [Pulumi.Input("loadBalancerIP")]
-        public Input<string>? LoadBalancerIP { get; set; }
+        [Input("loadBalancerIP")]
+        public Input<string>? LoadBalancerIp { get; set; }
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("ports")]
+        [Input("ports")]
         private InputList<StarRocksClusterSpecStarrockscnspecServicePortsArgs>? _ports;
         public InputList<StarRocksClusterSpecStarrockscnspecServicePortsArgs> Ports
         {
@@ -3696,12 +3330,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _ports = value;
         }
 
-        [Pulumi.Input("type")]
+        [Input("type")]
         public Input<string>? Type { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecServiceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecServiceArgs Empty => new StarRocksClusterSpecStarrockscnspecServiceArgs();
     }
 }
@@ -3713,23 +3344,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecServicePortsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecServicePortsArgs : ResourceArgs
     {
-        [Pulumi.Input("containerPort", required: true)]
+        [Input("containerPort", required: true)]
         public Input<int> ContainerPort { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("nodePort")]
+        [Input("nodePort")]
         public Input<int>? NodePort { get; set; }
 
-        [Pulumi.Input("port", required: true)]
+        [Input("port", required: true)]
         public Input<int> Port { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrockscnspecServicePortsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecServicePortsArgs Empty => new StarRocksClusterSpecStarrockscnspecServicePortsArgs();
     }
 }
@@ -3741,26 +3369,23 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrockscnspecTolerationsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrockscnspecTolerationsArgs : ResourceArgs
     {
-        [Pulumi.Input("effect")]
+        [Input("effect")]
         public Input<string>? Effect { get; set; }
 
-        [Pulumi.Input("key")]
+        [Input("key")]
         public Input<string>? Key { get; set; }
 
-        [Pulumi.Input("operator")]
+        [Input("operator")]
         public Input<string>? Operator { get; set; }
 
-        [Pulumi.Input("tolerationSeconds")]
+        [Input("tolerationSeconds")]
         public Input<int>? TolerationSeconds { get; set; }
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public Input<string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrockscnspecTolerationsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrockscnspecTolerationsArgs Empty => new StarRocksClusterSpecStarrockscnspecTolerationsArgs();
     }
 }
@@ -3772,20 +3397,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("nodeAffinity")]
+        [Input("nodeAffinity")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityArgs>? NodeAffinity { get; set; }
 
-        [Pulumi.Input("podAffinity")]
+        [Input("podAffinity")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityArgs>? PodAffinity { get; set; }
 
-        [Pulumi.Input("podAntiAffinity")]
+        [Input("podAntiAffinity")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityArgs>? PodAntiAffinity { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityArgs();
     }
 }
@@ -3797,9 +3419,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -3807,12 +3429,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs>? RequiredDuringSchedulingIgnoredDuringExecution { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityArgs();
     }
 }
@@ -3824,17 +3443,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("preference", required: true)]
+        [Input("preference", required: true)]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs> Preference { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -3846,9 +3462,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs> MatchExpressions
         {
@@ -3856,7 +3472,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchFields")]
+        [Input("matchFields")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs>? _matchFields;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs> MatchFields
         {
@@ -3864,9 +3480,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchFields = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceArgs();
     }
 }
@@ -3878,15 +3491,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -3894,9 +3507,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchexpressionsArgs();
     }
 }
@@ -3908,15 +3518,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -3924,9 +3534,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityPreferredduringschedulingignoredduringexecutionPreferenceMatchfieldsArgs();
     }
 }
@@ -3938,9 +3545,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("nodeSelectorTerms", required: true)]
+        [Input("nodeSelectorTerms", required: true)]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs>? _nodeSelectorTerms;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs> NodeSelectorTerms
         {
@@ -3948,9 +3555,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _nodeSelectorTerms = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -3962,9 +3566,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs> MatchExpressions
         {
@@ -3972,7 +3576,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchFields")]
+        [Input("matchFields")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs>? _matchFields;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs> MatchFields
         {
@@ -3980,9 +3584,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchFields = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsArgs();
     }
 }
@@ -3994,15 +3595,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4010,9 +3611,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchexpressionsArgs();
     }
 }
@@ -4024,15 +3622,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4040,9 +3638,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityNodeaffinityRequiredduringschedulingignoredduringexecutionNodeselectortermsMatchfieldsArgs();
     }
 }
@@ -4054,9 +3649,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -4064,7 +3659,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs>? _requiredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs> RequiredDuringSchedulingIgnoredDuringExecution
         {
@@ -4072,9 +3667,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requiredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityArgs();
     }
 }
@@ -4086,17 +3678,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("podAffinityTerm", required: true)]
+        [Input("podAffinityTerm", required: true)]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs> PodAffinityTerm { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -4108,15 +3697,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -4124,12 +3713,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs();
     }
 }
@@ -4141,9 +3727,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4151,7 +3737,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4159,9 +3745,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs();
     }
 }
@@ -4173,15 +3756,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4189,9 +3772,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs();
     }
 }
@@ -4203,9 +3783,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4213,7 +3793,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4221,9 +3801,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs();
     }
 }
@@ -4235,15 +3812,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4251,9 +3828,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -4265,15 +3839,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -4281,12 +3855,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -4298,9 +3869,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4308,7 +3879,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4316,9 +3887,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs();
     }
 }
@@ -4330,15 +3898,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4346,9 +3914,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs();
     }
 }
@@ -4360,9 +3925,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4370,7 +3935,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4378,9 +3943,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs();
     }
 }
@@ -4392,15 +3954,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4408,9 +3970,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -4422,9 +3981,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityArgs : ResourceArgs
     {
-        [Pulumi.Input("preferredDuringSchedulingIgnoredDuringExecution")]
+        [Input("preferredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs>? _preferredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs> PreferredDuringSchedulingIgnoredDuringExecution
         {
@@ -4432,7 +3991,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _preferredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        [Pulumi.Input("requiredDuringSchedulingIgnoredDuringExecution")]
+        [Input("requiredDuringSchedulingIgnoredDuringExecution")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs>? _requiredDuringSchedulingIgnoredDuringExecution;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs> RequiredDuringSchedulingIgnoredDuringExecution
         {
@@ -4440,9 +3999,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requiredDuringSchedulingIgnoredDuringExecution = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityArgs();
     }
 }
@@ -4454,17 +4010,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("podAffinityTerm", required: true)]
+        [Input("podAffinityTerm", required: true)]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs> PodAffinityTerm { get; set; } = null!;
 
-        [Pulumi.Input("weight", required: true)]
+        [Input("weight", required: true)]
         public Input<int> Weight { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -4476,15 +4029,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -4492,12 +4045,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermArgs();
     }
 }
@@ -4509,9 +4059,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4519,7 +4069,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4527,9 +4077,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorArgs();
     }
 }
@@ -4541,15 +4088,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4557,9 +4104,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermLabelselectorMatchexpressionsArgs();
     }
 }
@@ -4571,9 +4115,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4581,7 +4125,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4589,9 +4133,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorArgs();
     }
 }
@@ -4603,15 +4144,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4619,9 +4160,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityPreferredduringschedulingignoredduringexecutionPodaffinitytermNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -4633,15 +4171,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs : ResourceArgs
     {
-        [Pulumi.Input("labelSelector")]
+        [Input("labelSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs>? LabelSelector { get; set; }
 
-        [Pulumi.Input("namespaceSelector")]
+        [Input("namespaceSelector")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs>? NamespaceSelector { get; set; }
 
-        [Pulumi.Input("namespaces")]
+        [Input("namespaces")]
         private InputList<string>? _namespaces;
         public InputList<string> Namespaces
         {
@@ -4649,12 +4187,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _namespaces = value;
         }
 
-        [Pulumi.Input("topologyKey", required: true)]
+        [Input("topologyKey", required: true)]
         public Input<string> TopologyKey { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionArgs();
     }
 }
@@ -4666,9 +4201,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4676,7 +4211,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4684,9 +4219,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorArgs();
     }
 }
@@ -4698,15 +4230,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4714,9 +4246,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionLabelselectorMatchexpressionsArgs();
     }
 }
@@ -4728,9 +4257,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs : ResourceArgs
     {
-        [Pulumi.Input("matchExpressions")]
+        [Input("matchExpressions")]
         private InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs>? _matchExpressions;
         public InputList<StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs> MatchExpressions
         {
@@ -4738,7 +4267,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchExpressions = value;
         }
 
-        [Pulumi.Input("matchLabels")]
+        [Input("matchLabels")]
         private InputMap<string>? _matchLabels;
         public InputMap<string> MatchLabels
         {
@@ -4746,9 +4275,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _matchLabels = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorArgs();
     }
 }
@@ -4760,15 +4286,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("operator", required: true)]
+        [Input("operator", required: true)]
         public Input<string> Operator { get; set; } = null!;
 
-        [Pulumi.Input("values")]
+        [Input("values")]
         private InputList<string>? _values;
         public InputList<string> Values
         {
@@ -4776,9 +4302,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _values = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs Empty => new StarRocksClusterSpecStarrocksfespecAffinityPodantiaffinityRequiredduringschedulingignoredduringexecutionNamespaceselectorMatchexpressionsArgs();
     }
 }
@@ -4790,12 +4313,12 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecArgs : ResourceArgs
     {
-        [Pulumi.Input("affinity")]
+        [Input("affinity")]
         public Input<StarRocksClusterSpecStarrocksfespecAffinityArgs>? Affinity { get; set; }
 
-        [Pulumi.Input("annotations")]
+        [Input("annotations")]
         private InputMap<string>? _annotations;
         public InputMap<string> Annotations
         {
@@ -4803,10 +4326,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _annotations = value;
         }
 
-        [Pulumi.Input("configMapInfo")]
+        [Input("configMapInfo")]
         public Input<StarRocksClusterSpecStarrocksfespecConfigmapinfoArgs>? ConfigMapInfo { get; set; }
 
-        [Pulumi.Input("feEnvVars")]
+        [Input("feEnvVars")]
         private InputList<StarRocksClusterSpecStarrocksfespecFeenvvarsArgs>? _feEnvVars;
         public InputList<StarRocksClusterSpecStarrocksfespecFeenvvarsArgs> FeEnvVars
         {
@@ -4814,10 +4337,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _feEnvVars = value;
         }
 
-        [Pulumi.Input("fsGroup")]
+        [Input("fsGroup")]
         public Input<int>? FsGroup { get; set; }
 
-        [Pulumi.Input("hostAliases")]
+        [Input("hostAliases")]
         private InputList<StarRocksClusterSpecStarrocksfespecHostaliasesArgs>? _hostAliases;
         public InputList<StarRocksClusterSpecStarrocksfespecHostaliasesArgs> HostAliases
         {
@@ -4825,10 +4348,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _hostAliases = value;
         }
 
-        [Pulumi.Input("image", required: true)]
+        [Input("image", required: true)]
         public Input<string> Image { get; set; } = null!;
 
-        [Pulumi.Input("imagePullSecrets")]
+        [Input("imagePullSecrets")]
         private InputList<StarRocksClusterSpecStarrocksfespecImagepullsecretsArgs>? _imagePullSecrets;
         public InputList<StarRocksClusterSpecStarrocksfespecImagepullsecretsArgs> ImagePullSecrets
         {
@@ -4836,7 +4359,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _imagePullSecrets = value;
         }
 
-        [Pulumi.Input("limits")]
+        [Input("limits")]
         private InputMap<Union<int, string>>? _limits;
         public InputMap<Union<int, string>> Limits
         {
@@ -4844,10 +4367,10 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _limits = value;
         }
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("nodeSelector")]
+        [Input("nodeSelector")]
         private InputMap<string>? _nodeSelector;
         public InputMap<string> NodeSelector
         {
@@ -4855,7 +4378,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _nodeSelector = value;
         }
 
-        [Pulumi.Input("podLabels")]
+        [Input("podLabels")]
         private InputMap<string>? _podLabels;
         public InputMap<string> PodLabels
         {
@@ -4863,13 +4386,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _podLabels = value;
         }
 
-        [Pulumi.Input("probe")]
+        [Input("probe")]
         public Input<StarRocksClusterSpecStarrocksfespecProbeArgs>? Probe { get; set; }
 
-        [Pulumi.Input("replicas")]
+        [Input("replicas")]
         public Input<int>? Replicas { get; set; }
 
-        [Pulumi.Input("requests")]
+        [Input("requests")]
         private InputMap<Union<int, string>>? _requests;
         public InputMap<Union<int, string>> Requests
         {
@@ -4877,13 +4400,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _requests = value;
         }
 
-        [Pulumi.Input("service")]
+        [Input("service")]
         public Input<StarRocksClusterSpecStarrocksfespecServiceArgs>? Service { get; set; }
 
-        [Pulumi.Input("serviceAccount")]
+        [Input("serviceAccount")]
         public Input<string>? ServiceAccount { get; set; }
 
-        [Pulumi.Input("storageVolumes")]
+        [Input("storageVolumes")]
         private InputList<StarRocksClusterSpecStarrocksfespecStoragevolumesArgs>? _storageVolumes;
         public InputList<StarRocksClusterSpecStarrocksfespecStoragevolumesArgs> StorageVolumes
         {
@@ -4891,7 +4414,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _storageVolumes = value;
         }
 
-        [Pulumi.Input("tolerations")]
+        [Input("tolerations")]
         private InputList<StarRocksClusterSpecStarrocksfespecTolerationsArgs>? _tolerations;
         public InputList<StarRocksClusterSpecStarrocksfespecTolerationsArgs> Tolerations
         {
@@ -4899,9 +4422,6 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _tolerations = value;
         }
 
-        public StarRocksClusterSpecStarrocksfespecArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecArgs Empty => new StarRocksClusterSpecStarrocksfespecArgs();
     }
 }
@@ -4913,17 +4433,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecConfigmapinfoArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecConfigmapinfoArgs : ResourceArgs
     {
-        [Pulumi.Input("configMapName")]
+        [Input("configMapName")]
         public Input<string>? ConfigMapName { get; set; }
 
-        [Pulumi.Input("resolveKey")]
+        [Input("resolveKey")]
         public Input<string>? ResolveKey { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecConfigmapinfoArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecConfigmapinfoArgs Empty => new StarRocksClusterSpecStarrocksfespecConfigmapinfoArgs();
     }
 }
@@ -4935,20 +4452,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecFeenvvarsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecFeenvvarsArgs : ResourceArgs
     {
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public Input<string>? Value { get; set; }
 
-        [Pulumi.Input("valueFrom")]
+        [Input("valueFrom")]
         public Input<StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromArgs>? ValueFrom { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecFeenvvarsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecFeenvvarsArgs Empty => new StarRocksClusterSpecStarrocksfespecFeenvvarsArgs();
     }
 }
@@ -4960,23 +4474,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromArgs : ResourceArgs
     {
-        [Pulumi.Input("configMapKeyRef")]
+        [Input("configMapKeyRef")]
         public Input<StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromConfigmapkeyrefArgs>? ConfigMapKeyRef { get; set; }
 
-        [Pulumi.Input("fieldRef")]
+        [Input("fieldRef")]
         public Input<StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromFieldrefArgs>? FieldRef { get; set; }
 
-        [Pulumi.Input("resourceFieldRef")]
+        [Input("resourceFieldRef")]
         public Input<StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromResourcefieldrefArgs>? ResourceFieldRef { get; set; }
 
-        [Pulumi.Input("secretKeyRef")]
+        [Input("secretKeyRef")]
         public Input<StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromSecretkeyrefArgs>? SecretKeyRef { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromArgs Empty => new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromArgs();
     }
 }
@@ -4988,20 +4499,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromConfigmapkeyrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromConfigmapkeyrefArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("optional")]
+        [Input("optional")]
         public Input<bool>? Optional { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromConfigmapkeyrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromConfigmapkeyrefArgs Empty => new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromConfigmapkeyrefArgs();
     }
 }
@@ -5013,17 +4521,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromFieldrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromFieldrefArgs : ResourceArgs
     {
-        [Pulumi.Input("apiVersion")]
+        [Input("apiVersion")]
         public Input<string>? ApiVersion { get; set; }
 
-        [Pulumi.Input("fieldPath", required: true)]
+        [Input("fieldPath", required: true)]
         public Input<string> FieldPath { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromFieldrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromFieldrefArgs Empty => new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromFieldrefArgs();
     }
 }
@@ -5035,20 +4540,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromResourcefieldrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromResourcefieldrefArgs : ResourceArgs
     {
-        [Pulumi.Input("containerName")]
+        [Input("containerName")]
         public Input<string>? ContainerName { get; set; }
 
-        [Pulumi.Input("divisor")]
+        [Input("divisor")]
         public InputUnion<int, string>? Divisor { get; set; }
 
-        [Pulumi.Input("resource", required: true)]
+        [Input("resource", required: true)]
         public Input<string> Resource { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromResourcefieldrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromResourcefieldrefArgs Empty => new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromResourcefieldrefArgs();
     }
 }
@@ -5060,20 +4562,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromSecretkeyrefArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromSecretkeyrefArgs : ResourceArgs
     {
-        [Pulumi.Input("key", required: true)]
+        [Input("key", required: true)]
         public Input<string> Key { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("optional")]
+        [Input("optional")]
         public Input<bool>? Optional { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromSecretkeyrefArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromSecretkeyrefArgs Empty => new StarRocksClusterSpecStarrocksfespecFeenvvarsValuefromSecretkeyrefArgs();
     }
 }
@@ -5085,9 +4584,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecHostaliasesArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecHostaliasesArgs : ResourceArgs
     {
-        [Pulumi.Input("hostnames")]
+        [Input("hostnames")]
         private InputList<string>? _hostnames;
         public InputList<string> Hostnames
         {
@@ -5095,12 +4594,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _hostnames = value;
         }
 
-        [Pulumi.Input("ip")]
+        [Input("ip")]
         public Input<string>? Ip { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecHostaliasesArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecHostaliasesArgs Empty => new StarRocksClusterSpecStarrocksfespecHostaliasesArgs();
     }
 }
@@ -5112,14 +4608,11 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecImagepullsecretsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecImagepullsecretsArgs : ResourceArgs
     {
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecImagepullsecretsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecImagepullsecretsArgs Empty => new StarRocksClusterSpecStarrocksfespecImagepullsecretsArgs();
     }
 }
@@ -5131,20 +4624,17 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecProbeArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecProbeArgs : ResourceArgs
     {
-        [Pulumi.Input("initialDelaySeconds")]
+        [Input("initialDelaySeconds")]
         public Input<int>? InitialDelaySeconds { get; set; }
 
-        [Pulumi.Input("periodSeconds")]
+        [Input("periodSeconds")]
         public Input<int>? PeriodSeconds { get; set; }
 
-        [Pulumi.Input("type", required: true)]
+        [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecProbeArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecProbeArgs Empty => new StarRocksClusterSpecStarrocksfespecProbeArgs();
     }
 }
@@ -5156,15 +4646,15 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecServiceArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecServiceArgs : ResourceArgs
     {
-        [Pulumi.Input("loadBalancerIP")]
-        public Input<string>? LoadBalancerIP { get; set; }
+        [Input("loadBalancerIP")]
+        public Input<string>? LoadBalancerIp { get; set; }
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("ports")]
+        [Input("ports")]
         private InputList<StarRocksClusterSpecStarrocksfespecServicePortsArgs>? _ports;
         public InputList<StarRocksClusterSpecStarrocksfespecServicePortsArgs> Ports
         {
@@ -5172,12 +4662,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _ports = value;
         }
 
-        [Pulumi.Input("type")]
+        [Input("type")]
         public Input<string>? Type { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecServiceArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecServiceArgs Empty => new StarRocksClusterSpecStarrocksfespecServiceArgs();
     }
 }
@@ -5189,23 +4676,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecServicePortsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecServicePortsArgs : ResourceArgs
     {
-        [Pulumi.Input("containerPort", required: true)]
+        [Input("containerPort", required: true)]
         public Input<int> ContainerPort { get; set; } = null!;
 
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("nodePort")]
+        [Input("nodePort")]
         public Input<int>? NodePort { get; set; }
 
-        [Pulumi.Input("port", required: true)]
+        [Input("port", required: true)]
         public Input<int> Port { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecServicePortsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecServicePortsArgs Empty => new StarRocksClusterSpecStarrocksfespecServicePortsArgs();
     }
 }
@@ -5217,23 +4701,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecStoragevolumesArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecStoragevolumesArgs : ResourceArgs
     {
-        [Pulumi.Input("mountPath")]
+        [Input("mountPath")]
         public Input<string>? MountPath { get; set; }
 
-        [Pulumi.Input("name", required: true)]
+        [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Pulumi.Input("storageClassName")]
+        [Input("storageClassName")]
         public Input<string>? StorageClassName { get; set; }
 
-        [Pulumi.Input("storageSize", required: true)]
+        [Input("storageSize", required: true)]
         public Input<string> StorageSize { get; set; } = null!;
 
-        public StarRocksClusterSpecStarrocksfespecStoragevolumesArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecStoragevolumesArgs Empty => new StarRocksClusterSpecStarrocksfespecStoragevolumesArgs();
     }
 }
@@ -5245,26 +4726,23 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterSpecStarrocksfespecTolerationsArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterSpecStarrocksfespecTolerationsArgs : ResourceArgs
     {
-        [Pulumi.Input("effect")]
+        [Input("effect")]
         public Input<string>? Effect { get; set; }
 
-        [Pulumi.Input("key")]
+        [Input("key")]
         public Input<string>? Key { get; set; }
 
-        [Pulumi.Input("operator")]
+        [Input("operator")]
         public Input<string>? Operator { get; set; }
 
-        [Pulumi.Input("tolerationSeconds")]
+        [Input("tolerationSeconds")]
         public Input<int>? TolerationSeconds { get; set; }
 
-        [Pulumi.Input("value")]
+        [Input("value")]
         public Input<string>? Value { get; set; }
 
-        public StarRocksClusterSpecStarrocksfespecTolerationsArgs()
-        {
-        }
         public static new StarRocksClusterSpecStarrocksfespecTolerationsArgs Empty => new StarRocksClusterSpecStarrocksfespecTolerationsArgs();
     }
 }
@@ -5276,23 +4754,20 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterStatusArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterStatusArgs : ResourceArgs
     {
-        [Pulumi.Input("phase", required: true)]
+        [Input("phase", required: true)]
         public Input<string> Phase { get; set; } = null!;
 
-        [Pulumi.Input("starRocksBeStatus")]
+        [Input("starRocksBeStatus")]
         public Input<StarRocksClusterStatusStarrocksbestatusArgs>? StarRocksBeStatus { get; set; }
 
-        [Pulumi.Input("starRocksCnStatus")]
+        [Input("starRocksCnStatus")]
         public Input<StarRocksClusterStatusStarrockscnstatusArgs>? StarRocksCnStatus { get; set; }
 
-        [Pulumi.Input("starRocksFeStatus")]
+        [Input("starRocksFeStatus")]
         public Input<StarRocksClusterStatusStarrocksfestatusArgs>? StarRocksFeStatus { get; set; }
 
-        public StarRocksClusterStatusArgs()
-        {
-        }
         public static new StarRocksClusterStatusArgs Empty => new StarRocksClusterStatusArgs();
     }
 }
@@ -5304,9 +4779,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterStatusStarrocksbestatusArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterStatusStarrocksbestatusArgs : ResourceArgs
     {
-        [Pulumi.Input("creatingInstances")]
+        [Input("creatingInstances")]
         private InputList<string>? _creatingInstances;
         public InputList<string> CreatingInstances
         {
@@ -5314,7 +4789,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _creatingInstances = value;
         }
 
-        [Pulumi.Input("failedInstances")]
+        [Input("failedInstances")]
         private InputList<string>? _failedInstances;
         public InputList<string> FailedInstances
         {
@@ -5322,13 +4797,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _failedInstances = value;
         }
 
-        [Pulumi.Input("phase", required: true)]
+        [Input("phase", required: true)]
         public Input<string> Phase { get; set; } = null!;
 
-        [Pulumi.Input("reason")]
+        [Input("reason")]
         public Input<string>? Reason { get; set; }
 
-        [Pulumi.Input("resourceNames")]
+        [Input("resourceNames")]
         private InputList<string>? _resourceNames;
         public InputList<string> ResourceNames
         {
@@ -5336,7 +4811,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _resourceNames = value;
         }
 
-        [Pulumi.Input("runningInstances")]
+        [Input("runningInstances")]
         private InputList<string>? _runningInstances;
         public InputList<string> RunningInstances
         {
@@ -5344,12 +4819,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _runningInstances = value;
         }
 
-        [Pulumi.Input("serviceName")]
+        [Input("serviceName")]
         public Input<string>? ServiceName { get; set; }
 
-        public StarRocksClusterStatusStarrocksbestatusArgs()
-        {
-        }
         public static new StarRocksClusterStatusStarrocksbestatusArgs Empty => new StarRocksClusterStatusStarrocksbestatusArgs();
     }
 }
@@ -5361,9 +4833,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterStatusStarrockscnstatusArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterStatusStarrockscnstatusArgs : ResourceArgs
     {
-        [Pulumi.Input("creatingInstances")]
+        [Input("creatingInstances")]
         private InputList<string>? _creatingInstances;
         public InputList<string> CreatingInstances
         {
@@ -5371,7 +4843,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _creatingInstances = value;
         }
 
-        [Pulumi.Input("failedInstances")]
+        [Input("failedInstances")]
         private InputList<string>? _failedInstances;
         public InputList<string> FailedInstances
         {
@@ -5379,19 +4851,19 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _failedInstances = value;
         }
 
-        [Pulumi.Input("horizontalScaler")]
+        [Input("horizontalScaler")]
         public Input<StarRocksClusterStatusStarrockscnstatusHorizontalscalerArgs>? HorizontalScaler { get; set; }
 
-        [Pulumi.Input("hpaName")]
+        [Input("hpaName")]
         public Input<string>? HpaName { get; set; }
 
-        [Pulumi.Input("phase", required: true)]
+        [Input("phase", required: true)]
         public Input<string> Phase { get; set; } = null!;
 
-        [Pulumi.Input("reason")]
+        [Input("reason")]
         public Input<string>? Reason { get; set; }
 
-        [Pulumi.Input("resourceNames")]
+        [Input("resourceNames")]
         private InputList<string>? _resourceNames;
         public InputList<string> ResourceNames
         {
@@ -5399,7 +4871,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _resourceNames = value;
         }
 
-        [Pulumi.Input("runningInstances")]
+        [Input("runningInstances")]
         private InputList<string>? _runningInstances;
         public InputList<string> RunningInstances
         {
@@ -5407,12 +4879,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _runningInstances = value;
         }
 
-        [Pulumi.Input("serviceName")]
+        [Input("serviceName")]
         public Input<string>? ServiceName { get; set; }
 
-        public StarRocksClusterStatusStarrockscnstatusArgs()
-        {
-        }
         public static new StarRocksClusterStatusStarrockscnstatusArgs Empty => new StarRocksClusterStatusStarrockscnstatusArgs();
     }
 }
@@ -5424,17 +4893,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterStatusStarrockscnstatusHorizontalscalerArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterStatusStarrockscnstatusHorizontalscalerArgs : ResourceArgs
     {
-        [Pulumi.Input("name")]
+        [Input("name")]
         public Input<string>? Name { get; set; }
 
-        [Pulumi.Input("version")]
+        [Input("version")]
         public Input<string>? Version { get; set; }
 
-        public StarRocksClusterStatusStarrockscnstatusHorizontalscalerArgs()
-        {
-        }
         public static new StarRocksClusterStatusStarrockscnstatusHorizontalscalerArgs Empty => new StarRocksClusterStatusStarrockscnstatusHorizontalscalerArgs();
     }
 }
@@ -5446,9 +4912,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
 {
 
-    public class StarRocksClusterStatusStarrocksfestatusArgs : global::Pulumi.ResourceArgs
+    public class StarRocksClusterStatusStarrocksfestatusArgs : ResourceArgs
     {
-        [Pulumi.Input("creatingInstances")]
+        [Input("creatingInstances")]
         private InputList<string>? _creatingInstances;
         public InputList<string> CreatingInstances
         {
@@ -5456,7 +4922,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _creatingInstances = value;
         }
 
-        [Pulumi.Input("failedInstances")]
+        [Input("failedInstances")]
         private InputList<string>? _failedInstances;
         public InputList<string> FailedInstances
         {
@@ -5464,13 +4930,13 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _failedInstances = value;
         }
 
-        [Pulumi.Input("phase", required: true)]
+        [Input("phase", required: true)]
         public Input<string> Phase { get; set; } = null!;
 
-        [Pulumi.Input("reason")]
+        [Input("reason")]
         public Input<string>? Reason { get; set; }
 
-        [Pulumi.Input("resourceNames")]
+        [Input("resourceNames")]
         private InputList<string>? _resourceNames;
         public InputList<string> ResourceNames
         {
@@ -5478,7 +4944,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _resourceNames = value;
         }
 
-        [Pulumi.Input("runningInstances")]
+        [Input("runningInstances")]
         private InputList<string>? _runningInstances;
         public InputList<string> RunningInstances
         {
@@ -5486,12 +4952,9 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Inputs
             set => _runningInstances = value;
         }
 
-        [Pulumi.Input("serviceName")]
+        [Input("serviceName")]
         public Input<string>? ServiceName { get; set; }
 
-        public StarRocksClusterStatusStarrocksfestatusArgs()
-        {
-        }
         public static new StarRocksClusterStatusStarrocksfestatusArgs Empty => new StarRocksClusterStatusStarrocksfestatusArgs();
     }
 }
