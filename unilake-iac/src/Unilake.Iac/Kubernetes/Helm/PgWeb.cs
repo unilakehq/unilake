@@ -11,9 +11,9 @@ namespace Unilake.Iac.Kubernetes.Helm;
 public class PgWeb : KubernetesComponentResource
 {
     [Output("name")] 
-    public Output<string> Name { get; private set; }
+    public Output<string>? Name { get; private set; }
 
-    public Service @Service { get; private set; }
+    public Service? @Service { get; private set; }
 
     public PgWeb(KubernetesEnvironmentContext ctx, PostgreSql postgreSql, string databaseName, Namespace? @namespace = null,
         string name = "pgweb", ComponentResourceOptions? options = null, bool checkNamingConvention = true)

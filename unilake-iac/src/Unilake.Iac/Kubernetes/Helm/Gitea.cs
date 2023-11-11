@@ -10,12 +10,12 @@ namespace Unilake.Iac.Kubernetes.Helm;
 
 public class Gitea : KubernetesComponentResource
 {
-    public Gitea(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, GiteaArgs? inputArgs = null, 
+    public Gitea(KubernetesEnvironmentContext ctx, GiteaArgs inputArgs, Namespace? @namespace = null, 
         string name = "gitea", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:helm:gitea", name, options, checkNamingConvention)
     {
-        // Check input
-        inputArgs ??= new GiteaArgs();
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
 
         // Set default options
         var resourceOptions = CreateOptions(options);
@@ -79,10 +79,6 @@ public class Gitea : KubernetesComponentResource
                                 inputArgs.RedisDatabase.Apply(x => x.ToString()))
                                 .Apply(x => $"redis://:{x[0]}@{x[1]}:{x[2]}/{x[3]}?pool_size=100&idle_timeout=180s")
                         },
-                        // ["session"] = new Dictionary<string, object>
-                        // {
-                        //     ["PROVIDER"] = "redis"
-                        // }
                     }
                 },
                 ["postgresql"] = new Dictionary<string, object>
@@ -118,9 +114,6 @@ public class Gitea : KubernetesComponentResource
         var giteaInstance = new Release(name, releaseArgs, resourceOptions);
 
         // Get output
-        var status = giteaInstance.Status;
-        // var service = Service.Get(name, Output.All(status).Apply(
-        //         s => $"{s[0].Namespace}/{s[0].Name}"),
-        //     resourceOptions);
+        var _ = giteaInstance.Status;
     }
 }

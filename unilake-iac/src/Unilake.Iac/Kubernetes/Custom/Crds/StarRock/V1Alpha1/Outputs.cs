@@ -1372,14 +1372,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Outputs
     [OutputType]
     public sealed class StarRocksClusterSpecStarrocksbespecService
     {
-        public readonly string LoadBalancerIP;
+        public readonly string LoadBalancerIp;
         public readonly string Name;
         public readonly ImmutableArray<StarRocksClusterSpecStarrocksbespecServicePorts> Ports;
         public readonly string Type;
 
         [OutputConstructor]
         private StarRocksClusterSpecStarrocksbespecService(
-            string loadBalancerIP,
+            string loadBalancerIp,
 
             string name,
 
@@ -1387,7 +1387,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Outputs
 
             string type)
         {
-            LoadBalancerIP = loadBalancerIP;
+            LoadBalancerIp = loadBalancerIp;
             Name = name;
             Ports = ports;
             Type = type;
@@ -3649,14 +3649,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Outputs
     [OutputType]
     public sealed class StarRocksClusterSpecStarrockscnspecService
     {
-        public readonly string LoadBalancerIP;
+        public readonly string LoadBalancerIp;
         public readonly string Name;
         public readonly ImmutableArray<StarRocksClusterSpecStarrockscnspecServicePorts> Ports;
         public readonly string Type;
 
         [OutputConstructor]
         private StarRocksClusterSpecStarrockscnspecService(
-            string loadBalancerIP,
+            string loadBalancerIp,
 
             string name,
 
@@ -3664,7 +3664,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Outputs
 
             string type)
         {
-            LoadBalancerIP = loadBalancerIP;
+            LoadBalancerIp = loadBalancerIp;
             Name = name;
             Ports = ports;
             Type = type;
@@ -5080,14 +5080,14 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Outputs
     [OutputType]
     public sealed class StarRocksClusterSpecStarrocksfespecService
     {
-        public readonly string LoadBalancerIP;
+        public readonly string LoadBalancerIp;
         public readonly string Name;
         public readonly ImmutableArray<StarRocksClusterSpecStarrocksfespecServicePorts> Ports;
         public readonly string Type;
 
         [OutputConstructor]
         private StarRocksClusterSpecStarrocksfespecService(
-            string loadBalancerIP,
+            string loadBalancerIp,
 
             string name,
 
@@ -5095,7 +5095,7 @@ namespace Unilake.Iac.Kubernetes.Custom.Crds.StarRock.V1Alpha1.Outputs
 
             string type)
         {
-            LoadBalancerIP = loadBalancerIP;
+            LoadBalancerIp = loadBalancerIp;
             Name = name;
             Ports = ports;
             Type = type;

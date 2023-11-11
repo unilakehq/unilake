@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Cli", "Unilake.Cli\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Cli.Tests", "Unilake.Cli.Tests\Unilake.Cli.Tests.csproj", "{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.Iac", "..\..\unilake-iac\src\Unilake.Iac\Unilake.Iac.csproj", "{FC2F1045-B0FB-456E-B56B-8E9031FE000C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7FFDE4E9-9EC3-4F0A-866C-C9C7D32F9AED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC2F1045-B0FB-456E-B56B-8E9031FE000C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC2F1045-B0FB-456E-B56B-8E9031FE000C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC2F1045-B0FB-456E-B56B-8E9031FE000C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC2F1045-B0FB-456E-B56B-8E9031FE000C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

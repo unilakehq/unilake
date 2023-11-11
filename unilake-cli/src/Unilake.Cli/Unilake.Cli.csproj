@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="Pulumi.Automation" Version="3.57.0" />
+    <PackageReference Include="Pulumi.Automation" Version="3.58.0" />
     <PackageReference Include="Spectre.Console" Version="0.47.0" />
     <PackageReference Include="YamlDotNet" Version="13.7.1" />
   </ItemGroup>

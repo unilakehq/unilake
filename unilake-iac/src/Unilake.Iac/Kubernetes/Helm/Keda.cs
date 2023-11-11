@@ -11,7 +11,7 @@ namespace Unilake.Iac.Kubernetes.Helm;
 /// </summary>
 public class Keda : KubernetesComponentResource
 {
-    public Keda(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, KedaArgs? inputArgs = null, 
+    public Keda(KubernetesEnvironmentContext ctx, KedaArgs inputArgs, Namespace? @namespace = null, 
         string name = "keda", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:helm:keda", name, options, checkNamingConvention)
     {
@@ -19,10 +19,10 @@ public class Keda : KubernetesComponentResource
         // see: https://keda.sh/docs/2.8/deploy/
         // what will be needed, is a scaled object spec, which is a custom type to deploy : https://keda.sh/docs/2.8/concepts/scaling-deployments/#overview
 
-        // Check input arguments
-        inputArgs ??= new KedaArgs();
-
-        // Set default options
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
+        
+        // set default options
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
         resourceOptions.Provider = ctx.Provider;
@@ -69,6 +69,6 @@ public class Keda : KubernetesComponentResource
         var kedaInstance = new Release(name, releaseArgs, resourceOptions);
 
         // Get output
-        var status = kedaInstance.Status;
+        var _ = kedaInstance.Status;
     }
 }

@@ -26,7 +26,7 @@ public class MinioArgsBucket
     /// <summary>
     /// Name of the bucket
     /// </summary>
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     /// <summary>
     /// Policy to be set on the bucket

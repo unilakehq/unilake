@@ -20,12 +20,12 @@ public class OpenSearch : KubernetesComponentResource
     /// </summary>
     public Secret @Secret { get; private set; }
 
-    public OpenSearch(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, OpenSearchArgs? inputArgs = null, 
+    public OpenSearch(KubernetesEnvironmentContext ctx, OpenSearchArgs inputArgs, Namespace? @namespace = null, 
         string name = "opensearch", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
             : base("pkg:kubernetes:helm:opensearch", name, options, checkNamingConvention)
     {
-        // Check input
-        inputArgs ??= new OpenSearchArgs();
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
 
         // Set default options
         var resourceOptions = CreateOptions(options);
@@ -67,14 +67,7 @@ public class OpenSearch : KubernetesComponentResource
 
         // Check if a private registry is used
         if(inputArgs.UsePrivateRegsitry)
-        {
             throw new NotImplementedException("Private registry is not implemented yet");
-            var registrySecret = CreateRegistrySecret(ctx, resourceOptions, @namespace.Metadata.Apply(x => x.Name));
-            releaseArgs.Values.Add("imagePullSecrets", new [] {registrySecret.Metadata.Apply(x => x.Name)});
-            string PrivateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
-            releaseArgs.Values.Add("image.repository", releaseArgs.Values.Apply(x => PrivateRegistryBase + x["image.repository"] ));
-            releaseArgs.Values.Add("mcImage.repository", releaseArgs.Values.Apply(x => PrivateRegistryBase + x["mcImage.repository"] ));
-        }
 
         // Create the minio instance
         var opensearchInstance = new Release(name, releaseArgs, resourceOptions);

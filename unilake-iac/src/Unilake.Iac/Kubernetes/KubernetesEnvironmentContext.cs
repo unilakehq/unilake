@@ -9,7 +9,7 @@ namespace Unilake.Iac.Kubernetes;
 /// </summary>
 public class KubernetesEnvironmentContext : EnvironmentContext
 {
-    public Provider Provider { get; protected set; }
+    public Provider? Provider { get; protected set; }
 
     /// <summary>
     /// If needed, set a default namespace where resources should deployed into
@@ -73,9 +73,7 @@ public class KubernetesEnvironmentContext : EnvironmentContext
     /// <summary>
     /// Get a config value from either an environment variable or pulumi config value as secret
     /// </summary>
-    public Output<string> GetConfigSecret(string name) => Output.CreateSecret(System.Environment.GetEnvironmentVariable(name))
-        ?? Config.GetSecret(name)
-        ?? throw new ArgumentException($"Cannot find config secret {name}");
+    public Output<string?> GetConfigSecret(string name) => Output.CreateSecret(System.Environment.GetEnvironmentVariable(name));
 
 
     /// <summary>
@@ -83,6 +81,6 @@ public class KubernetesEnvironmentContext : EnvironmentContext
     /// </summary>
     public Namespace GetNamespace(string name) => Namespace.Get(name, name, new CustomResourceOptions
     {
-        Provider = this.Provider
+        Provider = Provider
     });
 }

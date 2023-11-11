@@ -7,7 +7,7 @@ using Unilake.Iac.Kubernetes.Deployment;
 using Unilake.Iac.Kubernetes.Helm;
 using Unilake.Iac.Kubernetes.Helm.Input;
 
-namespace Unilake.Cli;
+namespace Unilake.Cli.Stacks;
 
 public sealed class Kubernetes : UnilakeStack
 {
@@ -32,7 +32,7 @@ public sealed class Kubernetes : UnilakeStack
         Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
 
         // Service dependencies
-        BoxyHQ? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace);
+        BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace);
         Iac.Kubernetes.Helm.Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
         StarRockCluster? starRockCluster = CreateStarRocksCluster(kubernetesContext, @namespace);
         Unilake.Iac.Kubernetes.Helm.Nessie? nessie = null;
@@ -77,7 +77,7 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Cloud?.Kubernetes?.DataLake?.Minio?.Enabled ?? false)
         {
             var minioConfig = Config.Cloud.Kubernetes.DataLake.Minio;
-            return new Minio(kubernetesEnvironmentContext, @namespace, new MinioArgs
+            return new Minio(kubernetesEnvironmentContext, new MinioArgs
             {
                 Replicas = minioConfig!.Replicas,
                 RootUser = minioConfig.RootUser!,
@@ -90,7 +90,7 @@ public sealed class Kubernetes : UnilakeStack
                     Purge = x.Purge,
                     Versioning = x.Versioning
                 }).ToArray()
-            });
+            }, @namespace);
         }
         return null;
     }
@@ -100,10 +100,10 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Cloud?.Kubernetes?.Kafka?.Enabled ?? false)
         {
             var kafkaConfig = Config.Cloud.Kubernetes.Kafka;
-            return new Kafka(kubernetesEnvironmentContext, @namespace, new KafkaInputArgs
+            return new Kafka(kubernetesEnvironmentContext, new KafkaInputArgs
             {
                 SchemaRegistryUrl = kafkaConfig.SchemaRegistry!
-            });
+            }, @namespace);
         }
         return null;
     }
@@ -113,10 +113,10 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Cloud?.Kubernetes?.Opensearch?.Enabled ?? false)
         {
             var openSearchConf = Config.Cloud.Kubernetes.Opensearch;
-            return new OpenSearch(kubernetesEnvironmentContext, @namespace, new OpenSearchArgs
+            return new OpenSearch(kubernetesEnvironmentContext, new OpenSearchArgs
             {
                 SingleNode = openSearchConf.SingleNode
-            });
+            }, @namespace);
         }
         return null;
     }
@@ -126,10 +126,10 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Cloud?.Kubernetes?.Redis?.Enabled ?? false)
         {
             //var _ = Config.Cloud.Kubernetes.Redis;
-            return new Redis(kubernetesEnvironmentContext, @namespace, new RedisArgs
+            return new Redis(kubernetesEnvironmentContext, new RedisArgs
             {
                 // Nothing?
-            });
+            }, @namespace);
         }
 
         return null;
@@ -140,13 +140,13 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Cloud?.Kubernetes?.Postgresql?.Enabled ?? false)
         {
             var postgresqlConf = Config.Cloud.Kubernetes.Postgresql;
-            return new PostgreSql(kubernetesEnvironmentContext, @namespace, new PostgreSqlArgs
+            return new PostgreSql(kubernetesEnvironmentContext, new PostgreSqlArgs
             {
                 AppName = "unilake",
                 DatabaseName = "",
                 Password = postgresqlConf.Password!,
                 Username = postgresqlConf.Username!
-            });
+            }, @namespace);
         }
 
         // TODO: check which databases need to be created and provide access to them (boxyhq, api, datahub, nessie etc.., or do in their respective functions to keep everything together?)
@@ -154,12 +154,12 @@ public sealed class Kubernetes : UnilakeStack
         return null;
     }
 
-    private BoxyHQ? CreateBoxyHqInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private BoxyHq? CreateBoxyHqInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
     {
         if(Config.Components?.Boxyhq?.Enabled ?? false)
         {
             var boxyhqConf = Config.Components.Boxyhq.Postgresql;
-            return new BoxyHQ(kubernetesEnvironmentContext, @namespace, new Iac.Kubernetes.Deployment.Input.BoxyHqInputArgs
+            return new BoxyHq(kubernetesEnvironmentContext, new Iac.Kubernetes.Deployment.Input.BoxyHqInputArgs
             { 
                 DbDatabaseName = boxyhqConf!.Schema!,
                 DbEndpoint = boxyhqConf.Host!,
@@ -167,7 +167,8 @@ public sealed class Kubernetes : UnilakeStack
                 DbPassword = boxyhqConf.Password!,
                 DbUsername = boxyhqConf.Username!,
                 DbPort = boxyhqConf.Port,
-            });
+                JacksonApiKey = Array.Empty<string>()
+            }, @namespace);
         }
 
         return null;
@@ -178,7 +179,7 @@ public sealed class Kubernetes : UnilakeStack
         if(Config.Components?.Datahub?.Enabled ?? false)
         {
             var datahubConfig = Config.Components.Datahub;
-            return new Iac.Kubernetes.Helm.Datahub(kubernetesEnvironmentContext, @namespace, new DatahubArgs
+            return new Iac.Kubernetes.Helm.Datahub(kubernetesEnvironmentContext, new DatahubArgs
             {
                 PostgreSqlDatabaseName = datahubConfig.Postgresql!.Schema!,
                 PostgreSqlHost = datahubConfig.Postgresql.Host!,
@@ -194,7 +195,7 @@ public sealed class Kubernetes : UnilakeStack
 
                 KafkaBootstrapServer = datahubConfig.Kafka!.Server!,
                 KafkaSchemaRegistryUrl = datahubConfig.Kafka.SchemaRegistry!,
-            });
+            }, @namespace);
         }
 
         return null;
