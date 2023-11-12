@@ -5,92 +5,130 @@ namespace Unilake.Iac;
 public class EnvironmentContext
 {
     public Config Config { get; } = new();
-    
+
     public EnvironmentContext()
     {
         
     }
 
-    protected EnvironmentContext(EnvironmentContext ctx) => new EnvironmentContext(ctx.Domain, ctx.Region,
-        ctx.CloudProvider, ctx.Environment, ctx.EnvironmentSequence, ctx.Tenant, ctx.ResourceSequence, ctx.CustomTags);
-
-    private EnvironmentContext(string domain = "", string region = "", string cloudProvider = "",
-        string environment = "",
-        int environmentSequence = 0, string tenant = "", int resourceSequence = 0,
-        Dictionary<string, string>? customTags = null)
+    protected EnvironmentContext(EnvironmentContext ctx)
     {
-        Domain = (string.IsNullOrWhiteSpace(domain) ? Domain : domain) ?? string.Empty;
-        Environment = string.IsNullOrWhiteSpace(environment) ? Environment : environment;
-        Region = string.IsNullOrWhiteSpace(region) ? Region : region;
-        EnvironmentSequence = environmentSequence > 0 ? environmentSequence : EnvironmentSequence;
-        Tenant = (string.IsNullOrWhiteSpace(tenant) ? Tenant : tenant) ?? string.Empty;
-        CloudProvider = string.IsNullOrWhiteSpace(cloudProvider) ? CloudProvider : cloudProvider;
-        ResourceSequence = resourceSequence > 0 ? resourceSequence : ResourceSequence;
-        CustomTags = customTags ?? CustomTags;
+        Tenant = ctx.Tenant;
+        Environment = ctx.Environment;
+        CloudProvider = ctx.CloudProvider;
+        CustomTags = ctx.CustomTags;
+        Domain = ctx.Domain;
+        Region = ctx.Region;
+        EnvironmentSequence = ctx.EnvironmentSequence;
+        ResourceSequence = ctx.ResourceSequence;
     }
-
+    
     /// <summary>
     ///     Derive the environment context from an existing name
     /// </summary>
     /// <param name="name"></param>
     public EnvironmentContext(string name)
     {
+        const int tenantIndex = 0;
+        const int domainIndex = 1;
+        const int environmentSequenceIndex = 2;
+        // Skipping index 3 as it is the resource name
+        const int environmentIndex = 4;
+        const int cloudProviderIndex = 5;
+        const int regionIndex = 6;
+        const int resourceSequenceIndex = 7;
+
         var items = name.Split('-');
-        for (var i = 0; i < items.Length; i++)
-            switch (i)
-            {
-                case 0:
-                    Tenant = items[i];
-                    break;
-                case 1:
-                    Domain = items[i];
-                    break;
-                case 2:
-                    EnvironmentSequence = int.Parse(items[i]);
-                    break;
-                case 3:
-                    // Skip, is resource name
-                    break;
-                case 4:
-                    Environment = items[i];
-                    break;
-                case 5:
-                    CloudProvider = items[i];
-                    break;
-                case 6:
-                    Region = items[i];
-                    break;
-                case 7:
-                    ResourceSequence = int.Parse(items[i]);
-                    break;
-                default:
-                    throw new Exception("Could not derive object based on name");
-            }
+        if (items.Length < 8) // Or use another appropriate check for the expected length
+            throw new ArgumentException($"The provided name '{name}' is not in the expected format.");
+
+        Tenant = items[tenantIndex];
+        Domain = items[domainIndex];
+
+        if (!int.TryParse(items[environmentSequenceIndex], out var environmentSequence))
+            throw new FormatException($"Environment sequence part '{items[environmentSequenceIndex]}' is not a valid integer.");
+        EnvironmentSequence = environmentSequence;
+
+        Environment = items[environmentIndex];
+        CloudProvider = items[cloudProviderIndex];
+        Region = items[regionIndex];
+
+        if (!int.TryParse(items[resourceSequenceIndex], out var resourceSequence))
+            throw new FormatException($"Resource sequence part '{items[resourceSequenceIndex]}' is not a valid integer.");
+        ResourceSequence = resourceSequence;
     }
 
-    public string Tenant { get; set; }
 
-    public int EnvironmentSequence { get; set; } = 1;
+    public EnvironmentContext WithTenantName(string name)
+    {
+        Tenant = name;
+        return this;
+    }
 
-    public string Domain { get; set; }
+    public EnvironmentContext WithEnvironmentSequence(int sequence)
+    {
+        EnvironmentSequence = sequence;
+        return this;
+    }
 
-    public string Environment { get; set; } = "D";
+    public EnvironmentContext WithDomainName(string name)
+    {
+        Domain = name;
+        return this;
+    }
 
-    public string CloudProvider { get; set; } = "KUBERNETES";
+    public EnvironmentContext WithEnvironment(string environment)
+    {
+        Environment = environment;
+        return this;
+    }
 
-    public string Region { get; set; } = "WE";
+    public EnvironmentContext WithCloudProvider(string cloudProvider)
+    {
+        CloudProvider = cloudProvider;
+        return this;
+    }
 
-    public int ResourceSequence { get; set; }
+    public EnvironmentContext WithRegion(string name)
+    {
+        Region = name;
+        return this;
+    }
 
-    public Dictionary<string, string> CustomTags { get; set; } = new();
+    public EnvironmentContext WithResourceSequence(int sequence)
+    {
+        ResourceSequence = sequence;
+        return this;
+    }
 
-    /// <summary>
-    /// Create a deep copy of this object, also allows you to make changes where needed
-    /// </summary>
-    /// <returns></returns>
-    public EnvironmentContext Copy(string domain = "", string region = "", string cloudProvider = "",
-        string environment = "",
-        int environmentSequence = 0, string tenant = "", int resourceSequence = 0,
-        Dictionary<string, string>? customTags = null) =>
-        new(domain, region, cloudProvider, environment, environmentSequence, tenant, resourceSequence, customTags);
+    public EnvironmentContext Copy()
+    {
+        return new EnvironmentContext
+        {
+            Domain = Domain,
+            Environment = Environment,
+            Region = Region,
+            CloudProvider = CloudProvider,
+            Tenant = Tenant,
+            EnvironmentSequence = EnvironmentSequence,
+            ResourceSequence = ResourceSequence,
+            CustomTags = CustomTags
+        };
+    }
+
+    public string Tenant { get; private set; } = string.Empty;
+
+    public int EnvironmentSequence { get; private set; } = 1;
+
+    public string Domain { get; private set; } = String.Empty;
+
+    public string Environment { get; private set; } = "D";
+
+    public string CloudProvider { get; private set; } = "KUBERNETES";
+
+    public string Region { get; private set; } = "WE";
+
+    public int ResourceSequence { get; private set; }
+
+    public Dictionary<string, string> CustomTags { get; private set; } = new();
 }

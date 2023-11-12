@@ -16,12 +16,12 @@ public class Redis : KubernetesComponentResource
 
     public Service @Service { get; private set; }
     
-    public Redis(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, RedisArgs? inputArgs = null, 
+    public Redis(KubernetesEnvironmentContext ctx, RedisArgs inputArgs, Namespace? @namespace = null, 
         string name = "redis", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:helm:redis", name, options, checkNamingConvention)
     {
-        // Check input
-        inputArgs ??= new RedisArgs();
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
 
         // Set default options
         var resourceOptions = CreateOptions(options);
@@ -42,21 +42,7 @@ public class Redis : KubernetesComponentResource
             {
                 Repo = "https://charts.bitnami.com/bitnami"
             },
-            Values =
-                new
-                    InputMap<object> // https://github.com/bitnami/charts/blob/main/bitnami/redis/values.yaml
-                    {
-                        // ["master"] = new Dictionary<string, object>
-                        // {
-                        //     ["podLabels"] = GetLabels(ctx, inputArgs.AppName, inputArgs.AppName, "redis", inputArgs.Version)
-                        // },
-                        // ["replica"] = new Dictionary<string, object>
-                        // {
-                        //     ["podLabels"] = GetLabels(ctx, inputArgs.AppName, inputArgs.AppName, "redis", inputArgs.Version)
-                        // },
-                        ["architecture"] = "standalone",
-                        //["commonLabels"] = GetLabels(ctx, inputArgs.AppName, null, "redis", inputArgs.Version)
-                    },
+            // https://github.com/bitnami/charts/blob/main/bitnami/redis/values.yaml
             // By default Release resource will wait till all created resources
             // are available. Set this to true to skip waiting on resources being
             // available.
@@ -67,8 +53,8 @@ public class Redis : KubernetesComponentResource
         if(inputArgs.UsePrivateRegsitry)
         {
             var registrySecret = CreateRegistrySecret(ctx, resourceOptions, @namespace.Metadata.Apply(x => x.Name));
-            string PrivateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
-            releaseArgs.Values.Add("global.imageRegistry", PrivateRegistryBase);
+            string privateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
+            releaseArgs.Values.Add("global.imageRegistry", privateRegistryBase);
             releaseArgs.Values.Add("global.imagePullSecrets", new [] {registrySecret.Metadata.Apply(x => x.Name)});
         }
 

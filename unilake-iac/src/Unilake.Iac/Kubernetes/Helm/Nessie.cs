@@ -16,24 +16,23 @@ public class Nessie : KubernetesComponentResource
     public Service @Service { get; private set; }
 
     
-    public Nessie(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, NessieArgs? inputArgs = null, string name = "nessie", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
+    public Nessie(KubernetesEnvironmentContext ctx, NessieArgs inputArgs, Namespace? @namespace = null, string name = "nessie", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
         : base("pkg:kubernetes:helm:nessie", name, options, checkNamingConvention)
     {
-        // Check input
-        inputArgs ??= new NessieArgs();
-
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
         if (inputArgs is { StoreType: "postgresql", PosgreSqlUsername: null, PostgreSqlPassword: null })
             throw new ArgumentException("Must specify both PosgreSqlUsername and PostgreSqlPassword when store type is PostgreSQL");
 
-        // Set default options
+        // set default options
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
         resourceOptions.Provider = ctx.Provider;
         
-        // Set namespace
+        // set namespace
         @namespace = SetNamespace(resourceOptions, name, @namespace);
         
-        //Get Nessie chart and add
+        //get Nessie chart and add
         var releaseArgs = new ReleaseArgs
         {
             Name = name,

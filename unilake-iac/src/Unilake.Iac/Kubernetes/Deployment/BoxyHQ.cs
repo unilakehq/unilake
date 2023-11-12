@@ -9,14 +9,16 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 
 /// <summary>
 /// TODO: some settings are missing to make everything work properly
+/// https://boxyhq.com/docs/jackson/deploy/service
 /// </summary>
-public class BoxyHQ : KubernetesDeploymentResource
+public class BoxyHq : KubernetesDeploymentResource
 {
-    public BoxyHQ(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, BoxyHqInputArgs? inputArgs = null,
+    public BoxyHq(KubernetesEnvironmentContext ctx, BoxyHqInputArgs inputArgs, Namespace? @namespace = null,
         string name = "boxyhq", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:deployment:boxyhq", name, options, checkNamingConvention)
     {
-        // See: https://boxyhq.com/docs/jackson/deploy/service
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
 
         // set default options
         var resourceOptions = CreateOptions(options);
@@ -25,7 +27,6 @@ public class BoxyHQ : KubernetesDeploymentResource
 
         // set resource
         string version = inputArgs?.Version ?? "latest";
-        var labels = GetLabels(ctx, name, inputArgs?.PartOf, "boxyhq", version);
 
         // Set namespace
         @namespace = SetNamespace(resourceOptions, name, @namespace);
@@ -33,14 +34,14 @@ public class BoxyHQ : KubernetesDeploymentResource
         // create secret
         CreateSecret(@namespace, name, GetLabels(ctx, name, inputArgs?.PartOf, "boxyhq", version), new InputMap<string>
         {
-            { "JACKSON_API_KEYS", inputArgs.JacksonApiKey.Apply(x => string.Join(",", x).EncodeBase64()) },
+            { "JACKSON_API_KEYS", inputArgs!.JacksonApiKey.Apply(x => string.Join(",", x).EncodeBase64()) },
             {
                 "DB_URL", Output.All(
                         inputArgs.DbUsername.ToOutput(),
                         inputArgs.DbPassword.ToOutput(),
                         inputArgs.DbEndpoint.ToOutput(),
                         inputArgs.DbPort.Apply(x => x.ToString()),
-                        inputArgs.DbDatabaseName.ToOutput<string>())
+                        inputArgs.DbDatabaseName.ToOutput())
                     .Apply(x =>
                         // postgres://admin:unknown@postgres:5432/app
                         $"{inputArgs.DbType}://{x[0]}:{x[1]}@{x[2]}:{x[3]}/{x[4]}".EncodeBase64()
@@ -92,13 +93,6 @@ public class BoxyHQ : KubernetesDeploymentResource
                     },
                     Spec = new PodSpecArgs
                     {
-                        // ImagePullSecrets = 
-                        // {
-                        //     new LocalObjectReferenceArgs
-                        //     {
-                        //         Name = "docker-secret",
-                        //     },
-                        // },
                         Containers =
                         {
                             new ContainerArgs

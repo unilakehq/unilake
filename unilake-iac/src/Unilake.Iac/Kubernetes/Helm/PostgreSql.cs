@@ -22,13 +22,13 @@ public class PostgreSql : KubernetesComponentResource
 
     public Secret @Secret { get; private set; }
 
-    public PostgreSql(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, PostgreSqlArgs? inputArgs = null, 
+    public PostgreSql(KubernetesEnvironmentContext ctx, PostgreSqlArgs inputArgs, Namespace? @namespace = null, 
         string name = "postgresql", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:helm:postgresql", name, options, checkNamingConvention)
     {
-        // Check input
-        inputArgs ??= new PostgreSqlArgs();
-
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
+        
         // Set default options
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
@@ -91,8 +91,8 @@ public class PostgreSql : KubernetesComponentResource
         if(inputArgs.UsePrivateRegsitry)
         {
             var registrySecret = CreateRegistrySecret(ctx, resourceOptions, @namespace.Metadata.Apply(x => x.Name));
-            string PrivateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
-            releaseArgs.Values.Add("global.imageRegistry", PrivateRegistryBase);
+            string privateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
+            releaseArgs.Values.Add("global.imageRegistry", privateRegistryBase);
             releaseArgs.Values.Add("global.imagePullSecrets", new [] {registrySecret.Metadata.Apply(x => x.Name)});
         }
 

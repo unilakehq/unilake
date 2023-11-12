@@ -13,8 +13,8 @@ public class RedisUi : KubernetesDeploymentResource
 {
     public Service @Service { get; private set; }
 
-    public RedisUi(KubernetesEnvironmentContext ctx, Redis instance, Namespace? @namespace = null,
-        string name = "redis-ui", RedisUiArgs? args = null, ComponentResourceOptions? options = null, bool checkNamingConvention = true)
+    public RedisUi(KubernetesEnvironmentContext ctx, Redis instance, RedisUiArgs? args = null, Namespace? @namespace = null,
+        string name = "redis-ui", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:deployment:redis-ui", name, options, checkNamingConvention)
     {
         // Check input

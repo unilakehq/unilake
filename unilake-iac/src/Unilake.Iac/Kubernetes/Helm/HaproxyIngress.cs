@@ -16,7 +16,7 @@ public class HaproxyIngress : KubernetesComponentResource
 
     public Service @Service { get; private set; }
     
-    public HaproxyIngress(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, HaproxyIngressArgs? inputArgs = null, 
+    public HaproxyIngress(KubernetesEnvironmentContext ctx, HaproxyIngressArgs? inputArgs = null, Namespace? @namespace = null, 
         string name = "haproxingress", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:helm:haproxingress", name, options, checkNamingConvention)
     {
@@ -78,8 +78,8 @@ public class HaproxyIngress : KubernetesComponentResource
 
             releaseArgs.Values.Apply(x =>
             {
-                var service = (x["controller"] as Dictionary<string, object>)["service"] as Dictionary<string, object>;
-                service["nodePorts"] = new Dictionary<string, object>
+                var service = (x["controller"] as Dictionary<string, object>)!["service"] as Dictionary<string, object>;
+                service!["nodePorts"] = new Dictionary<string, object>
                 {
                     ["http"] = inputArgs.NodePorts["http"],
                     ["https"] = inputArgs.NodePorts["https"],
@@ -99,13 +99,7 @@ public class HaproxyIngress : KubernetesComponentResource
 
         // Check if a private registry is used
         if(inputArgs.UsePrivateRegsitry)
-        {
             throw new NotImplementedException("Private registry currently not supported");
-            // var registrySecret = CreateRegistrySecret(ctx, resourceOptions, @namespace.Metadata.Apply(x => x.Name));
-            // string PrivateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
-            // releaseArgs.Values.Add("global.imageRegistry", PrivateRegistryBase);
-            // releaseArgs.Values.Add("global.imagePullSecrets", new [] {registrySecret.Metadata.Apply(x => x.Name)});
-        }
 
         // HaproxyIngress instance
         var haproxyInstance = new Release(name, releaseArgs, resourceOptions);

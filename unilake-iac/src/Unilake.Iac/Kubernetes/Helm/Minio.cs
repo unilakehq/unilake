@@ -24,12 +24,12 @@ public class Minio : KubernetesComponentResource
     
     public Output<string> RootPassword { get; private set; }
 
-    public Minio(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, MinioArgs? inputArgs = null, 
+    public Minio(KubernetesEnvironmentContext ctx, MinioArgs inputArgs, Namespace? @namespace = null, 
         string name = "minio", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
             : base("pkg:kubernetes:helm:minio", name, options, checkNamingConvention)
     {
-        // Check input
-        inputArgs ??= new MinioArgs();
+        // check input
+        if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
 
         // Set default options
         var resourceOptions = CreateOptions(options);

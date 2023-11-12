@@ -15,13 +15,14 @@ public class Datahub : KubernetesComponentResource
 
     public Service @Service { get; private set; }
     
-    public Datahub(KubernetesEnvironmentContext ctx, Namespace? @namespace = null, DatahubArgs? inputArgs = null, 
+    public Datahub(KubernetesEnvironmentContext ctx, DatahubArgs inputArgs, Namespace? @namespace = null, 
         string name = "datahub", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("pkg:kubernetes:helm:datahub", name, options, checkNamingConvention)
     {
-        // Check input
-        inputArgs ??= new DatahubArgs();
-
+        // check input
+        if (inputArgs == null)
+            throw new ArgumentNullException(nameof(inputArgs), "inputArgs cannot be null");
+        
         // Set default options
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
@@ -32,7 +33,7 @@ public class Datahub : KubernetesComponentResource
 
         // Create secret for sql-authentication
         var secretName = name + "custom";
-        var secret = new Secret(secretName, new SecretArgs{
+        var _secret = new Secret(secretName, new SecretArgs{
             Metadata = new ObjectMetaArgs{
                 Name = secretName,
                 Namespace = @namespace.Metadata.Apply(x => x.Name),
@@ -154,13 +155,7 @@ public class Datahub : KubernetesComponentResource
 
         // Check if a private registry is used
         if(inputArgs.UsePrivateRegsitry)
-        {
             throw new NotImplementedException("Private registry is currently not supported");
-            var registrySecret = CreateRegistrySecret(ctx, resourceOptions, @namespace.Metadata.Apply(x => x.Name));
-            string PrivateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
-            releaseArgs.Values.Add("global.imageRegistry", PrivateRegistryBase);
-            releaseArgs.Values.Add("global.imagePullSecrets", new [] {registrySecret.Metadata.Apply(x => x.Name)});
-        }
 
         // Datahub instance
         var datahubInstance = new Release(name, releaseArgs, resourceOptions);
