@@ -19,6 +19,8 @@ public class ValidateOptions : Options
         {
             PrintErrorFoundHeader();
             AnsiConsole.MarkupLine(Message.ValidationConfigFileNotFound, FilePath);
+            Console.WriteLine();
+            return Task.FromResult(1);
         }
 
         var result = Parser.ParseFromPath(FilePath);

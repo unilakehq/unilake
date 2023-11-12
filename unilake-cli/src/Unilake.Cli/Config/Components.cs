@@ -1,4 +1,5 @@
 
+using Unilake.Cli.Config.Dependencies;
 using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
