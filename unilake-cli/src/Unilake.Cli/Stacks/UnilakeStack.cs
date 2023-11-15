@@ -2,7 +2,7 @@
 using OneOf.Types;
 using Unilake.Cli.Config;
 
-namespace Unilake.Cli;
+namespace Unilake.Cli.Stacks;
 
 public abstract class UnilakeStack
 {
@@ -10,7 +10,7 @@ public abstract class UnilakeStack
 
     public abstract (string name, string version)[] Packages { get; }
 
-    public UnilakeStack(EnvironmentConfig config)
+    protected UnilakeStack(EnvironmentConfig config)
     {
         Config = config;
     }
