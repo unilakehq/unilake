@@ -26,28 +26,28 @@ public sealed class Kubernetes : UnilakeStack
 
         // Storage dependencies
         PostgreSql? postgreSql = CreatePostgreSqlInstance(kubernetesContext, @namespace);
-        Redis? redis = CreateRedisInstance(kubernetesContext, @namespace);
-        OpenSearch? openSearch = CreateOpenSearchInstance(kubernetesContext, @namespace);
-        Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
-        Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
-
-        // Service dependencies
-        BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace);
-        Iac.Kubernetes.Helm.Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
-        StarRockCluster? starRockCluster = CreateStarRocksCluster(kubernetesContext, @namespace);
-        Unilake.Iac.Kubernetes.Helm.Nessie? nessie = null;
-
-        // Internal services
-        UnilakeWeb? unilakeWeb = null;
-        UnilakeApi? unilakeApi = null;
-        UnilakeProxyQuery? unilakeProxyQuery = null;
-        UnilakeProxyStorage? unilakeProxyStorage = null;
-
-        // Development services
-        Iac.Kubernetes.Helm.KafkaUi? kafkaUi = null;
-        Iac.Kubernetes.Deployment.RedisUi? redisUi = null;
-        Iac.Kubernetes.Helm.Gitea? gitea = null;
-        PgWeb? pgWeb = null;
+        // Redis? redis = CreateRedisInstance(kubernetesContext, @namespace);
+        // OpenSearch? openSearch = CreateOpenSearchInstance(kubernetesContext, @namespace);
+        // Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
+        // Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
+        //
+        // // Service dependencies
+        // BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace);
+        // Iac.Kubernetes.Helm.Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
+        // StarRockCluster? starRockCluster = CreateStarRocksCluster(kubernetesContext, @namespace);
+        // Unilake.Iac.Kubernetes.Helm.Nessie? nessie = null;
+        //
+        // // Internal services
+        // UnilakeWeb? unilakeWeb = null;
+        // UnilakeApi? unilakeApi = null;
+        // UnilakeProxyQuery? unilakeProxyQuery = null;
+        // UnilakeProxyStorage? unilakeProxyStorage = null;
+        //
+        // // Development services
+        // Iac.Kubernetes.Helm.KafkaUi? kafkaUi = null;
+        // Iac.Kubernetes.Deployment.RedisUi? redisUi = null;
+        // Iac.Kubernetes.Helm.Gitea? gitea = null;
+        // PgWeb? pgWeb = null;
 
         throw new NotImplementedException();
     }
