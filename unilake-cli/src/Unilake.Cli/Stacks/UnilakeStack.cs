@@ -1,4 +1,6 @@
-﻿using Unilake.Cli.Config;
+﻿using OneOf;
+using OneOf.Types;
+using Unilake.Cli.Config;
 
 namespace Unilake.Cli;
 
@@ -13,5 +15,5 @@ public abstract class UnilakeStack
         Config = config;
     }
 
-    public abstract Task Create();
+    public abstract Task<OneOf<Success, Error<Exception>>> Create();
 }

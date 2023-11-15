@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using CommandLine;
+﻿using CommandLine;
 using Spectre.Console;
 using Unilake.Cli.Args;
 using Parser = Unilake.Cli.Config.Parser;

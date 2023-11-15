@@ -67,6 +67,12 @@ components:
     enabled: true
   boxyhq:
     enabled: true
+    postgresql:
+      host: cloud.kubernetes
+      port: 5432
+      name: boxyhq
+      username: admin
+      password: admin
   development: # contains components often used only during development
     enabled: true # turn all development components on or off
     kafka-ui:

@@ -13,17 +13,18 @@ public class UpOptions : Options
     [Option('f', "skip-preview", Required = false, HelpText = "Skip previewing changes before applying.")]
     public bool Force { get; set; } = false;
 
+    private bool FileBased => !string.IsNullOrWhiteSpace(ConfigFile);
+
     public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
     {
         Console.WriteLine("Running up command...");
-        string configFile = ConfigFile?? Path.Combine(Directory.GetCurrentDirectory(), "unilake.default.yaml");
-        if (!File.Exists(configFile))
+        if (FileBased && !File.Exists(ConfigFile))
         {
-            Console.Error.WriteLine($"Config file not found: {configFile}");
+            Console.Error.WriteLine($"Config file not found: {ConfigFile}");
             return 1;
         }
 
-        var parsed = Parser.ParseFromPath(configFile);
+        var parsed = FileBased ? Parser.ParseFromPath(ConfigFile!) : Parser.ParseFromEmbeddedResource("Unilake.Cli.unilake.default.yaml");
         if (!parsed.IsValid())
         {
             parsed.PrettyPrintErrors();

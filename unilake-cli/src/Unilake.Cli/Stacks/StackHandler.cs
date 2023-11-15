@@ -1,7 +1,5 @@
-﻿using Pulumi;
-using Pulumi.Automation;
+﻿using Pulumi.Automation;
 using Pulumi.Automation.Events;
-using Unilake.Cli.Config;
 
 namespace Unilake.Cli;
 
@@ -20,9 +18,31 @@ public sealed class StackHandler<T> where T : UnilakeStack
 
     public async Task<StackHandler<T>> InitWorkspace(string projectName, string stackName, CancellationToken cancellationToken)
     {
-        var stackArgs = new InlineProgramArgs(projectName, stackName, _pulumiFn);
-        _workspaceStack = await LocalWorkspace.CreateOrSelectStackAsync(stackArgs, cancellationToken);
-        _registration = cancellationToken.Register(() => _workspaceStack.CancelAsync(cancellationToken));
+        try
+        {
+            var stackArgs = new InlineProgramArgs(projectName, stackName, _pulumiFn)
+            {
+                ProjectSettings = new ProjectSettings(projectName, ProjectRuntimeName.Dotnet)
+                {
+                    Name = stackName,
+                    Backend = new ProjectBackend
+                    {
+                        Url = "file://~"
+                    }
+                },
+                EnvironmentVariables = new Dictionary<string, string?>
+                {
+                    {"PULUMI_CONFIG_PASSPHRASE", "some-passphrase"}
+                }
+            };
+            _workspaceStack = await LocalWorkspace.CreateOrSelectStackAsync(stackArgs, cancellationToken);
+            _registration = cancellationToken.Register(() => _workspaceStack.CancelAsync(cancellationToken));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw new Exception("Cancelled");
+        }
         return this;
     }
 
@@ -33,14 +53,14 @@ public sealed class StackHandler<T> where T : UnilakeStack
     }
 
     public async Task<UpResult> UpAsync(CancellationToken cancellationToken) => 
-        await (_workspaceStack?.UpAsync(new UpOptions() { OnEvent = OnEvent }, cancellationToken) ?? throw new Exception("Cannot run "));
+        await (_workspaceStack?.UpAsync(new UpOptions { OnEvent = OnEvent }, cancellationToken) ?? throw new Exception("Cannot run "));
 
     public async Task<UpdateResult> DestroyAsync(CancellationToken cancellationToken) => 
-        await (_workspaceStack?.DestroyAsync(new DestroyOptions() { OnEvent = OnEvent }, cancellationToken) ?? throw new Exception("Cannot run "));
+        await (_workspaceStack?.DestroyAsync(new DestroyOptions { OnEvent = OnEvent }, cancellationToken) ?? throw new Exception("Cannot run "));
 
     private void OnEvent(EngineEvent @event)
     {
-        throw new NotImplementedException();
+        Console.WriteLine(@event.ToString());
     }
 
     public void Dispose()

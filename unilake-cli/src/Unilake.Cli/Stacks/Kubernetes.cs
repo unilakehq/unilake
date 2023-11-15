@@ -1,4 +1,6 @@
-﻿using Pulumi.Kubernetes.Core.V1;
+﻿using OneOf;
+using OneOf.Types;
+using Pulumi.Kubernetes.Core.V1;
 using Unilake.Cli.Config;
 using Unilake.Iac;
 using Unilake.Iac.Kubernetes;
@@ -18,10 +20,10 @@ public sealed class Kubernetes : UnilakeStack
     public override (string name, string version)[] Packages => 
         new [] {("kubernetes", "v4.5.3")};
 
-    public override Task Create()
+    public override Task<OneOf<Success, Error<Exception>>> Create()
     {
         var context = GetEnvironmentContext();
-        var kubernetesContext = KubernetesEnvironmentContext.Create(context, "");
+        var kubernetesContext = KubernetesEnvironmentContext.Create(context, "some-context");
         var @namespace = kubernetesContext.GetNamespace("default");
 
         // Storage dependencies
@@ -48,8 +50,10 @@ public sealed class Kubernetes : UnilakeStack
         // Iac.Kubernetes.Deployment.RedisUi? redisUi = null;
         // Iac.Kubernetes.Helm.Gitea? gitea = null;
         // PgWeb? pgWeb = null;
+        
+        
 
-        throw new NotImplementedException();
+        return Task.FromResult(new OneOf<Success, Error<Exception>>());
     }
 
     private EnvironmentContext GetEnvironmentContext()
