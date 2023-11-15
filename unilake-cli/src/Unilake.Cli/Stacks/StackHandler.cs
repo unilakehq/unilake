@@ -70,7 +70,19 @@ public sealed class StackHandler<T> where T : UnilakeStack
         await AnsiConsole.Live(_resourceTree).StartAsync(async ctx =>
         {
             _activeCtx = ctx;
-            result = await _workspaceStack.UpAsync(new UpOptions { OnEvent = OnEvent }, cancellationToken);
+            var upTask = _workspaceStack.UpAsync(new UpOptions { OnEvent = OnEvent }, cancellationToken);
+            var reportingTask = Task.Run(async () =>
+            {
+                while (!upTask.IsCompleted)
+                {
+                    UpdateTree();
+                    await Task.Delay(500);
+                }
+            });
+
+            await upTask;
+            await reportingTask;
+            UpdateTree();
         });
         return result;
     }
@@ -97,9 +109,10 @@ public sealed class StackHandler<T> where T : UnilakeStack
         TreeNode current = parent == null
             ? _resourceTree.AddNode(consoleText)
             : parent.AddNode(consoleText);
-        
+
+        level += 1;
         foreach (var (k, childState) in _resourceStates.Where(x => x.Value.ParentUrn == root).OrderBy(x => x.Value.Order))
-            AddTreeNodes(k, childState, level++, current);
+            AddTreeNodes(k, childState, level, current);
     }
 
     private void OnEvent(EngineEvent onEvent)
@@ -143,8 +156,6 @@ public sealed class StackHandler<T> where T : UnilakeStack
             default:
                 throw new ArgumentOutOfRangeException(nameof(onEvent));
         }
-        
-        UpdateTree();
     }
 
     private void ExportEventDetails(EngineEvent onEvent)
