@@ -14,8 +14,8 @@ cloud:
     datalake:
       minio: # for local installations, minio can be used for storage
         enabled: true # if true, will deploy a single minio storage node
-        root-user: admin # minio default username
-        root-password: admin # minio default password
+        root-user: admin # minio default username (at least 3 characters)
+        root-password: U7LMsX6p # minio default password (at least 8 characters)
         replicas: 1 # for development, a single node is fine
         buckets: # any buckets that need to be created together with the deployment
           - name: starrocks # bucket for starrocks to use

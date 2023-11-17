@@ -24,7 +24,7 @@ public class PostgreSql : KubernetesComponentResource
 
     public PostgreSql(KubernetesEnvironmentContext ctx, PostgreSqlArgs inputArgs, Namespace? @namespace = null, 
         string name = "postgresql", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:postgresql", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:postgresql", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));

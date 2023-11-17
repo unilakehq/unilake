@@ -13,7 +13,7 @@ public class Keda : KubernetesComponentResource
 {
     public Keda(KubernetesEnvironmentContext ctx, KedaArgs inputArgs, Namespace? @namespace = null, 
         string name = "keda", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:keda", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:keda", name, options, checkNamingConvention)
     {
         // Might be best to use the chart for this one
         // see: https://keda.sh/docs/2.8/deploy/

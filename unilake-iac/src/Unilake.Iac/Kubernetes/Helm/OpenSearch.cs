@@ -22,7 +22,7 @@ public class OpenSearch : KubernetesComponentResource
 
     public OpenSearch(KubernetesEnvironmentContext ctx, OpenSearchArgs inputArgs, Namespace? @namespace = null, 
         string name = "opensearch", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
-            : base("pkg:kubernetes:helm:opensearch", name, options, checkNamingConvention)
+            : base("unilake:kubernetes:helm:opensearch", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));

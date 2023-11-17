@@ -34,7 +34,11 @@ public class DestroyOptions : Options
             await new StackHandler<Kubernetes>(new Kubernetes(parsed)).InitWorkspace("someProject", "someStack",
                 cancellationToken);
         await workspace.InstallPluginsAsync(cancellationToken);
-        await workspace.DestroyAsync(cancellationToken);
+        var result = await workspace.DestroyAsync(cancellationToken);
+        if (result == null)
+            throw new CliException("Result cannot be null from Pulumi Automation");
+        workspace.ReportDestroySummary(result);
+        
         return 1;
     }
 }

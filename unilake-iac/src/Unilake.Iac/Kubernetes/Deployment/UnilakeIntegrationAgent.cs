@@ -8,7 +8,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 public class UnilakeIntegrationAgent : KubernetesComponentResource
 {
     public UnilakeIntegrationAgent(string name, ComponentResourceOptions? options = null) 
-        : base("pkg:kubernetes:deployment:unilake:integrationagent", name, options)
+        : base("unilake:kubernetes:deployment:unilake:integrationagent", name, options)
     {
         throw new NotImplementedException();
     }

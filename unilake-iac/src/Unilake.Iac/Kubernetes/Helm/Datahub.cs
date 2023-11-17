@@ -17,7 +17,7 @@ public class Datahub : KubernetesComponentResource
     
     public Datahub(KubernetesEnvironmentContext ctx, DatahubArgs inputArgs, Namespace? @namespace = null, 
         string name = "datahub", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:datahub", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:datahub", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null)

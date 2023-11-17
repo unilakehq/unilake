@@ -17,7 +17,7 @@ public class Karapace : KubernetesComponentResource
     
     public Karapace(KubernetesEnvironmentContext ctx, KarapaceInputArgs? inputArgs = null, Namespace? @namespace = null, string name = "karapace", 
         ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:deployment:karapace", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:deployment:karapace", name, options, checkNamingConvention)
     {
         // TODO: https://github.com/aiven/karapace/blob/main/container/compose.yml
         // Step 1: translate to yaml https://kubernetes.io/docs/tasks/configure-pod-container/translate-compose-kubernetes/

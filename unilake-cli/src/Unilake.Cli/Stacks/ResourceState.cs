@@ -7,14 +7,19 @@ namespace Unilake.Cli.Stacks;
 
 internal class ResourceState
 {
+    private readonly OperationType[] Reportableoperations = new[] { OperationType.Create, OperationType.Delete, OperationType.Replace, OperationType.Update };
     public string Urn { get; private set; }
     public string? ParentUrn { get; private set; }
     public int Order { get; private set; }
     public OperationType Op { get; private set; }
     public string Type { get; private set; }
     public bool IsDone { get; private set; }
-    public IImmutableDictionary<string, object>? Output { get; private set; }
+    public bool HasChildResources => _childResources.Count > 0;
+    public bool ReportableOperation => Reportableoperations.Contains(Op);
+    public IImmutableDictionary<string, object>? OutputNew { get; private set; }
+    public IImmutableDictionary<string, object>? OutputOld { get; private set; }
     private string _reportedState = "";
+    private readonly List<ResourceState> _childResources = new ();
 
     public ResourceState(string? parentUrn, string urn, int order, OperationType metadataOp, string metadataType)
     {
@@ -25,47 +30,74 @@ internal class ResourceState
         Type = metadataType;
     }
 
-    public void SetOutputEventData(IImmutableDictionary<string, object> output)
+    public void AddChildResourceState(ResourceState child) => _childResources.Add(child);
+    
+    public void SetOutputEventData(IImmutableDictionary<string, object>? old, IImmutableDictionary<string, object>? @new)
     {
         IsDone = true;
-        Output = output;
+        OutputNew = @new;
+        OutputOld = old;
     }
 
     public IRenderable GetStatus(int level = 0)
     {
-        var padded_title = new Padder(new Text("Someting long...")).PadRight(16);
-        var padded_status = new Padder(new Text($"[green]{CalculatePadding(Urn, level)}[/]"));
-        var padded_grid = new Grid();
-        padded_grid.AddColumn();
-        padded_grid.AddColumn();
-        padded_grid.AddRow(padded_title, padded_grid);
-        
-        var paddedText_I = new Text(Urn);
-        var paddedText_II = new Text($"{GetReportedState()}", new Style(Color.Green, decoration: Decoration.Bold));
-        
-        var pad_I = new Padder(paddedText_I).PadBottom(0).PadTop(0);
-        var pad_II = new Padder(paddedText_II).PadLeft(CalculatePadding(Urn, level)).PadBottom(0).PadTop(0);
+        string title = GetResourceName();
+        var colored = Color.Green;
+        var titleText = new Padder(new Text(title)).PadBottom(0).PadTop(0);
+        var statusText = new Padder(new Text($"{GetReportedState()}", new Style(colored, decoration: Decoration.Bold))).PadLeft(CalculatePadding(title, level)).PadBottom(0).PadTop(0);
         var grid = new Grid();
         grid.AddColumn();
         grid.AddColumn();
-        grid.AddRow(pad_I, pad_II);
+        grid.AddRow(titleText, statusText);
         
         return grid;
     }
+    
+    public bool HasChildResourcesWithChanges()
+    {
+        bool ChildWithChanges(ResourceState[] states)
+        {
+            foreach (var state in states)
+            {
+                if (state.ReportableOperation)
+                    return true;
+                if (state._childResources.Count > 0 && ChildWithChanges(state._childResources.ToArray())) 
+                    return true;
+            }
 
-    private int CalculatePadding(string title, int level) => Math.Max((120 - (level * 4)) - title.Length, 0);
+            return false;
+        }
+
+        return ChildWithChanges(_childResources.ToArray());
+    }
+
+    private string GetResourceName() => Urn.Split(new[] { "::" }, StringSplitOptions.None)[^2]
+            .Replace("pulumi:", string.Empty)
+            .Replace("Stack", "UniLake");
+
+    private int CalculatePadding(string title, int level) => Math.Max((90 - (level * 4)) - title.Length, 0);
 
     private string GetReportedState()
     {
         if (IsDone)
         {
-            _reportedState = "Done!";
+            _reportedState = !HasChildResources ? "Done!" : "";
             return _reportedState;
         }
+        else if (HasChildResources)
+            return "";
         
         if (string.IsNullOrWhiteSpace(_reportedState))
         {
-            _reportedState = "Creating";
+            _reportedState = Op switch
+            {
+                OperationType.Read => "Reading",
+                OperationType.Create => "Creating",
+                OperationType.Delete => "Deleting",
+                OperationType.Update => "Updating",
+                OperationType.Same => "Verifying",
+                _ => Enum.GetName(typeof(OperationType), Op) ?? "Unknown"
+            };
             return _reportedState;
         }
 
@@ -75,4 +107,6 @@ internal class ResourceState
             _reportedState = _reportedState.Substring(0, _reportedState.Length - 3);
         return _reportedState;
     }
+
+    public void UpdateOperation(OperationType op) => Op = op;
 }

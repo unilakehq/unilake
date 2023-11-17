@@ -8,7 +8,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 public class UnilakeWeb : KubernetesComponentResource
 {
     public UnilakeWeb(string name, ComponentResourceOptions? options = null) 
-        : base("pkg:kubernetes:deployment:unilake:web", name, options)
+        : base("unilake:kubernetes:deployment:unilake:web", name, options)
     {
         throw new NotImplementedException();
     }

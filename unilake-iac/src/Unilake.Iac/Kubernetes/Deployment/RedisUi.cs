@@ -15,7 +15,7 @@ public class RedisUi : KubernetesDeploymentResource
 
     public RedisUi(KubernetesEnvironmentContext ctx, Redis instance, RedisUiArgs? args = null, Namespace? @namespace = null,
         string name = "redis-ui", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:deployment:redis-ui", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:deployment:redis-ui", name, options, checkNamingConvention)
     {
         // Check input
         args ??= new RedisUiArgs();

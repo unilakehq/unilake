@@ -26,7 +26,7 @@ public class Minio : KubernetesComponentResource
 
     public Minio(KubernetesEnvironmentContext ctx, MinioArgs inputArgs, Namespace? @namespace = null, 
         string name = "minio", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
-            : base("pkg:kubernetes:helm:minio", name, options, checkNamingConvention)
+            : base("unilake:kubernetes:helm:minio", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));

@@ -18,7 +18,7 @@ public class HaproxyIngress : KubernetesComponentResource
     
     public HaproxyIngress(KubernetesEnvironmentContext ctx, HaproxyIngressArgs? inputArgs = null, Namespace? @namespace = null, 
         string name = "haproxingress", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:haproxingress", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:haproxingress", name, options, checkNamingConvention)
     {
         // Check input
         inputArgs ??= new HaproxyIngressArgs();

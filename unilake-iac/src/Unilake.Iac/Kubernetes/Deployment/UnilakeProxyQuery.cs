@@ -8,7 +8,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 public class UnilakeProxyQuery : KubernetesComponentResource
 {
     public UnilakeProxyQuery(string name, ComponentResourceOptions? options = null) 
-        : base("pkg:kubernetes:deployment:unilake:proxyquery", name, options)
+        : base("unilake:kubernetes:deployment:unilake:proxyquery", name, options)
     {
         throw new NotImplementedException();
     }

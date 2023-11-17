@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Concurrent;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Pulumi.Automation;
@@ -13,9 +14,9 @@ internal sealed class StackHandler<T> where T : UnilakeStack
     private readonly PulumiFn _pulumiFn;
     private WorkspaceStack? _workspaceStack;
     private CancellationTokenRegistration? _registration;
-    private readonly Tree _resourceTree = new ("Resources");
+    private readonly Tree _resourceTree = new("Resources");
     private LiveDisplayContext? _activeCtx;
-    private readonly Dictionary<string, ResourceState> _resourceStates = new ();
+    private readonly ConcurrentDictionary<string, ResourceState> _resourceStates = new ();
 
     public StackHandler(T stack)
     {
@@ -65,30 +66,53 @@ internal sealed class StackHandler<T> where T : UnilakeStack
             throw new CliException("WorkspaceStack uninitialized");
 
         UpResult? result = null;
-        AnsiConsole.WriteLine();
-        AnsiConsole.WriteLine();
+        AnsiConsole.WriteLine("");
         await AnsiConsole.Live(_resourceTree).StartAsync(async ctx =>
         {
             _activeCtx = ctx;
-            var upTask = _workspaceStack.UpAsync(new UpOptions { OnEvent = OnEvent }, cancellationToken);
+            var upTask = _workspaceStack.UpAsync(new UpOptions { OnEvent = OnEvent, Parallel = 4 }, cancellationToken);
             var reportingTask = Task.Run(async () =>
             {
                 while (!upTask.IsCompleted)
                 {
                     UpdateTree();
-                    await Task.Delay(500);
+                    await Task.Delay(500, cancellationToken);
                 }
             });
 
-            await upTask;
+            result = await upTask;
             await reportingTask;
             UpdateTree();
         });
         return result;
     }
 
-    public async Task<UpdateResult> DestroyAsync(CancellationToken cancellationToken) => 
-        await (_workspaceStack?.DestroyAsync(new DestroyOptions { OnEvent = OnEvent }, cancellationToken) ?? throw new CliException("Cannot run "));
+    public async Task<UpdateResult?> DestroyAsync(CancellationToken cancellationToken)
+    {
+        if (_workspaceStack == null)
+            throw new CliException("WorkspaceStack uninitialized");
+
+        UpdateResult? result = null;
+        AnsiConsole.WriteLine("");
+        await AnsiConsole.Live(_resourceTree).StartAsync(async ctx =>
+        {
+            _activeCtx = ctx;
+            var destroyStack = _workspaceStack.DestroyAsync(new DestroyOptions { OnEvent = OnEvent, Parallel = 4 }, cancellationToken);
+            var reportingTask = Task.Run(async () =>
+            {
+                while (!destroyStack.IsCompleted)
+                {
+                    UpdateTree();
+                    await Task.Delay(500, cancellationToken);
+                }
+            });
+
+            result = await destroyStack;
+            await reportingTask;
+            UpdateTree();
+        });
+        return result;
+    }
 
     public async Task CancelAsync(CancellationToken cancellationToken) => 
         await (_workspaceStack?.CancelAsync(cancellationToken) ?? throw new CliException("Cannot run "));
@@ -97,19 +121,30 @@ internal sealed class StackHandler<T> where T : UnilakeStack
     {
         if (_activeCtx == null)
             throw new CliException("No active context, expected active context to exist");
+
+        var nodes = _resourceStates.Where(x => string.IsNullOrWhiteSpace(x.Value.ParentUrn))
+            .OrderBy(x => x.Value.Order).ToArray();
+
+        if (!nodes.Any())
+            return;
+        
         _resourceTree.Nodes.Clear();
-        foreach (var (k, state) in _resourceStates.Where(x => string.IsNullOrWhiteSpace(x.Value.ParentUrn)).OrderBy(x => x.Value.Order))
+        foreach (var (k, state) in nodes)
             AddTreeNodes(k, state);
+        
         _activeCtx.Refresh();
     }
 
     private void AddTreeNodes(string root, ResourceState state, int level = 0, TreeNode? parent = null)
     {
+        if((state.HasChildResources && !state.HasChildResourcesWithChanges()) || state is { ReportableOperation: false, HasChildResources: false })
+            return;
+        
         var consoleText = state.GetStatus(level);
         TreeNode current = parent == null
             ? _resourceTree.AddNode(consoleText)
             : parent.AddNode(consoleText);
-
+        
         level += 1;
         foreach (var (k, childState) in _resourceStates.Where(x => x.Value.ParentUrn == root).OrderBy(x => x.Value.Order))
             AddTreeNodes(k, childState, level, current);
@@ -122,6 +157,7 @@ internal sealed class StackHandler<T> where T : UnilakeStack
             ExportEventDetails(onEvent);
 
         string urn;
+        ResourceState resourceState;
         switch (onEvent.AsType())
         {
             case EngineEventType.DiagnosticEvent:
@@ -138,16 +174,24 @@ internal sealed class StackHandler<T> where T : UnilakeStack
                 if(onEvent.ResourceOutputsEvent == null)
                     break;
                 urn = onEvent.ResourceOutputsEvent.Metadata.Urn;
-                var resourceState = _resourceStates[urn];
-                if(onEvent.ResourceOutputsEvent.Metadata.New != null)
-                    resourceState.SetOutputEventData(onEvent.ResourceOutputsEvent.Metadata.New.Outputs);
+                resourceState = _resourceStates[urn];
+                resourceState.SetOutputEventData(onEvent.ResourceOutputsEvent.Metadata.Old?.Outputs, onEvent.ResourceOutputsEvent.Metadata.New?.Outputs);
                 break;
             case EngineEventType.ResourcePreEvent:
                 if (onEvent.ResourcePreEvent == null)
                     break;
                 urn = onEvent.ResourcePreEvent.Metadata.Urn;
-                _resourceStates.Add(urn, new ResourceState(onEvent.ResourcePreEvent.Metadata.New?.Parent ?? string.Empty, 
-                    urn, onEvent.Sequence, onEvent.ResourcePreEvent.Metadata.Op, onEvent.ResourcePreEvent.Metadata.Type));
+                var parentUrn = onEvent.ResourcePreEvent.Metadata.New?.Parent ??
+                            onEvent.ResourcePreEvent.Metadata.Old?.Parent ?? string.Empty;
+                resourceState = new ResourceState(
+                    parentUrn,
+                    urn,
+                    onEvent.Sequence,
+                    onEvent.ResourcePreEvent.Metadata.Op,
+                    onEvent.ResourcePreEvent.Metadata.Type);
+                _resourceStates[urn] = resourceState;
+                if(_resourceStates.TryGetValue(parentUrn, out var parentResource))
+                    parentResource.AddChildResourceState(resourceState);
                 break;
             case EngineEventType.StandardOutputEvent:
                 break;
@@ -158,6 +202,39 @@ internal sealed class StackHandler<T> where T : UnilakeStack
         }
     }
 
+    public void ReportUpSummary(UpResult upResult)
+    {
+        // TODO: show updates on resources and resource information
+        AnsiConsole.WriteLine();
+        switch (upResult.Summary.Result)
+        {
+            case UpdateState.Succeeded:
+                AnsiConsole.MarkupLine(string.Format(Message.ReportUpSummaryResultStatus, ":check_mark_button:", "Success :rocket::rocket::rocket:"));
+                break;
+            case UpdateState.Failed:
+                AnsiConsole.MarkupLine(string.Format(Message.ReportUpSummaryResultStatus, ":cross_mark:", "Failed"));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(upResult));
+        }
+    }
+
+    public void ReportDestroySummary(UpdateResult updateResult)
+    {
+        AnsiConsole.WriteLine();
+        switch (updateResult.Summary.Result)
+        {
+            case UpdateState.Succeeded:
+                AnsiConsole.MarkupLine(string.Format(Message.ReportUpSummaryResultStatus, ":check_mark_button:", "Success"));
+                break;
+            case UpdateState.Failed:
+                AnsiConsole.MarkupLine(string.Format(Message.ReportUpSummaryResultStatus, ":cross_mark:", "Failed"));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(updateResult));
+        }
+    }
+    
     private void ExportEventDetails(EngineEvent onEvent)
     {
         StringBuilder sb = new StringBuilder();
@@ -169,8 +246,8 @@ internal sealed class StackHandler<T> where T : UnilakeStack
         switch (onEvent.AsType())
         {
             case EngineEventType.DiagnosticEvent:
-                sb.Append(JsonConvert.SerializeObject(onEvent.DiagnosticEvent, Formatting.Indented, settings));
-                break;
+                //sb.Append(JsonConvert.SerializeObject(onEvent.DiagnosticEvent, Formatting.Indented, settings));
+                return;
             case EngineEventType.CancelEvent:
                 sb.Append(JsonConvert.SerializeObject(onEvent.CancelEvent, Formatting.Indented, settings));
                 break;
