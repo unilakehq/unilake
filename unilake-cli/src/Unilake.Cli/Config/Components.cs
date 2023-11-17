@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
 
-public class Components : IConfigNode
+public sealed class Components : IConfigNode
 {
     public string Section { get; } = "components";
     
@@ -19,7 +19,7 @@ public class Components : IConfigNode
     [YamlMember(Alias = "boxyhq")]
     public Boxyhq? Boxyhq { get; set; }
     [YamlMember(Alias = "development")]
-    public Development? Development { get; set; }
+    public DevConfig? Development { get; set; }
 
     public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
         params string[] checkProps)

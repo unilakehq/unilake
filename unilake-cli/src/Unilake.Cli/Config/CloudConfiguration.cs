@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
 
-public class CloudConfiguration : IConfigNode
+public sealed class CloudConfiguration : IConfigNode
 {
     public string Section { get; } = "cloud";
     

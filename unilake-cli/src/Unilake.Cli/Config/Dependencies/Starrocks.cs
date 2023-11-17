@@ -1,9 +1,9 @@
 
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Dependencies;
 
-public class Starrocks : IConfigNode
+public sealed class Starrocks : IConfigNode
 {
     public string Section { get; } = "starrocks";
     

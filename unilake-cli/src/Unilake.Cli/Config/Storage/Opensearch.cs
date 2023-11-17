@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Storage;
 
-public class Opensearch : IConfigNode
+public sealed class Opensearch : IConfigNode
 {
     public string Section { get; } = "opensearch";
     

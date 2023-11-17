@@ -1,6 +1,6 @@
 ﻿namespace Unilake.Cli.Stacks;
 
-public enum EngineEventType
+internal enum EngineEventType
 {
     DiagnosticEvent,
     CancelEvent,

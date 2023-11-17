@@ -1,12 +1,9 @@
-
-using Unilake.Cli.Config.Cloud;
-using Unilake.Cli.Config.Cloud.Kubernetes;
 using Unilake.Cli.Config.Storage;
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Development;
 
-public class Gitea : IConfigNode
+public sealed class Gitea : IConfigNode
 {
     public string Section { get; } = "gitea";
     

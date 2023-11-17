@@ -11,7 +11,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Cli.Stacks;
 
-public sealed class Kubernetes : UnilakeStack
+internal sealed class Kubernetes : UnilakeStack
 {
     public Kubernetes(EnvironmentConfig config) : base(config)
     {

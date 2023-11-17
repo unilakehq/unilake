@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Cloud;
 
-public class KubernetesConf : IConfigNode
+public sealed class KubernetesConf : IConfigNode
 {
     public string Section { get; } = "kubernetes";
     

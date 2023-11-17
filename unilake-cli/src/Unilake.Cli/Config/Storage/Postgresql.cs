@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Storage;
 
-public class Postgresql : IConfigNode
+public sealed class Postgresql : IConfigNode
 {
     public string Section { get; } = "postgresql";
     

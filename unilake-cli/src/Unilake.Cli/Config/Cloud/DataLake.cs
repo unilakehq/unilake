@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Cloud;
 
-public class DataLake : IConfigNode
+public sealed class DataLake : IConfigNode
 {
     public string Section { get; } = "datalake";
     

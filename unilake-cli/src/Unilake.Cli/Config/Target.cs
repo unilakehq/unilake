@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
 
-public class Target : IConfigNode
+public sealed class Target : IConfigNode
 {
     public string Section { get; } = "target";
     

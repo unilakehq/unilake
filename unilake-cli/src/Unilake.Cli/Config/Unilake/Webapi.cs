@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Unilake;
 
-public class Webapi : IConfigNode
+public sealed class Webapi : IConfigNode
 {
     public string Section { get; }  = "webapi";
     

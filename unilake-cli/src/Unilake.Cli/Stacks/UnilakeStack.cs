@@ -4,7 +4,7 @@ using Unilake.Cli.Config;
 
 namespace Unilake.Cli.Stacks;
 
-public abstract class UnilakeStack
+internal abstract class UnilakeStack
 {
     protected EnvironmentConfig Config {get; set;}
 

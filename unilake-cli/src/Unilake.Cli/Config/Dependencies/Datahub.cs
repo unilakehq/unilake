@@ -1,12 +1,9 @@
-
-using Unilake.Cli.Config.Cloud;
-using Unilake.Cli.Config.Cloud.Kubernetes;
 using Unilake.Cli.Config.Storage;
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Dependencies;
 
-public class Datahub : IConfigNode
+public sealed class Datahub : IConfigNode
 {
     public string Section { get; } = "datahub";
     

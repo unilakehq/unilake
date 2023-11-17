@@ -2,9 +2,9 @@
 
 namespace Unilake.Cli.Stacks;
 
-public static class EngineEventExtensions
+internal static class EngineEventExtensions
 {
-    public static EngineEventType AsType(this EngineEvent engineEvent)
+    internal static EngineEventType AsType(this EngineEvent engineEvent)
     {
         if (engineEvent.CancelEvent != null)
             return EngineEventType.CancelEvent;

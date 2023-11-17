@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Cloud.Kubernetes;
 
-public class MinioBucket : IConfigNode
+public sealed class MinioBucket : IConfigNode
 {
     public string Section { get; } = "buckets";
     

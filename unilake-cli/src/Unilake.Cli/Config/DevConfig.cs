@@ -1,9 +1,10 @@
 
+using Unilake.Cli.Config.Development;
 using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
 
-public class Development : IConfigNode
+public sealed class DevConfig : IConfigNode
 {
     public string Section { get; } = "development";
     

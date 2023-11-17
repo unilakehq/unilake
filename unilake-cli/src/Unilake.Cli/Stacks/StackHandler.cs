@@ -7,13 +7,13 @@ using Spectre.Console;
 
 namespace Unilake.Cli.Stacks;
 
-public sealed class StackHandler<T> where T : UnilakeStack
+internal sealed class StackHandler<T> where T : UnilakeStack
 {
     private readonly T _unilakeStack;
     private readonly PulumiFn _pulumiFn;
     private WorkspaceStack? _workspaceStack;
     private CancellationTokenRegistration? _registration;
-    private Tree _resourceTree = new ("Resources");
+    private readonly Tree _resourceTree = new ("Resources");
     private LiveDisplayContext? _activeCtx;
     private readonly Dictionary<string, ResourceState> _resourceStates = new ();
 
@@ -48,7 +48,7 @@ public sealed class StackHandler<T> where T : UnilakeStack
         catch (Exception e)
         {
             Console.WriteLine(e);
-            throw new Exception("Cancelled");
+            throw new CliException("Cancelled");
         }
         return this;
     }
@@ -88,10 +88,10 @@ public sealed class StackHandler<T> where T : UnilakeStack
     }
 
     public async Task<UpdateResult> DestroyAsync(CancellationToken cancellationToken) => 
-        await (_workspaceStack?.DestroyAsync(new DestroyOptions { OnEvent = OnEvent }, cancellationToken) ?? throw new Exception("Cannot run "));
+        await (_workspaceStack?.DestroyAsync(new DestroyOptions { OnEvent = OnEvent }, cancellationToken) ?? throw new CliException("Cannot run "));
 
     public async Task CancelAsync(CancellationToken cancellationToken) => 
-        await (_workspaceStack?.CancelAsync(cancellationToken) ?? throw new Exception("Cannot run "));
+        await (_workspaceStack?.CancelAsync(cancellationToken) ?? throw new CliException("Cannot run "));
     
     private void UpdateTree()
     {
@@ -121,7 +121,7 @@ public sealed class StackHandler<T> where T : UnilakeStack
         if(!string.IsNullOrWhiteSpace(export) && string.Equals(export, "true", StringComparison.InvariantCultureIgnoreCase))
             ExportEventDetails(onEvent);
 
-        string urn = string.Empty;
+        string urn;
         switch (onEvent.AsType())
         {
             case EngineEventType.DiagnosticEvent:

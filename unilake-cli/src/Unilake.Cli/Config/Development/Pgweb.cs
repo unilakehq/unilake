@@ -1,9 +1,9 @@
 
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Development;
 
-public class Pgweb : IConfigNode
+public sealed class Pgweb : IConfigNode
 {
     public string Section { get; } = "pgweb";
     

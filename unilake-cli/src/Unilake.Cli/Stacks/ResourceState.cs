@@ -5,7 +5,7 @@ using Spectre.Console.Rendering;
 
 namespace Unilake.Cli.Stacks;
 
-public class ResourceState
+internal class ResourceState
 {
     public string Urn { get; private set; }
     public string? ParentUrn { get; private set; }
