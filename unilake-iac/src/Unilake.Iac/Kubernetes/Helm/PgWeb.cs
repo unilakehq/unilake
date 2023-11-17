@@ -21,8 +21,8 @@ public class PgWeb : KubernetesComponentResource
     {
         PgHost = postgreSql.Service.Spec.Apply(x => x.ClusterIP),
         PgPort = postgreSql.Service.Spec.Apply(x => x.Ports[0].Port),
-        PgPassword = postgreSql.Secret.Data.Apply(x => x["password"]),
-        PgUsername = postgreSql.Secret.Data.Apply(x => x["username"]),
+        PgPassword = postgreSql.Secret.Data.Apply(x => x["password"].DecodeBase64()),
+        PgUsername = postgreSql.Secret.Data.Apply(x => x["username"].DecodeBase64()),
         PgDatabase = databaseName,
     }, @namespace, name, options);
 

@@ -123,12 +123,18 @@ internal sealed class StackHandler<T> where T : UnilakeStack
             throw new CliException("No active context, expected active context to exist");
 
         var nodes = _resourceStates.Where(x => string.IsNullOrWhiteSpace(x.Value.ParentUrn))
+            .Where(x => x.Value.HasChildResourcesWithChanges())
             .OrderBy(x => x.Value.Order).ToArray();
 
+        if (_resourceTree.Nodes.Count > 0)
+            _resourceTree.Nodes.Clear();
+
         if (!nodes.Any())
+        {
+            _resourceTree.AddNode(new Text("No changes found...", new Style(Color.Orange1)));
             return;
-        
-        _resourceTree.Nodes.Clear();
+        }
+
         foreach (var (k, state) in nodes)
             AddTreeNodes(k, state);
         

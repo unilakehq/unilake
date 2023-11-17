@@ -81,6 +81,7 @@ components:
         cloud: kubernetes
     pgweb:
       enabled: true
+      database: postgres
       target:
         cloud: kubernetes
     redis-ui:

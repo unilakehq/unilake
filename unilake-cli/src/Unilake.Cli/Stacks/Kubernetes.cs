@@ -1,5 +1,6 @@
 ﻿using OneOf;
 using OneOf.Types;
+using Pulumi;
 using Pulumi.Kubernetes.Core.V1;
 using Unilake.Cli.Config;
 using Unilake.Iac;
@@ -32,7 +33,7 @@ internal sealed class Kubernetes : UnilakeStack
         Redis? redis = CreateRedisInstance(kubernetesContext, @namespace);
         // OpenSearch? openSearch = CreateOpenSearchInstance(kubernetesContext, @namespace);
         Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
-        Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
+        //Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
         
         // Service dependencies
         // BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace);
@@ -51,12 +52,11 @@ internal sealed class Kubernetes : UnilakeStack
         //
         
         // Development services
-        // TODO: fix this
-        // KafkaUi? kafkaUi = CreateKafkaUiInstance(kubernetesContext, @namespace, kafka);
+        KafkaUi? kafkaUi = CreateKafkaUiInstance(kubernetesContext, @namespace, kafka);
         RedisUi? redisUi = CreateRedisUiInstance(kubernetesContext, @namespace, redis);
         // Gitea? gitea = null;
         // TODO: fix this
-        // PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
+        PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
 
         return Task.FromResult(new OneOf<Success, Error<Exception>>());
     }
@@ -71,7 +71,11 @@ internal sealed class Kubernetes : UnilakeStack
     private PgWeb? CreatePgWebInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace, PostgreSql? postgreSqlInstance)
     {
         if (IsDevelopmentEnabled() && postgreSqlInstance != null && (Config.Components?.Development?.Enabled ?? false))
-            return new PgWeb(kubernetesEnvironmentContext, postgreSqlInstance, "postgres", @namespace);
+        {
+            var targetDatabase = Config.Components.Development.Pgweb?.Database ?? "postgres";
+            return new PgWeb(kubernetesEnvironmentContext, postgreSqlInstance, targetDatabase, @namespace);
+        }
+
         return null;
     }
     
@@ -91,10 +95,11 @@ internal sealed class Kubernetes : UnilakeStack
     {
         if (IsDevelopmentEnabled() && kafkaInstance != null && (Config.Components?.Development?.KafkaUi?.Enabled ?? false))
         {
+            var bootstrapAddress = Output.Tuple(kafkaInstance.Name, kafkaInstance.Service.Metadata).Apply(x => $"{x.Item1}-0.kafka-headless.{x.Item2.Namespace}.svc.cluster.local:9092");
             return new KafkaUi(kubernetesEnvironmentContext, new KafkaUiInputArgs
             {
                 ServerName = kafkaInstance.Name,
-                ServerBootstrapAddress = kafkaInstance.Service.Spec.Apply(x => $"{x.ClusterIP}:9092")
+                ServerBootstrapAddress = bootstrapAddress
             }, @namespace);
         }
         return null;

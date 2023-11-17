@@ -11,7 +11,7 @@ public class KafkaUi : KubernetesComponentResource
     [Output("name")] 
     public Output<string> Name { get; private set; }
 
-    public Service @Service { get; private set; }
+    // public Service @Service { get; private set; }
     
     public KafkaUi(KubernetesEnvironmentContext ctx, KafkaUiInputArgs inputArgs, Namespace? @namespace = null, string name = "kafkaui", 
         ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
@@ -93,8 +93,8 @@ public class KafkaUi : KubernetesComponentResource
         var kafkaUiInstance = new Release(name, releaseArgs, resourceOptions);
         
         // Get output
-        var status = kafkaUiInstance.Status;
-        Service = Service.Get(name, Output.All(status).Apply(s => $"{s[0].Namespace}/{s[0].Name}"), resourceOptions);
+        // var status = kafkaUiInstance.Status;
+        // Service = Service.Get(name, Output.All(status).Apply(s => $"{s[0].Namespace}/{s[0].Name}"), resourceOptions);
         Name = kafkaUiInstance.Name; 
     }
 }

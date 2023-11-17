@@ -11,6 +11,8 @@ public sealed class Pgweb : IConfigNode
     public bool Enabled { get; set; }
     [YamlMember(Alias = "target")]
     public Target? Target { get; set; }
+    [YamlMember(Alias = "database")]
+    public string? Database { get; set; }
 
     public IEnumerable<ValidateResult> Validate(EnvironmentConfig config, IConfigNode? parentNode,
         params string[] checkProps)
@@ -23,5 +25,8 @@ public sealed class Pgweb : IConfigNode
         else
             foreach (var err in Target.Validate(config, this))
                 yield return err.AddSection(this);
+        
+        if(string.IsNullOrWhiteSpace(Database))
+            yield return new ValidateResult(this, Section, "database is undefined");
     }
 }
