@@ -8,7 +8,7 @@ public class PostgreSqlArgs : HelmInputArgs
 
     public required Input<string> Password { get; set; }
 
-    public required Input<string> DatabaseName { get; set; }
+    public required string[]? Databases { get; set; }
 
     public Input<string> AppName { get; set; } = "general";
 

@@ -37,9 +37,9 @@ internal sealed class Kubernetes : UnilakeStack
         //Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
         
         // Service dependencies
-        BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace, postgreSql);
+        //BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace, postgreSql);
         // TODO: fix this
-        Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
+        //Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
         // TODO: fix this
         // StarRockCluster? starRockCluster = CreateStarRocksCluster(kubernetesContext, @namespace);
         // TODO: fix this
@@ -57,7 +57,7 @@ internal sealed class Kubernetes : UnilakeStack
         //RedisUi? redisUi = CreateRedisUiInstance(kubernetesContext, @namespace, redis);
         // Gitea? gitea = null;
         // TODO: fix this
-        //PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
+        PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
 
         return Task.FromResult(new OneOf<Success, Error<Exception>>());
     }
@@ -191,9 +191,9 @@ internal sealed class Kubernetes : UnilakeStack
             return new PostgreSql(kubernetesEnvironmentContext, new PostgreSqlArgs
             {
                 AppName = "unilake",
-                DatabaseName = "",
                 Password = postgresqlConf.Password!,
-                Username = postgresqlConf.Username!
+                Username = postgresqlConf.Username!,
+                Databases = new[] {"unilake_boxyhq", "menno_db", "another_db"}
             }, @namespace);
         }
 

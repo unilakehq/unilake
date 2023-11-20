@@ -53,6 +53,7 @@ public class PostgreSql : KubernetesComponentResource
         }, resourceOptions); 
 
         //Get PostgreSql chart and add
+        string[] databases = InputArgs?.Databases ?? Array.Empty<string>();
         var releaseArgs = new ReleaseArgs
         {
             Name = name,
@@ -63,9 +64,7 @@ public class PostgreSql : KubernetesComponentResource
             {
                 Repo = "https://charts.bitnami.com/bitnami"
             },
-            Values =
-                new
-                    InputMap<object> // https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
+            Values = new InputMap<object> // https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
                     {
                         ["global"] = new Dictionary<string, object>
                         {
@@ -74,8 +73,25 @@ public class PostgreSql : KubernetesComponentResource
                                 ["auth"] = new Dictionary<string, object>
                                 {
                                     ["username"] = inputArgs.Username,
-                                    ["database"] = inputArgs.DatabaseName,
                                     ["existingSecret"] = secret.Metadata.Apply(x => x.Name)
+                                }
+                            },
+                            ["primary"] = new Dictionary<string, object>
+                            {
+                                ["initdb"] = new Dictionary<string, object>
+                                {
+                                    ["scripts"] = new InputMap<string>
+                                    {
+                                        {"dbs_init_script.sh", InitMultipleDatabasesScript}
+                                    }
+                                },
+                                ["extraEnvVars"] = new List<object>
+                                {
+                                    new EnvVarArgs
+                                    {
+                                        Name = "POSTGRES_MULTIPLE_DATABASES",
+                                        Value = string.Join(',', databases)
+                                    }
                                 }
                             }
                         },
@@ -106,4 +122,29 @@ public class PostgreSql : KubernetesComponentResource
         Name = postgreInstance.Name;
         Secret = secret;
     }
+
+    private string InitMultipleDatabasesScript => """
+        #!/bin/bash
+
+            set -e
+            set -u
+
+            function create_user_and_database() {
+                local database=$1
+                echo "  Creating user and database '$database'"
+                psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+                    CREATE USER $database;
+                    CREATE DATABASE $database;
+                    GRANT ALL PRIVILEGES ON DATABASE $database TO $database;
+            EOSQL
+            }
+
+            if [ -n "$POSTGRES_MULTIPLE_DATABASES" ]; then
+                echo "Multiple database creation requested: $POSTGRES_MULTIPLE_DATABASES"
+                for db in $(echo $POSTGRES_MULTIPLE_DATABASES | tr ',' ' '); do
+                    create_user_and_database $db
+                done
+                echo "Multiple databases created"
+            fi
+    """;
 }
