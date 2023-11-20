@@ -1,4 +1,5 @@
-﻿using OneOf;
+﻿using System.Diagnostics.Metrics;
+using OneOf;
 using OneOf.Types;
 using Pulumi;
 using Pulumi.Kubernetes.Core.V1;
@@ -30,15 +31,15 @@ internal sealed class Kubernetes : UnilakeStack
 
         // Storage dependencies
         PostgreSql? postgreSql = CreatePostgreSqlInstance(kubernetesContext, @namespace);
-        Redis? redis = CreateRedisInstance(kubernetesContext, @namespace);
+        //Redis? redis = CreateRedisInstance(kubernetesContext, @namespace);
         // OpenSearch? openSearch = CreateOpenSearchInstance(kubernetesContext, @namespace);
-        Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
+        //Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
         //Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
         
         // Service dependencies
-        // BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace);
+        BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace, postgreSql);
         // TODO: fix this
-        // Iac.Kubernetes.Helm.Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
+        Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
         // TODO: fix this
         // StarRockCluster? starRockCluster = CreateStarRocksCluster(kubernetesContext, @namespace);
         // TODO: fix this
@@ -52,11 +53,11 @@ internal sealed class Kubernetes : UnilakeStack
         //
         
         // Development services
-        KafkaUi? kafkaUi = CreateKafkaUiInstance(kubernetesContext, @namespace, kafka);
-        RedisUi? redisUi = CreateRedisUiInstance(kubernetesContext, @namespace, redis);
+        //KafkaUi? kafkaUi = CreateKafkaUiInstance(kubernetesContext, @namespace, kafka);
+        //RedisUi? redisUi = CreateRedisUiInstance(kubernetesContext, @namespace, redis);
         // Gitea? gitea = null;
         // TODO: fix this
-        PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
+        //PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
 
         return Task.FromResult(new OneOf<Success, Error<Exception>>());
     }
@@ -201,16 +202,20 @@ internal sealed class Kubernetes : UnilakeStack
         return null;
     }
 
-    private BoxyHq? CreateBoxyHqInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private BoxyHq? CreateBoxyHqInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace, PostgreSql? postgreSql = null)
     {
         if(Config.Components?.Boxyhq?.Enabled ?? false)
         {
             var boxyhqConf = Config.Components.Boxyhq.Postgresql;
-            return new BoxyHq(kubernetesEnvironmentContext, new Iac.Kubernetes.Deployment.Input.BoxyHqInputArgs
+            Output<string> host = Output.Create(boxyhqConf?.Host!);
+            if (postgreSql == null)
+                throw new CliException("Cannot initialize postgresql for BoxyHQ as it does not exist");
+            else if (String.Equals(boxyhqConf?.Host!, "cloud.kubernetes", StringComparison.InvariantCultureIgnoreCase))
+                host = postgreSql.Service.Spec.Apply(x => x.ClusterIP);
+            return new BoxyHq(kubernetesEnvironmentContext, new BoxyHqInputArgs
             { 
-                DbDatabaseName = boxyhqConf!.Schema!,
-                DbEndpoint = boxyhqConf.Host!,
-                DbEngine = "postgresql",
+                DbDatabaseName = boxyhqConf!.Name!,
+                DbEndpoint = host!,
                 DbPassword = boxyhqConf.Password!,
                 DbUsername = boxyhqConf.Username!,
                 DbPort = boxyhqConf.Port,
@@ -221,11 +226,22 @@ internal sealed class Kubernetes : UnilakeStack
         return null;
     }
 
-    private Datahub? CreateDatahubInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private Datahub? CreateDatahubInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace, 
+        PostgreSql? postgreSql = null, OpenSearch? openSearch = null, Kafka? kafka = null)
     {
         if(Config.Components?.Datahub?.Enabled ?? false)
         {
-            var datahubConfig = Config.Components.Datahub;
+            var datahubConfig = Config.Components.Datahub!;
+
+            // postgresql
+            Output<string> postgreSqlHost = postgreSql != null ? Output.Create(datahubConfig.Postgresql!.Host!) : postgreSql!.Secret.Data.Apply(x => x[""].DecodeBase64());
+            Output<string> postgreSqlPort = postgreSql != null ? Output.Create(datahubConfig.Postgresql!.Port.ToString()) : postgreSql!.Secret.Data.Apply(x => x[""].DecodeBase64());
+            Output<string> postgreSqlUsername = postgreSql != null ? Output.Create(datahubConfig.Postgresql!.Username!) : postgreSql!.Secret.Data.Apply(x => x[""].DecodeBase64());
+            Output<string> postgreSqlPassword = postgreSql != null ? Output.Create(datahubConfig.Postgresql!.Password!) : postgreSql!.Secret.Data.Apply(x => x[""].DecodeBase64()); 
+            
+            // opensearch
+            
+            
             return new Datahub(kubernetesEnvironmentContext, new DatahubArgs
             {
                 PostgreSqlDatabaseName = datahubConfig.Postgresql!.Schema!,

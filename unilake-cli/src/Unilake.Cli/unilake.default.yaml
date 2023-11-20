@@ -46,7 +46,7 @@ components:
     postgresql:
       host: cloud.kubernetes
       port: 5432
-      name: nessie
+      name: unilake_nessie
       username: admin
       password: admin
   datahub: # dependency, used as data catalog
@@ -54,7 +54,7 @@ components:
     postgresql:
       host: cloud.kubernetes
       port: 5432
-      name: datahub
+      name: unilake_datahub
       username: admin
       password: admin
     opensearch:
@@ -70,7 +70,7 @@ components:
     postgresql:
       host: cloud.kubernetes
       port: 5432
-      name: boxyhq
+      name: unilake_boxyhq
       username: admin
       password: admin
   development: # contains components often used only during development
@@ -97,7 +97,7 @@ components:
         enabled: true
         host: cloud.kubernetes
         port: 5432
-        name: gitea
+        name: unilake_gitea
         schema: gitea
         username: admin
         password: admin

@@ -105,7 +105,6 @@ public class Datahub : KubernetesComponentResource
                             },
                             ["kafka"] = new Dictionary<string, object>
                             {
-                                // TODO: for kafka topics, we will need to set a prefix, due to multi-tenant setup 
                                 ["bootstrap"] = new Dictionary<string, object>
                                 {
                                     ["server"] = inputArgs.KafkaBootstrapServer
