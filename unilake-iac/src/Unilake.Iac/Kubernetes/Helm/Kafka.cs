@@ -6,7 +6,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-public class Kafka : KubernetesComponentResource
+public sealed class Kafka : KubernetesComponentResource
 {
     [Output("name")] 
     public Output<string> Name { get; private set; }

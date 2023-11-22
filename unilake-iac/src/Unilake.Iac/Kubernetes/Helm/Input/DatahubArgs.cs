@@ -2,7 +2,7 @@ using Pulumi;
 
 namespace Unilake.Iac.Kubernetes.Helm.Input;
 
-public class DatahubArgs : HelmInputArgs
+public sealed class DatahubArgs : HelmInputArgs
 {
     public override string Version { get; set; } = "0.3.11";
     public required Input<string> PostgreSqlHost { get; set; }

@@ -8,7 +8,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-public class Datahub : KubernetesComponentResource
+public sealed class Datahub : KubernetesComponentResource
 {
     [Output("name")] 
     public Output<string> Name { get; private set; }

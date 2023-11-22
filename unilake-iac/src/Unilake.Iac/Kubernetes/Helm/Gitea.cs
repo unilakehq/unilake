@@ -8,7 +8,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-public class Gitea : KubernetesComponentResource
+public sealed class Gitea : KubernetesComponentResource
 {
     public Gitea(KubernetesEnvironmentContext ctx, GiteaArgs inputArgs, Namespace? @namespace = null, 
         string name = "gitea", ComponentResourceOptions? options = null, bool checkNamingConvention = true)

@@ -8,7 +8,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-public class Minio : KubernetesComponentResource
+public sealed class Minio : KubernetesComponentResource
 {
     /// <summary>
     /// Service associated to this Minio instance

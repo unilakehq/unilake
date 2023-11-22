@@ -9,7 +9,7 @@ namespace Unilake.Iac.Kubernetes.Helm;
 /// <summary>
 /// https://github.com/haproxytech/helm-charts/tree/main/kubernetes-ingress
 /// </summary>
-public class HaproxyIngress : KubernetesComponentResource
+public sealed class HaproxyIngress : KubernetesComponentResource
 {
     [Output("name")] 
     public Output<string> Name { get; private set; }

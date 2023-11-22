@@ -8,7 +8,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-public class OpenSearch : KubernetesComponentResource
+public sealed class OpenSearch : KubernetesComponentResource
 {
     /// <summary>
     /// Service associated to this OpenSearch instance

@@ -5,7 +5,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 /// <summary>
 /// Unilake internal storage proxy deployment
 /// </summary>
-public class UnilakeProxyStorage : KubernetesComponentResource
+public sealed class UnilakeProxyStorage : KubernetesComponentResource
 {
     public UnilakeProxyStorage(string name, ComponentResourceOptions? options = null) 
         : base("unilake:kubernetes:deployment:unilake:proxystorage", name, options)

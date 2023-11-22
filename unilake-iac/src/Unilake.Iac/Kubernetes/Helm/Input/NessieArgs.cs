@@ -2,7 +2,7 @@ using Pulumi;
 
 namespace Unilake.Iac.Kubernetes.Helm.Input;
 
-public class NessieArgs : HelmInputArgs
+public sealed class NessieArgs : HelmInputArgs
 {
     public override string Version { get; set; } = "0.74.0";
     public string StoreType { get; set; } = "IN_MEMORY";
