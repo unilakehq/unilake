@@ -1,10 +1,9 @@
-
 using Spectre.Console;
 using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
 
-public class EnvironmentConfig
+public sealed class EnvironmentConfig
 {
     [YamlMember(Alias = "version")]
     public string? Version { get; set; }

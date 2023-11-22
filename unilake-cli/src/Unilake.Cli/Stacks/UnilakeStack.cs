@@ -1,17 +1,19 @@
-﻿using Unilake.Cli.Config;
+﻿using OneOf;
+using OneOf.Types;
+using Unilake.Cli.Config;
 
-namespace Unilake.Cli;
+namespace Unilake.Cli.Stacks;
 
-public abstract class UnilakeStack
+internal abstract class UnilakeStack
 {
     protected EnvironmentConfig Config {get; set;}
 
     public abstract (string name, string version)[] Packages { get; }
 
-    public UnilakeStack(EnvironmentConfig config)
+    protected UnilakeStack(EnvironmentConfig config)
     {
         Config = config;
     }
 
-    public abstract Task Create();
+    public abstract Task<OneOf<Success, Error<Exception>>> Create();
 }

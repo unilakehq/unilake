@@ -2,7 +2,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Unilake;
 
-public class ProxyStorage : IConfigNode
+public sealed class ProxyStorage : IConfigNode
 {
     public string Section { get; } = "proxy-storage";
     

@@ -17,18 +17,18 @@ public class PgWeb : KubernetesComponentResource
 
     public PgWeb(KubernetesEnvironmentContext ctx, PostgreSql postgreSql, string databaseName, Namespace? @namespace = null,
         string name = "pgweb", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:pgweb", name, options, checkNamingConvention) => Create(ctx, new PgWebArgs
+        : base("unilake:kubernetes:helm:pgweb", name, options, checkNamingConvention) => Create(ctx, new PgWebArgs
     {
         PgHost = postgreSql.Service.Spec.Apply(x => x.ClusterIP),
         PgPort = postgreSql.Service.Spec.Apply(x => x.Ports[0].Port),
-        PgPassword = postgreSql.Secret.Data.Apply(x => x["password"]),
-        PgUsername = postgreSql.Secret.Data.Apply(x => x["username"]),
+        PgPassword = postgreSql.Secret.Data.Apply(x => x["password"].DecodeBase64()),
+        PgUsername = postgreSql.Secret.Data.Apply(x => x["username"].DecodeBase64()),
         PgDatabase = databaseName,
     }, @namespace, name, options);
 
     public PgWeb(KubernetesEnvironmentContext ctx, PgWebArgs inputArgs, Namespace? @namespace = null,
         string name = "pgweb", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:pgweb", name, options, checkNamingConvention) =>
+        : base("unilake:kubernetes:helm:pgweb", name, options, checkNamingConvention) =>
         Create(ctx, inputArgs, @namespace, name, options);
 
     private void Create(KubernetesEnvironmentContext ctx, PgWebArgs inputArgs, Namespace? @namespace = null,

@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config;
 
-public class UnilakeConf : IConfigNode
+public sealed class UnilakeConf : IConfigNode
 {
     public string Section { get; } = "unilake";
     

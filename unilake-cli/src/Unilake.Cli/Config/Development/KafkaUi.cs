@@ -1,9 +1,9 @@
 
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Development;
 
-public class KafkaUi : IConfigNode
+public sealed class KafkaUi : IConfigNode
 {
     public string Section { get; } = "kafka-ui";
     

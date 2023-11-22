@@ -8,10 +8,13 @@
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="OneOf" Version="3.0.263" />
     <PackageReference Include="Pulumi.Automation" Version="3.58.0" />
     <PackageReference Include="Spectre.Console" Version="0.47.0" />
     <PackageReference Include="YamlDotNet" Version="13.7.1" />

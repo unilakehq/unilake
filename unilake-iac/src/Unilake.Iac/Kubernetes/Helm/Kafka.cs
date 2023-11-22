@@ -15,7 +15,7 @@ public class Kafka : KubernetesComponentResource
     
     public Kafka(KubernetesEnvironmentContext ctx, KafkaInputArgs inputArgs, Namespace? @namespace = null, 
         string name = "kafka", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
-        : base("pkg:kubernetes:helm:kafka", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:kafka", name, options, checkNamingConvention)
     {
         // Set default options
         var resourceOptions = CreateOptions(options);

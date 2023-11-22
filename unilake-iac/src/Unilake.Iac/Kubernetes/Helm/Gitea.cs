@@ -12,7 +12,7 @@ public class Gitea : KubernetesComponentResource
 {
     public Gitea(KubernetesEnvironmentContext ctx, GiteaArgs inputArgs, Namespace? @namespace = null, 
         string name = "gitea", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:gitea", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:gitea", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));

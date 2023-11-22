@@ -6,7 +6,7 @@ namespace Unilake.Iac.Kubernetes.Custom;
 public class StarRockCluster : KubernetesComponentResource
 {
     public StarRockCluster(KubernetesEnvironmentContext ctx, string name, ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
-        : base("pkg:kubernetes:custom:starrock", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:custom:starrock", name, options, checkNamingConvention)
     {
         throw new NotImplementedException();
     }

@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Cloud.Kubernetes;
 
-public class Minio : IConfigNode
+public sealed class Minio : IConfigNode
 {
     public string Section { get; } = "minio";
     
@@ -24,11 +24,21 @@ public class Minio : IConfigNode
         if(!Enabled)
             yield break;
 
-        if(IConfigNode.CheckProp(nameof(RootUser), checkProps) && string.IsNullOrWhiteSpace(RootUser))
-            yield return new ValidateResult(this, "root-user", "root-user is undefined");
-           
-        if(IConfigNode.CheckProp(nameof(RootPassword), checkProps) && string.IsNullOrWhiteSpace(RootPassword))
-            yield return new ValidateResult(this, "root-password", "root-password is undefined");
+        if (IConfigNode.CheckProp(nameof(RootUser), checkProps))
+        {
+            if(string.IsNullOrWhiteSpace(RootUser))
+                yield return new ValidateResult(this, "root-user", "root-user is undefined");
+            else if (RootUser.Length < 3)
+                yield return new ValidateResult(this, "root-user", "root-user should be at least 3 characters");
+        }
+        
+        if(IConfigNode.CheckProp(nameof(RootPassword), checkProps))
+        {
+            if(string.IsNullOrWhiteSpace(RootPassword))
+                yield return new ValidateResult(this, "root-password", "root-password is undefined");
+            else if (RootPassword.Length < 8)
+                yield return new ValidateResult(this, "root-password", "root-password should be at least 8 characters");
+        }
 
         if(IConfigNode.CheckProp(nameof(Replicas), checkProps) && Replicas < 1)
             yield return new ValidateResult(this, "replicas", "replicas cannot be below 1");

@@ -15,7 +15,7 @@ public class BoxyHq : KubernetesDeploymentResource
 {
     public BoxyHq(KubernetesEnvironmentContext ctx, BoxyHqInputArgs inputArgs, Namespace? @namespace = null,
         string name = "boxyhq", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:deployment:boxyhq", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:deployment:boxyhq", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));
@@ -118,6 +118,8 @@ public class BoxyHq : KubernetesDeploymentResource
                                     new ContainerPortArgs
                                     {
                                         ContainerPortValue = 5225,
+                                        Name = "http",
+                                        Protocol = "TCP",
                                     },
                                 },
                                 ReadinessProbe = new ProbeArgs

@@ -2,7 +2,7 @@
 
 namespace Unilake.Cli;
 
-public class ValidateResult
+public sealed class ValidateResult
 {
     public string Section { get; set; }
     public string Error { get; set; }

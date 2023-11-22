@@ -8,7 +8,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 public class UnilakeDbtIde : KubernetesComponentResource
 {
     public UnilakeDbtIde(string name, ComponentResourceOptions? options = null) 
-        : base("pkg:kubernetes:deployment:unilake:dbtide", name, options)
+        : base("unilake:kubernetes:deployment:unilake:dbtide", name, options)
     {
         throw new NotImplementedException();
     }

@@ -18,7 +18,7 @@ public class MinioArgs : HelmInputArgs
     /// </summary>
     public int Replicas { get; set; } = 1;
 
-    public override string Version { get; set; } = "5.0.8";
+    public override string Version { get; set; } = "5.0.14";
 }
 
 public class MinioArgsBucket

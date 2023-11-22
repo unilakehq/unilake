@@ -18,7 +18,7 @@ public class Redis : KubernetesComponentResource
     
     public Redis(KubernetesEnvironmentContext ctx, RedisArgs inputArgs, Namespace? @namespace = null, 
         string name = "redis", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
-        : base("pkg:kubernetes:helm:redis", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:redis", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));

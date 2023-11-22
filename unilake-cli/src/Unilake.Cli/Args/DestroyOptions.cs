@@ -1,12 +1,44 @@
 using CommandLine;
+using Unilake.Cli.Stacks;
+using Parser = Unilake.Cli.Config.Parser;
 
 namespace Unilake.Cli.Args;
 
 [Verb("destroy", HelpText = "Destroy and remove all resources of a UniLake deployment.")]
 public class DestroyOptions : Options
 {
-    public override Task<int> ExecuteAsync(CancellationToken cancellationToken)
+    [Option('c', "config-file", Required = false, HelpText = "Config file location.")]
+    public string? ConfigFile { get; set; }
+    
+    private bool FileBased => !string.IsNullOrWhiteSpace(ConfigFile);
+
+    public override async Task<int> ExecuteAsync(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        Console.WriteLine("Running destroy command...");
+        if (FileBased && !File.Exists(ConfigFile))
+        {
+            Console.Error.WriteLine($"Config file not found: {ConfigFile}");
+            return 1;
+        }
+
+        var parsed = FileBased
+            ? Parser.ParseFromPath(ConfigFile!)
+            : Parser.ParseFromEmbeddedResource("Unilake.Cli.unilake.default.yaml");
+        if (!parsed.IsValid())
+        {
+            parsed.PrettyPrintErrors();
+            return 1;
+        }
+
+        var workspace =
+            await new StackHandler<Kubernetes>(new Kubernetes(parsed)).InitWorkspace("someProject", "someStack",
+                cancellationToken);
+        await workspace.InstallPluginsAsync(cancellationToken);
+        var result = await workspace.DestroyAsync(cancellationToken);
+        if (result == null)
+            throw new CliException("Result cannot be null from Pulumi Automation");
+        workspace.ReportDestroySummary(result);
+        
+        return 1;
     }
 }

@@ -1,10 +1,9 @@
-﻿using Unilake.Cli.Config;
-using Unilake.Cli.Config.Storage;
+﻿using Unilake.Cli.Config.Storage;
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Dependencies;
 
-public class Nessie : IConfigNode
+public sealed class Nessie : IConfigNode
 {
     public string Section => "nessie";
 

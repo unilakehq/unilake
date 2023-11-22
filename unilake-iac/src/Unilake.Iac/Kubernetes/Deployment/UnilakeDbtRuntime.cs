@@ -8,7 +8,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 public class UnilakeDbtRuntime : KubernetesComponentResource
 {
     public UnilakeDbtRuntime(string name, ComponentResourceOptions? options = null) 
-        : base("pkg:kubernetes:deployment:unilake:dbtruntime", name, options)
+        : base("unilake:kubernetes:deployment:unilake:dbtruntime", name, options)
     {
         throw new NotImplementedException();
     }

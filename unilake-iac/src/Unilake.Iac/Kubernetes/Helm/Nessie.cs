@@ -17,7 +17,7 @@ public class Nessie : KubernetesComponentResource
 
     
     public Nessie(KubernetesEnvironmentContext ctx, NessieArgs inputArgs, Namespace? @namespace = null, string name = "nessie", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
-        : base("pkg:kubernetes:helm:nessie", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:nessie", name, options, checkNamingConvention)
     {
         // check input
         if (inputArgs == null) throw new ArgumentNullException(nameof(inputArgs));

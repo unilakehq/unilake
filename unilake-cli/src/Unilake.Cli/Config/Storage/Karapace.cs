@@ -3,7 +3,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Storage;
 
-public class Karapace : IConfigNode
+public sealed class Karapace : IConfigNode
 {
     public string Section { get; } = "karapace";
     

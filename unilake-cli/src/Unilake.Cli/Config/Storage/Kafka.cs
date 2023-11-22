@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 
 namespace Unilake.Cli.Config.Storage;
 
-public class Kafka : IConfigNode
+public sealed class Kafka : IConfigNode
 {
     public string Section { get; } = "kafka";
     

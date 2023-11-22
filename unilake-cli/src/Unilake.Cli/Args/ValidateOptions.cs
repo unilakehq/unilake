@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using CommandLine;
+﻿using CommandLine;
 using Spectre.Console;
 using Unilake.Cli.Args;
 using Parser = Unilake.Cli.Config.Parser;
@@ -19,6 +18,8 @@ public class ValidateOptions : Options
         {
             PrintErrorFoundHeader();
             AnsiConsole.MarkupLine(Message.ValidationConfigFileNotFound, FilePath);
+            Console.WriteLine();
+            return Task.FromResult(1);
         }
 
         var result = Parser.ParseFromPath(FilePath);

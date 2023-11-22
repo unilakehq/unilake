@@ -11,11 +11,11 @@ public class KafkaUi : KubernetesComponentResource
     [Output("name")] 
     public Output<string> Name { get; private set; }
 
-    public Service @Service { get; private set; }
+    // public Service @Service { get; private set; }
     
     public KafkaUi(KubernetesEnvironmentContext ctx, KafkaUiInputArgs inputArgs, Namespace? @namespace = null, string name = "kafkaui", 
         ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
-        : base("pkg:kubernetes:helm:kafkaui", name, options, checkNamingConvention)
+        : base("unilake:kubernetes:helm:kafkaui", name, options, checkNamingConvention)
     {
         // Set default options
         var resourceOptions = CreateOptions(options);
@@ -34,11 +34,11 @@ public class KafkaUi : KubernetesComponentResource
             Namespace = @namespace.Metadata.Apply(x => x.Name),
             RepositoryOpts = new RepositoryOptsArgs
             {
-                Repo = "https://provectus.github.io/kafka-ui"
+                Repo = "https://provectus.github.io/kafka-ui-charts"
             },
             Values =
                 new
-                    InputMap<object> // https://github.com/provectus/kafka-ui/blob/master/charts/kafka-ui/values.yaml
+                    InputMap<object> // https://github.com/provectus/kafka-ui-charts/blob/main/charts/kafka-ui/values.yaml
                     {
                         {
                             "yamlApplicationConfig", new InputMap<object>
@@ -93,8 +93,8 @@ public class KafkaUi : KubernetesComponentResource
         var kafkaUiInstance = new Release(name, releaseArgs, resourceOptions);
         
         // Get output
-        var status = kafkaUiInstance.Status;
-        Service = Service.Get(name, Output.All(status).Apply(s => $"{s[0].Namespace}/{s[0].Name}"), resourceOptions);
+        // var status = kafkaUiInstance.Status;
+        // Service = Service.Get(name, Output.All(status).Apply(s => $"{s[0].Namespace}/{s[0].Name}"), resourceOptions);
         Name = kafkaUiInstance.Name; 
     }
 }

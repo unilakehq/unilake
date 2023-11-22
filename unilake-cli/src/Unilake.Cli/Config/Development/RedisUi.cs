@@ -1,8 +1,8 @@
 using YamlDotNet.Serialization;
 
-namespace Unilake.Cli.Config;
+namespace Unilake.Cli.Config.Development;
 
-public class RedisUi : IConfigNode
+public sealed class RedisUi : IConfigNode
 {
     public string Section { get; } = "redis-ui";
     

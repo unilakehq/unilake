@@ -78,6 +78,9 @@ RUN dotnet tool install -g Volo.Abp.Cli \
 # Install k3d
 RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
 
+# Install Helm
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sudo -u coder bash
+
 # Setup Docker
 RUN gpasswd -a coder docker \
     && chown coder /var/run/docker.sock || true

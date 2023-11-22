@@ -4,5 +4,5 @@ public class RedisArgs : HelmInputArgs
 {
     public string? AppName { get; set; } = "general";
 
-    public override string Version { get; set; } = "17.10.1";
+    public override string Version { get; set; } = "18.4.0";
 }

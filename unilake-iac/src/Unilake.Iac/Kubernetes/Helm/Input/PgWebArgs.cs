@@ -9,5 +9,5 @@ public class PgWebArgs : HelmInputArgs
     public required Input<string> PgHost { get; set; }
     public Input<int> PgPort { get; set; } = 5432;
     public required Input<string> PgDatabase { get; set; }
-    public override string Version { get; set; } = "0.1.7";
+    public override string Version { get; set; } = "0.1.9";
 }

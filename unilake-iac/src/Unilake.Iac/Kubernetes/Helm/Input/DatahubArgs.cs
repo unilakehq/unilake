@@ -4,7 +4,7 @@ namespace Unilake.Iac.Kubernetes.Helm.Input;
 
 public class DatahubArgs : HelmInputArgs
 {
-    public override string Version { get; set; } = "0.2.164";
+    public override string Version { get; set; } = "0.3.11";
     public required Input<string> PostgreSqlHost { get; set; }
     public required Input<string> PostgreSqlPort { get; set; }
     public required Input<string> PostgreSqlDatabaseName { get; set; }
