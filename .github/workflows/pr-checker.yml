@@ -13,6 +13,8 @@ on:
       - ready_for_review
       - converted_to_draft
 
+  merge_group:
+
 permissions:
   pull-requests: write
   contents: read
