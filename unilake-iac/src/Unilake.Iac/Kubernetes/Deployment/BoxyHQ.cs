@@ -11,7 +11,7 @@ namespace Unilake.Iac.Kubernetes.Deployment;
 /// TODO: some settings are missing to make everything work properly
 /// https://boxyhq.com/docs/jackson/deploy/service
 /// </summary>
-public class BoxyHq : KubernetesDeploymentResource
+public sealed class BoxyHq : KubernetesDeploymentResource
 {
     public BoxyHq(KubernetesEnvironmentContext ctx, BoxyHqInputArgs inputArgs, Namespace? @namespace = null,
         string name = "boxyhq", ComponentResourceOptions? options = null, bool checkNamingConvention = true)

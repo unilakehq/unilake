@@ -2,7 +2,7 @@ using Pulumi;
 
 namespace Unilake.Iac.Kubernetes.Deployment.Input;
 
-public class BoxyHqInputArgs : DeploymentInputArgs
+public sealed class BoxyHqInputArgs : DeploymentInputArgs
 {
     public required Input<string[]> JacksonApiKey { get; set; }
 

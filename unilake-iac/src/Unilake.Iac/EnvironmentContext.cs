@@ -115,6 +115,8 @@ public class EnvironmentContext
             CustomTags = CustomTags
         };
     }
+    
+    public EnvironmentContext Copy(Func<EnvironmentContext, EnvironmentContext> adjust) => adjust(Copy());
 
     public string Tenant { get; private set; } = string.Empty;
 

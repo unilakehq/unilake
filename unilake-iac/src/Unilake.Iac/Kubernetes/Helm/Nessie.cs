@@ -8,7 +8,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-public class Nessie : KubernetesComponentResource
+public sealed class Nessie : KubernetesComponentResource
 {
     [Output("name")] 
     public Output<string> Name { get; private set; }

@@ -11,7 +11,7 @@ namespace Unilake.Iac.Kubernetes.Helm;
 /// <summary>
 /// See: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
 /// </summary>
-public class PostgreSql : KubernetesComponentResource
+public sealed class PostgreSql : KubernetesComponentResource
 {
     [Output("name")] 
     public Output<string> Name { get; private set; }

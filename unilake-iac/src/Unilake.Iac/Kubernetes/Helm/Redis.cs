@@ -6,7 +6,7 @@ using Unilake.Iac.Kubernetes.Helm.Input;
 
 namespace Unilake.Iac.Kubernetes.Helm;
 
-public class Redis : KubernetesComponentResource
+public sealed class Redis : KubernetesComponentResource
 {
     [Output("password")] 
     public Output<string> Password { get; private set; }

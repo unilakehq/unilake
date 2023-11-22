@@ -2,7 +2,7 @@ using Pulumi;
 
 namespace Unilake.Iac.Kubernetes.Helm.Input;
 
-public class PgWebArgs : HelmInputArgs
+public sealed class PgWebArgs : HelmInputArgs
 {
     public required Input<string> PgUsername { get; set; }
     public required Input<string> PgPassword { get; set; }

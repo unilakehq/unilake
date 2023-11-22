@@ -7,7 +7,7 @@ using Unilake.Iac.Kubernetes.Deployment.Input;
 
 namespace Unilake.Iac.Kubernetes.Deployment;
 
-public class Karapace : KubernetesComponentResource
+public sealed class Karapace : KubernetesComponentResource
 {
     public const string RegistryName = "karapace-registry";
     public const string RestName = "karapace-rest";

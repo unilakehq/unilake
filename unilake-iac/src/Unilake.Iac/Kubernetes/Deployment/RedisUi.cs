@@ -9,7 +9,7 @@ using Unilake.Iac.Kubernetes.Helm;
 
 namespace Unilake.Iac.Kubernetes.Deployment;
 
-public class RedisUi : KubernetesDeploymentResource
+public sealed class RedisUi : KubernetesDeploymentResource
 {
     public Service @Service { get; private set; }
 

@@ -9,7 +9,7 @@ namespace Unilake.Iac.Kubernetes.Helm;
 /// <summary>
 /// TODO: create CRDs for scaling objects
 /// </summary>
-public class Keda : KubernetesComponentResource
+public sealed class Keda : KubernetesComponentResource
 {
     public Keda(KubernetesEnvironmentContext ctx, KedaArgs inputArgs, Namespace? @namespace = null, 
         string name = "keda", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
