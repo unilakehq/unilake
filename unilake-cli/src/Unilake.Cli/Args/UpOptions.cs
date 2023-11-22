@@ -30,8 +30,7 @@ public class UpOptions : Options
             parsed.PrettyPrintErrors();
             return 1;
         }
-
-        // TODO: see, https://github.com/pulumi/automation-api-examples/blob/main/dotnet/LocalProgram/automation/Program.cs
+        
         var workspace = await new StackHandler<Kubernetes>(new Kubernetes(parsed)).InitWorkspace("someProject", "someStack", cancellationToken);
         await workspace.InstallPluginsAsync(cancellationToken);
         var result = await workspace.UpAsync(cancellationToken);
