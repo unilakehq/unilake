@@ -1,13 +1,7 @@
 Fixes #issue
 
-## What type of PR is this:
-- [ ] BugFix
-- [ ] Feature
-- [ ] Enhancement
-- [ ] Refactor
-- [ ] UT
-- [ ] Doc
-- [ ] Tool
+## Summary
+<TODO>
 
 ## Checklist:
 - [ ] I have added test cases for my bug fix or my new feature
