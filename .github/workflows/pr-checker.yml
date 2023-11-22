@@ -34,7 +34,7 @@ jobs:
               return;
             }
             const title = context.payload.pull_request.title;
-            const regex = /^(rfc|feat|fix|refactor|ci|docs|chore)(\([a-z0-9-]+\))?:/;
+            const regex = /^(rfc|feat|fix|refactor|ci|docs|www|chore)(\([a-z0-9-]+\))?:/;
             const m = title.match(regex);
             if (!m) {
               core.error('PR title is not semantic');
@@ -63,6 +63,9 @@ jobs:
                 break;
               case 'docs':
                 label = 'pr-doc';
+                break;
+              case 'www':
+                label = 'pr-www';
                 break;
               case 'chore':
                 label = 'pr-chore';
@@ -99,7 +102,7 @@ jobs:
               |         |
               |         +-> Summary in present tense.
               |
-              +-------> Type: rfc, feat, fix, refactor, ci, docs, chore
+              +-------> Type: rfc, feat, fix, refactor, ci, docs, www, chore
             ```
 
             Valid types:
@@ -109,5 +112,6 @@ jobs:
             - `fix`: this PR patches a bug in codebase
             - `refactor`: this PR changes the code base without new features or bugfix
             - `ci`: this PR changes build/testing/ci steps
-            - `docs`: this PR changes the documents or websites
+            - `docs`: this PR changes the documents or documentation website
+            - `www`: this PR changes the public website
             - `chore`: this PR only has small changes that no need to record
