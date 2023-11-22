@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.Metrics;
-using OneOf;
+﻿using OneOf;
 using OneOf.Types;
 using Pulumi;
 using Pulumi.Kubernetes.Core.V1;
@@ -31,19 +30,18 @@ internal sealed class Kubernetes : UnilakeStack
 
         // Storage dependencies
         PostgreSql? postgreSql = CreatePostgreSqlInstance(kubernetesContext, @namespace);
-        //Redis? redis = CreateRedisInstance(kubernetesContext, @namespace);
-        // OpenSearch? openSearch = CreateOpenSearchInstance(kubernetesContext, @namespace);
-        //Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
-        //Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
+        Redis? redis = CreateRedisInstance(kubernetesContext, @namespace);
+        OpenSearch? openSearch = CreateOpenSearchInstance(kubernetesContext, @namespace);
+        Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
+        Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
         
         // Service dependencies
-        //BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace, postgreSql);
+        BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace, postgreSql);
         // TODO: fix this
         //Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace);
         // TODO: fix this
         // StarRockCluster? starRockCluster = CreateStarRocksCluster(kubernetesContext, @namespace);
-        // TODO: fix this
-        // Unilake.Iac.Kubernetes.Helm.Nessie? nessie = null;
+        // Nessie? nessie = CreateNessieInstance(kubernetesContext, @namespace, postgreSql);
         //
         // // Internal services
         // UnilakeWeb? unilakeWeb = null;
@@ -53,10 +51,10 @@ internal sealed class Kubernetes : UnilakeStack
         //
         
         // Development services
-        //KafkaUi? kafkaUi = CreateKafkaUiInstance(kubernetesContext, @namespace, kafka);
-        //RedisUi? redisUi = CreateRedisUiInstance(kubernetesContext, @namespace, redis);
-        // Gitea? gitea = null;
+        KafkaUi? kafkaUi = CreateKafkaUiInstance(kubernetesContext, @namespace, kafka);
+        RedisUi? redisUi = CreateRedisUiInstance(kubernetesContext, @namespace, redis);
         // TODO: fix this
+        // Gitea? gitea = null;
         PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
 
         return Task.FromResult(new OneOf<Success, Error<Exception>>());
@@ -106,7 +104,7 @@ internal sealed class Kubernetes : UnilakeStack
         return null;
     }
     
-    private Nessie? CreateNessieInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace)
+    private Nessie? CreateNessieInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace, PostgreSql? postgreSql)
     {
         throw new NotImplementedException();
     }
@@ -188,17 +186,23 @@ internal sealed class Kubernetes : UnilakeStack
         if(Config.Cloud?.Kubernetes?.Postgresql?.Enabled ?? false)
         {
             var postgresqlConf = Config.Cloud.Kubernetes.Postgresql;
+            // check for all databses to be created at init
+            var databases = new[]
+            {
+                Config.Components?.Nessie?.Postgresql?.Name ?? string.Empty, 
+                Config.Components?.Datahub?.Postgresql?.Name ?? string.Empty, 
+                Config.Components?.Boxyhq?.Postgresql?.Name ?? string.Empty, 
+                Config.Components?.Development?.Gitea?.Postgresql?.Name ?? string.Empty
+            }.Where(x => !string.IsNullOrEmpty(x)).ToArray();
+            
             return new PostgreSql(kubernetesEnvironmentContext, new PostgreSqlArgs
             {
                 AppName = "unilake",
                 Password = postgresqlConf.Password!,
                 Username = postgresqlConf.Username!,
-                Databases = new[] {"unilake_boxyhq", "menno_db", "another_db"}
+                Databases = databases
             }, @namespace);
         }
-
-        // TODO: check which databases need to be created and provide access to them (boxyhq, api, datahub, nessie etc.., or do in their respective functions to keep everything together?)
-
         return null;
     }
 

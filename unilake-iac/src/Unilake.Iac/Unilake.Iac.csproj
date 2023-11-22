@@ -17,7 +17,6 @@
     <ItemGroup>
       <Folder Include="Kubernetes\Custom\Crds\StarRock\" />
       <Folder Include="Kubernetes\Custom\Input\" />
-      <Folder Include="PostgreSql\Objects\Input\" />
     </ItemGroup>
 
 </Project>

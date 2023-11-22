@@ -12,7 +12,7 @@ public class PostgreSqlArgs : HelmInputArgs
 
     public Input<string> AppName { get; set; } = "general";
 
-    public override string Version { get; set; } = "12.4.1";    
+    public override string Version { get; set; } = "13.2.15";
 
 
 }

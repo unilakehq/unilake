@@ -118,6 +118,8 @@ public class BoxyHq : KubernetesDeploymentResource
                                     new ContainerPortArgs
                                     {
                                         ContainerPortValue = 5225,
+                                        Name = "http",
+                                        Protocol = "TCP",
                                     },
                                 },
                                 ReadinessProbe = new ProbeArgs

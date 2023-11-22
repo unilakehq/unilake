@@ -13,8 +13,6 @@ namespace Unilake.Iac.Kubernetes.Helm;
 /// </summary>
 public class PostgreSql : KubernetesComponentResource
 {
-    public PostgreSqlArgs InputArgs { get; private set; }
-    
     [Output("name")] 
     public Output<string> Name { get; private set; }
 
@@ -53,7 +51,7 @@ public class PostgreSql : KubernetesComponentResource
         }, resourceOptions); 
 
         //Get PostgreSql chart and add
-        string[] databases = InputArgs?.Databases ?? Array.Empty<string>();
+        string[] databases = inputArgs.Databases ?? Array.Empty<string>();
         var releaseArgs = new ReleaseArgs
         {
             Name = name,
@@ -75,26 +73,26 @@ public class PostgreSql : KubernetesComponentResource
                                     ["username"] = inputArgs.Username,
                                     ["existingSecret"] = secret.Metadata.Apply(x => x.Name)
                                 }
-                            },
-                            ["primary"] = new Dictionary<string, object>
-                            {
-                                ["initdb"] = new Dictionary<string, object>
-                                {
-                                    ["scripts"] = new InputMap<string>
-                                    {
-                                        {"dbs_init_script.sh", InitMultipleDatabasesScript}
-                                    }
-                                },
-                                ["extraEnvVars"] = new List<object>
-                                {
-                                    new EnvVarArgs
-                                    {
-                                        Name = "POSTGRES_MULTIPLE_DATABASES",
-                                        Value = string.Join(',', databases)
-                                    }
-                                }
                             }
                         },
+                        ["primary"] = new Dictionary<string, object>
+                        {
+                            ["initdb"] = new Dictionary<string, object>
+                            {
+                                ["scripts"] = new InputMap<string>
+                                {
+                                    {"dbs_init_script.sh", InitMultipleDatabasesScript}
+                                }
+                            },
+                            ["extraEnvVars"] = new List<object>
+                            {
+                                new EnvVarArgs
+                                {
+                                    Name = "POSTGRES_MULTIPLE_DATABASES",
+                                    Value = string.Join(',', databases)
+                                }
+                            }
+                        }
                         //["commonLabels"] = GetLabels(ctx, inputArgs.AppName, null, "postgresql", inputArgs.Version)
                     },
             // By default Release resource will wait till all created resources
@@ -118,33 +116,33 @@ public class PostgreSql : KubernetesComponentResource
         // Get output
         var status = postgreInstance.Status;
         Service = Service.Get(name, Output.All(status).Apply(s => $"{s[0].Namespace}/{s[0].Name}"), resourceOptions);
-        InputArgs = inputArgs;
         Name = postgreInstance.Name;
         Secret = secret;
     }
 
     private string InitMultipleDatabasesScript => """
-        #!/bin/bash
+    #!/bin/bash
+    
+    set -e
+    set -u
+    
+    export PGPASSWORD=$POSTGRES_PASSWORD
+    
+    function create_user_and_database() {
+        local database=$1
+        echo "  Creating user and database '$database'"
+        createdb -U "$POSTGRES_USER" -w $database -O "$POSTGRES_USER"
+    }
+    
+    if [ -n "$POSTGRES_MULTIPLE_DATABASES" ]; then
+        echo "Multiple database creation requested: $POSTGRES_MULTIPLE_DATABASES"
+        for db in $(echo $POSTGRES_MULTIPLE_DATABASES | tr ',' ' '); do
+            create_user_and_database $db
+        done
+        echo "Multiple databases created"
+    fi
 
-            set -e
-            set -u
-
-            function create_user_and_database() {
-                local database=$1
-                echo "  Creating user and database '$database'"
-                psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-                    CREATE USER $database;
-                    CREATE DATABASE $database;
-                    GRANT ALL PRIVILEGES ON DATABASE $database TO $database;
-            EOSQL
-            }
-
-            if [ -n "$POSTGRES_MULTIPLE_DATABASES" ]; then
-                echo "Multiple database creation requested: $POSTGRES_MULTIPLE_DATABASES"
-                for db in $(echo $POSTGRES_MULTIPLE_DATABASES | tr ',' ' '); do
-                    create_user_and_database $db
-                done
-                echo "Multiple databases created"
-            fi
+    unset PGPASSWORD
+    
     """;
 }

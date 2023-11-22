@@ -3,7 +3,7 @@ using Pulumi;
 namespace Unilake.Iac.Kubernetes.Deployment;
 
 /// <summary>
-/// Unilake internal query gateway deployment
+/// Unilake internal storage proxy deployment
 /// </summary>
 public class UnilakeProxyStorage : KubernetesComponentResource
 {

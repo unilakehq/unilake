@@ -3,7 +3,7 @@ using Pulumi;
 namespace Unilake.Iac.Kubernetes.Deployment;
 
 /// <summary>
-/// Unilake webapi public/open-source version
+/// Unilake webapi
 /// </summary>
 public class UnilakeApi : KubernetesComponentResource
 {
