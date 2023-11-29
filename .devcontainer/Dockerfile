@@ -68,13 +68,12 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && apt install gh -y
 
 # Install Pulumi
-RUN curl -fsSL https://get.pulumi.com | sh \
-    && echo 'export PATH=$PATH:/root/.pulumi/bin' >> /home/coder/.bashrc \
-    && chown -R coder:coder /root/.pulumi
+RUN curl -fsSL https://get.pulumi.com | sudo -u coder sh \
+    && echo 'export PATH=$PATH:/home/coder/.pulumi/bin' >> /home/coder/.bashrc
 
 # Install ABP CLI (Dotnet Global Tool)
-RUN dotnet tool install -g Volo.Abp.Cli \
-    && echo 'export PATH=$PATH:/root/.dotnet/tools' >> /home/coder/.bashrc
+RUN sudo -u coder dotnet tool install -g Volo.Abp.Cli \
+    && echo 'export PATH=$PATH:/home/coder/.dotnet/tools' >> /home/coder/.bashrc
 
 # Install k3d
 RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
@@ -103,9 +102,6 @@ USER coder
 
 # Apply PATH changes
 RUN /bin/bash -c "source ~/.bashrc"
-
-# Set the PATH explicitly for the tools installed
-ENV PATH="${PATH}:${CARGO_HOME}/bin:/usr/local/bin/pulumi"
 
 # Final clean up
 RUN sudo chmod o+x /root
