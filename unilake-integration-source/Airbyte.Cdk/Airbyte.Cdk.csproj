@@ -6,6 +6,7 @@
     <OutputType>Exe</OutputType>
     <StartupObject />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version Condition="'$(VersionSuffix)' != ''">$(VersionSuffix)</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,7 +1,7 @@
 # Build and publish release of cli
 FROM ghcr.io/unilakehq/dev-oss:latest AS build
 
-ARG BUILD_VERSION="0.0.1" 
+ARG BUILD_VERSION="0.0.1-pre-alpha"
 ARG WORKDIR=/unilake/build
 WORKDIR $WORKDIR
 
@@ -21,19 +21,19 @@ RUN dotnet test
 WORKDIR $WORKDIR/unilake-cli/src/Unilake.Cli
 
 # Windows
-RUN dotnet publish -c release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:Version=$BUILD_VERSION /p:FileVersion=$BUILD_VERSION /p:AssemblyVersion=$BUILD_VERSION
+RUN dotnet publish -c release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None --version-suffix $BUILD_VERSION
 RUN mv bin/release/net7.0/win-x64/publish/Unilake.Cli.exe bin/release/net7.0/win-x64/publish/unilake.exe
 RUN zip -j /output/unilake.cli.win-x64.$BUILD_VERSION.zip bin/release/net7.0/win-x64/publish/unilake.exe
 RUN cp /output/unilake.cli.win-x64.$BUILD_VERSION.zip /output/unilake.cli.win-x64.latest.zip
 
 # Mac-OS
-RUN dotnet publish -c release -r osx-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:Version=$BUILD_VERSION /p:FileVersion=$BUILD_VERSION /p:AssemblyVersion=$BUILD_VERSION
+RUN dotnet publish -c release -r osx-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None --version-suffix $BUILD_VERSION
 RUN mv bin/release/net7.0/osx-x64/publish/Unilake.Cli bin/release/net7.0/osx-x64/publish/unilake
 RUN tar -czvf /output/unilake.cli.osx-x64.$BUILD_VERSION.tar.gz -C bin/release/net7.0/osx-x64/publish unilake
 RUN cp /output/unilake.cli.osx-x64.$BUILD_VERSION.tar.gz /output/unilake.cli.osx-x64.latest.tar.gz
 
 # Linux
-RUN dotnet publish -c release -r linux-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:Version=$BUILD_VERSION /p:FileVersion=$BUILD_VERSION /p:AssemblyVersion=$BUILD_VERSION
+RUN dotnet publish -c release -r linux-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None --version-suffix $BUILD_VERSION
 RUN mv bin/release/net7.0/linux-x64/publish/Unilake.Cli bin/release/net7.0/linux-x64/publish/unilake
 RUN tar -czvf /output/unilake.cli.linux-x64.$BUILD_VERSION.tar.gz -C bin/release/net7.0/linux-x64/publish unilake
 RUN cp /output/unilake.cli.linux-x64.$BUILD_VERSION.tar.gz /output/unilake.cli.linux-x64.latest.tar.gz
