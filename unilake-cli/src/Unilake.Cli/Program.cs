@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Text;
 using CommandLine;
 using CommandLine.Text;
 using Spectre.Console;
@@ -30,7 +31,8 @@ public static class Program
         var helpText = HelpText.AutoBuild(result, h =>
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("UniLake CLI :rocket: \n" +
+            var version = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), false)[0] as AssemblyInformationalVersionAttribute;
+            sb.Append($"UniLake CLI :rocket: - {version?.InformationalVersion} \n" +
                       "[bold][red]>>> THIS CLI IS UNDER DEVELOPMENT <<<[/][/]");
             if (errs.Any(x => x.Tag == ErrorType.NoVerbSelectedError))
                 sb.Append("\n\nTo begin using this CLI, you need to run the following command: \n\n" +
