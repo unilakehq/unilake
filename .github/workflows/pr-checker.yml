@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check PR title if not sematic
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         id: check
         with:
           script: |
