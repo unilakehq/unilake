@@ -10,6 +10,7 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Version Condition="'$(VersionSuffix)' != ''">$(VersionSuffix)</Version>
+    <Version Condition="'$(VersionSuffix)' == ''">0.0.0-local</Version>
   </PropertyGroup>
 
   <ItemGroup>
