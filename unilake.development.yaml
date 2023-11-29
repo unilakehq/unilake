@@ -1,0 +1,106 @@
+# UniLake configuration file
+version: unilake.com/v1alpha1 # this will change in the future as we make everything more stable
+cloud:
+  kubernetes: # currently the only cloud environment is kubernetes
+    postgresql:
+      enabled: true # if true, will deploy postgresql instance
+      username: admin # postgresql default username
+      password: admin # postgresql default password
+    opensearch:
+      enabled: true # if true, will deploy opensearch instance
+      single-node: true # default is to deploy a single node instance
+    kafka:
+      enabled: true # if true, will deploy a kafka cluster
+    datalake:
+      minio: # for local installations, minio can be used for storage
+        enabled: true # if true, will deploy a single minio storage node
+        root-user: admin # minio default username (at least 3 characters)
+        root-password: U7LMsX6p # minio default password (at least 8 characters)
+        replicas: 1 # for development, a single node is fine
+        buckets: # any buckets that need to be created together with the deployment
+          - name: starrocks # bucket for starrocks to use
+            policy: none # Policy to be set on the bucket [none|download|upload|public]
+            purge: false # Purge if bucket exists already 
+            versioning: false # Enable versioning for bucket
+            object-locking: false # Set objectlocking for bucket NOTE: versioning is enabled by default if you use locking
+    karapace:
+      enabled: true # if true, will deploy karapace
+    redis:
+      enabled: true # if true, will deploy a single node redis instance
+components:
+  unilake: # all components which are unilake specific
+    webapp: # unilake web app
+      enabled: true
+    webapi: # unilake web api
+      enabled: true
+      postgresql:
+        host: cloud.kubernetes
+        username: admin
+        password: admin
+    proxy-query: # unilake query proxy
+      enabled: true
+    proxy-storage: # unilake storage proxy
+      enabled: true
+  nessie:
+    enabled: true
+    postgresql:
+      host: cloud.kubernetes
+      port: 5432
+      name: unilake_nessie
+      username: admin
+      password: admin
+  datahub: # dependency, used as data catalog
+    enabled: true
+    postgresql:
+      host: cloud.kubernetes
+      port: 5432
+      name: unilake_datahub
+      username: admin
+      password: admin
+    opensearch:
+      host: cloud.kubernetes
+      port: 443
+    kafka:
+      server: cloud.kubernetes
+      schema-registry: cloud.kubernetes
+  starrocks:
+    enabled: true
+  boxyhq:
+    enabled: true
+    postgresql:
+      host: cloud.kubernetes
+      port: 5432
+      name: unilake_boxyhq
+      username: admin
+      password: admin
+  development: # contains components often used only during development
+    enabled: true # turn all development components on or off
+    kafka-ui:
+      enabled: true
+      target:
+        cloud: kubernetes
+    pgweb:
+      enabled: true
+      database: postgres
+      target:
+        cloud: kubernetes
+    redis-ui:
+      enabled: true
+      target:
+        cloud: kubernetes
+    gitea:
+      enabled: true
+      admin-username: admin
+      admin-password: admin
+      admin-email: admin@admin.com
+      postgresql:
+        enabled: true
+        host: cloud.kubernetes
+        port: 5432
+        name: unilake_gitea
+        schema: gitea
+        username: admin
+        password: admin
+      redis:
+        host: cloud.kubernetes
+        database: 1

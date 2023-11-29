@@ -1,0 +1,29 @@
+name: "Build CLI"
+description: "Build and release unilake CLI"
+inputs:
+  version:
+    description: "Target unilake CLI version"
+    required: true
+  target:
+    description: "Target build step"
+    default: "build"
+runs:
+  using: "composite"
+  steps:
+    - name: Build and push
+      id: docker_build
+      uses: docker/build-push-action@v3
+      with:
+        push: false
+        platforms: linux/amd64
+        context: .
+        file: ./unilake-cli/Dockerfile
+        target: ${{ inputs.target }}
+        build-args: |
+          BUILD_VERSION=${{ inputs.version }}
+          RCLONE_CONFIG_TARGETS3_PROVIDER=${{ env.AWS_PROVIDER }}
+          RCLONE_CONFIG_TARGETS3_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_TARGETS3_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}
+          RCLONE_CONFIG_TARGETS3_REGION=${{ env.AWS_DEFAULT_REGION }}
+          RCLONE_CONFIG_TARGETS3_ENDPOINT=${{ env.AWS_ENDPOINT_URL }}
+          BUCKET=${{ env.AWS_BUCKET }}

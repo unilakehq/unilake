@@ -13,7 +13,7 @@ Unilake is built by an open and friendly community. We are dedicated to building
       - [General workflow](#general-workflow)
       - [Unilake code structure](#unilake-code-structure)
       - [Important directories](#important-directories)
-      - [Set your development environment](#set-your-development-environment)
+      - [Setup your development environment](#set-your-development-environment)
       - [Coding style](#coding-style)
       - [Unit test](#unit-test)
       - [Commit message](#commit-message)
@@ -81,9 +81,15 @@ TBC
 
 TBC
 
-#### Set your development environment
+#### Set-up your development environment
 
-TBC
+In order to accelerate the development of new features, we have created a devcontainer with a lot batteries included. When developing in the devcontainer the following process resembles a common way of work:
+
+- After opening the devcontainer, adjust the unilake.development.yaml file in the root of the project. Adjust it in a way so that the service you are working on is not deployed to the target kubernetes cluster and dependent services connect to the version you are developing instead.
+- Run `k3d cluster create --api-port 6550 -p "8081:80@loadbalancer" --agents 1` to create a local kubernetes cluster
+- Run `k3d kubeconfig merge k3s-default --kubeconfig-merge-default --kubeconfig-switch-context` to make sure your kubeconfig is updated
+- Run `unilake up` in the project's root directory to launch the cluster
+- After running the above command, you can make use of `sudo --preserve-env kubefwd svc -n default` to link services to your local development environment
 
 #### Coding style
 

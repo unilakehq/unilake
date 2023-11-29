@@ -23,6 +23,7 @@ RUN apt-get update -y \
         curl \
         ca-certificates \
         gnupg \
+        tar \
     # Clean up
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -84,6 +85,18 @@ RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | s
 # Setup Docker
 RUN gpasswd -a coder docker \
     && chown coder /var/run/docker.sock || true
+
+# Setup KubeFwd
+ARG KUBEFWD_URL=https://github.com/txn2/kubefwd/releases/download/1.22.5/kubefwd_Linux_x86_64.tar.gz
+RUN mkdir -p /opt/kubefwd && \
+    curl -L https://github.com/txn2/kubefwd/releases/download/1.22.5/kubefwd_Linux_x86_64.tar.gz | tar xz -C /opt/kubefwd && \
+    echo 'export PATH="/opt/kubefwd:$PATH"' >> /home/coder/.bashrc
+
+# Setup Unilake CLI
+RUN curl -L https://unilake-cli.s3.nl-ams.scw.cloud/releases/unilake.cli.linux-x64.latest.tar.gz | tar xzf - && \
+    chmod +x unilake && \
+    mv unilake /usr/local/bin/ && \
+    rm -f unilake.cli.linux-x64.latest.tar.gz
 
 # Set back to coder user
 USER coder
