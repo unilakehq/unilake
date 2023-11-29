@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <Version Condition="'$(VersionSuffix)' != ''">$(VersionSuffix)</Version>
     </PropertyGroup>
 
     <ItemGroup>
