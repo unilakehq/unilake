@@ -4,7 +4,7 @@ using CliWrap.Buffered;
 
 namespace Unilake.Cli;
 
-public class StackContext
+internal static class StackContext
 {
     public static async Task<(bool isSuccess, string dependency, string errorMessage)> CheckEnvironmentDependenciesAsync(Dictionary<string, string[]> dependencies)
     {
