@@ -95,9 +95,6 @@ RUN curl -L https://unilake-cli.s3.nl-ams.scw.cloud/releases/unilake.cli.linux-x
 # Set back to coder user
 USER coder
 
-# Apply PATH changes
-RUN /bin/bash -c "source ~/.bashrc"
-
 # Set the PATH explicitly for the tools installed
 ENV PATH="${PATH}:${CARGO_HOME}/bin:/home/coder/.pulumi/bin:/home/coder/.dotnet/tools:/opt/kubefwd:"${CARGO_HOME}"/bin"
 
