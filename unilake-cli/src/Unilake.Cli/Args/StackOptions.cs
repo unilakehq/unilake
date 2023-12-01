@@ -10,7 +10,7 @@ public abstract class StackOptions : Options
 {
     [Option('c', "config-file", Required = false, HelpText = "Config file location.")]
     public string? ConfigFile { get; set; }
-    private bool FileBased => !string.IsNullOrWhiteSpace(ConfigFile);
+    protected bool FileBased => !string.IsNullOrWhiteSpace(ConfigFile);
 
     protected async Task<OneOf<EnvironmentConfig, int>> EnvironmentChecks()
     {
