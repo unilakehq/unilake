@@ -16,7 +16,7 @@ internal sealed class StackHandler<T> where T : UnilakeStack
     private CancellationTokenRegistration? _registration;
     private readonly Tree _resourceTree = new("Resources");
     private LiveDisplayContext? _activeCtx;
-    private readonly ConcurrentDictionary<string, ResourceState> _resourceStates = new ();
+    private readonly ConcurrentDictionary<string, ResourceState> _resourceStates = new();
 
     public StackHandler(T stack)
     {
@@ -56,7 +56,7 @@ internal sealed class StackHandler<T> where T : UnilakeStack
 
     public async Task InstallPluginsAsync(CancellationToken cancellationToken)
     {
-        foreach(var package in _unilakeStack.Packages)
+        foreach (var package in _unilakeStack.Packages)
             await _workspaceStack!.Workspace.InstallPluginAsync(package.name, package.version, PluginKind.Resource, cancellationToken);
     }
 
@@ -114,9 +114,9 @@ internal sealed class StackHandler<T> where T : UnilakeStack
         return result;
     }
 
-    public async Task CancelAsync(CancellationToken cancellationToken) => 
+    public async Task CancelAsync(CancellationToken cancellationToken) =>
         await (_workspaceStack?.CancelAsync(cancellationToken) ?? throw new CliException("Cannot run "));
-    
+
     private void UpdateTree()
     {
         if (_activeCtx == null)
@@ -137,20 +137,20 @@ internal sealed class StackHandler<T> where T : UnilakeStack
 
         foreach (var (k, state) in nodes)
             AddTreeNodes(k, state);
-        
+
         _activeCtx.Refresh();
     }
 
     private void AddTreeNodes(string root, ResourceState state, int level = 0, TreeNode? parent = null)
     {
-        if((state.HasChildResources && !state.HasChildResourcesWithChanges()) || state is { ReportableOperation: false, HasChildResources: false })
+        if ((state.HasChildResources && !state.HasChildResourcesWithChanges()) || state is { ReportableOperation: false, HasChildResources: false })
             return;
-        
+
         var consoleText = state.GetStatus(level);
         TreeNode current = parent == null
             ? _resourceTree.AddNode(consoleText)
             : parent.AddNode(consoleText);
-        
+
         level += 1;
         foreach (var (k, childState) in _resourceStates.Where(x => x.Value.ParentUrn == root).OrderBy(x => x.Value.Order))
             AddTreeNodes(k, childState, level, current);
@@ -159,7 +159,7 @@ internal sealed class StackHandler<T> where T : UnilakeStack
     private void OnEvent(EngineEvent onEvent)
     {
         var export = Environment.GetEnvironmentVariable("DEBUG_EXPORT_PULUMI_EVENTS");
-        if(!string.IsNullOrWhiteSpace(export) && string.Equals(export, "true", StringComparison.InvariantCultureIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(export) && string.Equals(export, "true", StringComparison.InvariantCultureIgnoreCase))
             ExportEventDetails(onEvent);
 
         string urn;
@@ -177,7 +177,7 @@ internal sealed class StackHandler<T> where T : UnilakeStack
             case EngineEventType.SummaryEvent:
                 break;
             case EngineEventType.ResourceOutputsEvent:
-                if(onEvent.ResourceOutputsEvent == null)
+                if (onEvent.ResourceOutputsEvent == null)
                     break;
                 urn = onEvent.ResourceOutputsEvent.Metadata.Urn;
                 resourceState = _resourceStates[urn];
@@ -196,7 +196,7 @@ internal sealed class StackHandler<T> where T : UnilakeStack
                     onEvent.ResourcePreEvent.Metadata.Op,
                     onEvent.ResourcePreEvent.Metadata.Type);
                 _resourceStates[urn] = resourceState;
-                if(_resourceStates.TryGetValue(parentUrn, out var parentResource))
+                if (_resourceStates.TryGetValue(parentUrn, out var parentResource))
                     parentResource.AddChildResourceState(resourceState);
                 break;
             case EngineEventType.StandardOutputEvent:
@@ -240,7 +240,7 @@ internal sealed class StackHandler<T> where T : UnilakeStack
                 throw new ArgumentOutOfRangeException(nameof(updateResult));
         }
     }
-    
+
     private void ExportEventDetails(EngineEvent onEvent)
     {
         StringBuilder sb = new StringBuilder();
