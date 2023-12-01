@@ -12,18 +12,18 @@ RUN apt-get update -y \
     && apt-get upgrade -y \
     # Install dependencies
     && apt-get install -y \
-        libxtst6 \
-        libxrender1 \
-        libfontconfig1 \
-        libxi6 \
-        nano \
-        iproute2 \
-        libgtk-3-0 \
-        wget \
-        curl \
-        ca-certificates \
-        gnupg \
-        tar \
+    libxtst6 \
+    libxrender1 \
+    libfontconfig1 \
+    libxi6 \
+    nano \
+    iproute2 \
+    libgtk-3-0 \
+    wget \
+    curl \
+    ca-certificates \
+    gnupg \
+    tar \
     # Clean up
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -43,9 +43,7 @@ RUN mkdir -p /home/coder && chown coder:coder /home/coder \
     && curl -o /tmp/rustup.sh https://sh.rustup.rs \
     && chmod +x /tmp/rustup.sh \
     && sudo -u coder /tmp/rustup.sh -y --no-modify-path --profile minimal --default-host x86_64-unknown-linux-gnu \
-    && rm /tmp/rustup.sh \
-    # Add Cargo's bin directory to PATH
-    && echo 'export PATH=$PATH:'${CARGO_HOME}'/bin' >> /home/coder/.bashrc
+    && rm /tmp/rustup.sh
 
 # Install Dotnet
 ENV DOTNET_ROOT="/workspace/dotnet"
@@ -68,12 +66,10 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && apt install gh -y
 
 # Install Pulumi
-RUN curl -fsSL https://get.pulumi.com | sudo -u coder sh \
-    && echo 'export PATH=$PATH:/home/coder/.pulumi/bin' >> /home/coder/.bashrc
+RUN curl -fsSL https://get.pulumi.com | sudo -u coder sh
 
 # Install ABP CLI (Dotnet Global Tool)
-RUN sudo -u coder dotnet tool install -g Volo.Abp.Cli \
-    && echo 'export PATH=$PATH:/home/coder/.dotnet/tools' >> /home/coder/.bashrc
+RUN sudo -u coder dotnet tool install -g Volo.Abp.Cli
 
 # Install k3d
 RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
@@ -88,8 +84,7 @@ RUN gpasswd -a coder docker \
 # Setup KubeFwd
 ARG KUBEFWD_URL=https://github.com/txn2/kubefwd/releases/download/1.22.5/kubefwd_Linux_x86_64.tar.gz
 RUN mkdir -p /opt/kubefwd && \
-    curl -L https://github.com/txn2/kubefwd/releases/download/1.22.5/kubefwd_Linux_x86_64.tar.gz | tar xz -C /opt/kubefwd && \
-    echo 'export PATH="/opt/kubefwd:$PATH"' >> /home/coder/.bashrc
+    curl -L https://github.com/txn2/kubefwd/releases/download/1.22.5/kubefwd_Linux_x86_64.tar.gz | tar xz -C /opt/kubefwd
 
 # Setup Unilake CLI
 RUN curl -L https://unilake-cli.s3.nl-ams.scw.cloud/releases/unilake.cli.linux-x64.latest.tar.gz | tar xzf - && \
@@ -102,6 +97,9 @@ USER coder
 
 # Apply PATH changes
 RUN /bin/bash -c "source ~/.bashrc"
+
+# Set the PATH explicitly for the tools installed
+ENV PATH="${PATH}:${CARGO_HOME}/bin:/home/coder/.pulumi/bin:/home/coder/.dotnet/tools:/opt/kubefwd:"${CARGO_HOME}"/bin"
 
 # Final clean up
 RUN sudo chmod o+x /root
