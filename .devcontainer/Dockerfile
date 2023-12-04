@@ -69,7 +69,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 RUN curl -fsSL https://get.pulumi.com | sudo -u coder sh
 
 # Install ABP CLI (Dotnet Global Tool)
-RUN sudo -u coder dotnet tool install -g Volo.Abp.Cli
+RUN sudo -u coder dotnet tool install -g Volo.Abp.Cli | echo "Volo.Abp.Cli is already installed, or installation failed"
 
 # Install k3d
 RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sudo -u coder bash
