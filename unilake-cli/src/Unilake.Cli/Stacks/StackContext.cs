@@ -30,24 +30,25 @@ internal static class StackContext
     public static void ReportFaultyDependency(string name, string errorMessage) => AnsiConsole.MarkupLine($"The following dependency ({name}) is in an error state. {errorMessage}");
     public static void ProcessCheckEnvironmentDependenciesResult((bool isSuccess, string dependency, string errorMessage) dep_result)
     {
-        if (!dep_result.isSuccess)
+        if (dep_result.isSuccess)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(dep_result.errorMessage))
         {
-            if (!string.IsNullOrWhiteSpace(dep_result.errorMessage))
-            {
-                ReportFaultyDependency(dep_result.dependency, dep_result.errorMessage);
-                return;
-            }
-            switch (dep_result.dependency)
-            {
-                case "pulumi":
-                    ReportMissingDependency(dep_result.dependency, "Please install pulumi, see: https://www.pulumi.com/docs/install/");
-                    break;
-                case "kubectl":
-                    ReportMissingDependency(dep_result.dependency, "Please install kubectl, see: https://kubernetes.io/docs/tasks/tools/");
-                    break;
-                default:
-                    throw new CliException($"Unknown dependency provided {dep_result.dependency}");
-            }
+            ReportFaultyDependency(dep_result.dependency, dep_result.errorMessage);
+            return;
+        }
+
+        switch (dep_result.dependency)
+        {
+            case "pulumi":
+                ReportMissingDependency(dep_result.dependency, "Please install pulumi, see: https://www.pulumi.com/docs/install/");
+                break;
+            case "kubectl":
+                ReportMissingDependency(dep_result.dependency, "Please install kubectl, see: https://kubernetes.io/docs/tasks/tools/");
+                break;
+            default:
+                throw new CliException($"Unknown dependency provided {dep_result.dependency}");
         }
     }
 }

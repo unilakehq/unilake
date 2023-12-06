@@ -25,7 +25,7 @@ public class KubernetesComponentResource : InternalComponentResource<NamingConve
     protected CustomResourceOptions CreateOptions(ComponentResourceOptions? options = null) =>
         new()
         {
-            DependsOn = options?.DependsOn ?? new InputList<Resource>(),
+            DependsOn = options?.DependsOn ?? new InputList<Pulumi.Resource>(),
             Parent = options?.Parent ?? null,
             Provider = options?.Provider ?? null,
         };
@@ -146,15 +146,15 @@ public class KubernetesComponentResource : InternalComponentResource<NamingConve
     protected Secret CreateRegistrySecret(KubernetesEnvironmentContext ctx, CustomResourceOptions options,
         Input<string> @namespace,
         string name = "regcred") => new("regcred", new SecretArgs
-    {
-        Metadata = new ObjectMetaArgs
         {
-            Name = name,
-            Namespace = @namespace
-            //Labels = labels
-        },
-        Type = "kubernetes.io/dockercfg",
-        Data =
+            Metadata = new ObjectMetaArgs
+            {
+                Name = name,
+                Namespace = @namespace
+                //Labels = labels
+            },
+            Type = "kubernetes.io/dockercfg",
+            Data =
         {
             {
                 ".dockercfg", GetPrivateRegistryConfig(
@@ -163,8 +163,8 @@ public class KubernetesComponentResource : InternalComponentResource<NamingConve
                     ctx.Config.RequireSecret("registry_password"))
             }
         },
-    }, options);
+        }, options);
 
-    protected Namespace SetNamespace(CustomResourceOptions resourceOptions, string name, Namespace? @namespace = null) 
+    protected Namespace SetNamespace(CustomResourceOptions resourceOptions, string name, Namespace? @namespace = null)
         => @namespace ?? Namespace.Get($"{name}defaultns", "default", resourceOptions);
 }
