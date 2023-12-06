@@ -34,11 +34,10 @@ internal sealed class Kubernetes : UnilakeStack
         OpenSearch? openSearch = CreateOpenSearchInstance(kubernetesContext, @namespace);
         Kafka? kafka = CreateKafkaInstance(kubernetesContext, @namespace);
         Minio? minio = CreateMinioInstance(kubernetesContext, @namespace);
-        Karapace? karapace = CreateKarapaceInstance(kubernetesContext, @namespace);
 
         // Service dependencies
         BoxyHq? boxyhq = CreateBoxyHqInstance(kubernetesContext, @namespace, postgreSql);
-        Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace, postgreSql, openSearch, kafka, karapace);
+        // Datahub? datahub = CreateDatahubInstance(kubernetesContext, @namespace, postgreSql, openSearch, kafka);
         // TODO: fix this
         // StarRockCluster? starRockCluster = CreateStarRocksCluster(kubernetesContext, @namespace);
         // Nessie? nessie = CreateNessieInstance(kubernetesContext, @namespace, postgreSql);
@@ -58,19 +57,6 @@ internal sealed class Kubernetes : UnilakeStack
         PgWeb? pgWeb = CreatePgWebInstance(kubernetesContext, @namespace, postgreSql);
 
         return Task.FromResult(new OneOf<Success, Error<Exception>>());
-    }
-
-    private Karapace? CreateKarapaceInstance(KubernetesEnvironmentContext kubernetesContext, Namespace @namespace, Kafka? kafka = null)
-    {
-        if (Config.Cloud?.Kubernetes?.Karapace?.Enabled ?? false && kafka != null)
-        {
-            return new Karapace(kubernetesContext, new KarapaceInputArgs
-            {
-                KafkaServiceName = "kafka",
-            }, @namespace);
-        }
-
-        return null;
     }
 
     private EnvironmentContext GetEnvironmentContext() => new EnvironmentContext();
@@ -241,7 +227,7 @@ internal sealed class Kubernetes : UnilakeStack
     }
 
     private Datahub? CreateDatahubInstance(KubernetesEnvironmentContext kubernetesEnvironmentContext, Namespace @namespace,
-        PostgreSql? postgreSql = null, OpenSearch? openSearch = null, Kafka? kafka = null, Karapace? karapace = null)
+        PostgreSql? postgreSql = null, OpenSearch? openSearch = null, Kafka? kafka = null)
     {
         if (Config.Components?.Datahub?.Enabled ?? false)
         {
@@ -262,8 +248,6 @@ internal sealed class Kubernetes : UnilakeStack
             // kafka
             Output<string> kafkaHost = kafka == null ? Output.Create(datahubConfig.Kafka!.Server!) :
                 Output.Tuple(kafka!.Service.Metadata, kafka!.Service.Spec).Apply(x => $"{x.Item1.Name}:{x.Item2.Ports[0].Port}");
-            Output<string> karakapaceHost = karapace == null ? Output.Create(datahubConfig.Kafka!.SchemaRegistry!) :
-                Output.Tuple(karapace!.RegistryService.Metadata, karapace!.RegistryService.Spec).Apply(x => $"{x.Item1.Name}:{x.Item2.Ports[0].Port}");
 
             return new Datahub(kubernetesEnvironmentContext, new DatahubArgs
             {
@@ -280,7 +264,6 @@ internal sealed class Kubernetes : UnilakeStack
                 FrontendEnabled = false,
 
                 KafkaBootstrapServer = kafkaHost,
-                KafkaSchemaRegistryUrl = karakapaceHost,
             }, @namespace);
         }
 

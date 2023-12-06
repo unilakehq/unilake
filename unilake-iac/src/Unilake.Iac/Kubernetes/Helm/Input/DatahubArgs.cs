@@ -14,7 +14,6 @@ public sealed class DatahubArgs : HelmInputArgs
     public required Input<int> ElasticSearchPort { get; set; }
     public Input<string> ElasticSearchPrefix { get; set; } = string.Empty;
     public required Input<string> KafkaBootstrapServer { get; set; }
-    public required Input<string> KafkaSchemaRegistryUrl { get; set; }
     public required Input<string> PostgreSqlPassword { get; set; }
     public Input<string> ElasticSearchPassword { get; internal set; } = "admin";
 }

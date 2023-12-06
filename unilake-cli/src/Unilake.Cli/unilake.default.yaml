@@ -20,11 +20,9 @@ cloud:
         buckets: # any buckets that need to be created together with the deployment
           - name: starrocks # bucket for starrocks to use
             policy: none # Policy to be set on the bucket [none|download|upload|public]
-            purge: false # Purge if bucket exists already 
+            purge: false # Purge if bucket exists already
             versioning: false # Enable versioning for bucket
             object-locking: false # Set objectlocking for bucket NOTE: versioning is enabled by default if you use locking
-    karapace:
-      enabled: true # if true, will deploy karapace
     redis:
       enabled: true # if true, will deploy a single node redis instance
 components:

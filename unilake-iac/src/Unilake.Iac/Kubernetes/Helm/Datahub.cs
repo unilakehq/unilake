@@ -115,10 +115,6 @@ public sealed class Datahub : KubernetesComponentResource
                         {
                             ["server"] = ""
                         },
-                        ["schemaregistry"] = new Dictionary<string, object>
-                        {
-                            ["url"] = inputArgs.KafkaSchemaRegistryUrl
-                        }
                     },
                     ["sql"] = new Dictionary<string, object>
                     {
