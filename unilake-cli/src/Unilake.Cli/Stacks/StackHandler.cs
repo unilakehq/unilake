@@ -13,7 +13,6 @@ internal sealed class StackHandler<T> where T : UnilakeStack
     private readonly T _unilakeStack;
     private readonly PulumiFn _pulumiFn;
     private WorkspaceStack? _workspaceStack;
-    private CancellationTokenRegistration? _registration;
     private readonly Tree _resourceTree = new("Resources");
     private LiveDisplayContext? _activeCtx;
     private readonly ConcurrentDictionary<string, ResourceState> _resourceStates = new();
@@ -44,7 +43,6 @@ internal sealed class StackHandler<T> where T : UnilakeStack
                 }
             };
             _workspaceStack = await LocalWorkspace.CreateOrSelectStackAsync(stackArgs, cancellationToken);
-            _registration = cancellationToken.Register(() => _workspaceStack.CancelAsync(cancellationToken));
         }
         catch (Exception e)
         {
