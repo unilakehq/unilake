@@ -22,7 +22,7 @@ internal static class StackContext
         }
         catch (Exception exc)
         {
-            Console.WriteLine(exc.Message);
+            return (false, string.Empty, exc.Message);
         }
         return (true, string.Empty, string.Empty);
     }

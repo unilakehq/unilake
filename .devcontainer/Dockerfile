@@ -34,7 +34,8 @@ RUN mkdir -p /etc/apt/keyrings \
     && NODE_MAJOR=21 \
     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
     && apt-get update \
-    && apt-get install nodejs -y
+    && apt-get install nodejs -y \
+    && apt-get clean
 
 # Install Rust
 ENV RUSTUP_HOME="/home/coder/.rustup" \
@@ -63,7 +64,8 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list \
     && apt update \
-    && apt install gh -y
+    && apt install gh -y \
+    && apt-get clean
 
 # Install Pulumi
 RUN curl -fsSL https://get.pulumi.com | sudo -u coder sh
