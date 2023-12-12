@@ -207,7 +207,13 @@ impl Backend for OpenDalBackend {
         self.base.print_log_lines(logs);
         self.base.save_log_lines(logs).await
     }
-    async fn push_messages(&self, _messages: &Vec<&AirbyteMessage>) -> Result<()> {
+    async fn get_configured_catalog(&self) -> Result<Value> {
+        todo!();
+    }
+    async fn push_messages(&self, _messages: &Vec<AirbyteMessage>) -> Result<()> {
+        todo!();
+    }
+    async fn get_config(&self) -> Result<serde_json::Value> {
         todo!();
     }
     fn get_result(&self) -> Arc<RwLock<ProcessResult>> {
@@ -231,7 +237,6 @@ impl Backend for OpenDalBackend {
     async fn flush(&self) -> Result<()> {
         todo!();
     }
-
     fn get_backend_type(&self) -> BackendType {
         BackendType::OpenDal
     }
@@ -439,13 +444,19 @@ impl Backend for UnilakeBackend {
         self.post_request("", Some(to_value(logs).unwrap())).await?;
         Ok(())
     }
-    async fn push_messages(&self, messages: &Vec<&AirbyteMessage>) -> Result<()> {
+    async fn get_config(&self) -> Result<Value> {
+        todo!();
+    }
+    async fn push_messages(&self, messages: &Vec<AirbyteMessage>) -> Result<()> {
         self.post_request("", Some(to_value(messages).unwrap()))
             .await?;
         Ok(())
     }
     fn get_result(&self) -> Arc<RwLock<ProcessResult>> {
         self.base.result.clone()
+    }
+    async fn get_configured_catalog(&self) -> Result<Value> {
+        todo!();
     }
     async fn push_result(&self) -> Result<()> {
         // self.post_request("", Some(to_value(result).unwrap()))
@@ -504,7 +515,7 @@ impl LocalBackend {
         Self { base, msg_file }
     }
 
-    pub async fn save_message_lines(&self, lines: &Vec<&AirbyteMessage>) -> Result<()> {
+    pub async fn save_message_lines(&self, lines: &Vec<AirbyteMessage>) -> Result<()> {
         let mut local_file = self.msg_file.write().await;
 
         for line in lines {
@@ -522,8 +533,11 @@ impl Backend for LocalBackend {
         self.base.print_log_lines(logs);
         self.base.save_log_lines(logs).await
     }
-    async fn push_messages(&self, messages: &Vec<&AirbyteMessage>) -> Result<()> {
+    async fn push_messages(&self, messages: &Vec<AirbyteMessage>) -> Result<()> {
         self.save_message_lines(messages).await
+    }
+    async fn get_config(&self) -> Result<Value> {
+        todo!();
     }
     fn get_result(&self) -> Arc<RwLock<ProcessResult>> {
         self.base.result.clone()
@@ -540,6 +554,9 @@ impl Backend for LocalBackend {
     }
     async fn extend_state_lock(&self) -> Result<u32> {
         Ok(u32::MAX)
+    }
+    async fn get_configured_catalog(&self) -> Result<Value> {
+        todo!();
     }
     async fn state_lock_remaining_seconds(&self) -> Result<u32> {
         self.extend_state_lock().await

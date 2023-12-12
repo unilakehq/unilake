@@ -1,18 +1,16 @@
 use std::env;
-use std::fs;
-use std::os::linux::raw::stat;
 use std::sync::Arc;
 
-use bmi::airbyte::AirbyteSource;
-use bmi::backend::BackendFactory;
-use bmi::docker::Docker;
-use bmi::model::ProcessResultStatus;
-use bmi::schema::SchemaGenerator;
-use bmi::utils;
-use bmi::AirbyteCommand;
-use bmi::Cli;
-use bmi::Command;
 use clap::Parser;
+use umi::airbyte::AirbyteSource;
+use umi::backend::BackendFactory;
+use umi::docker::Docker;
+use umi::model::ProcessResultStatus;
+use umi::schema::SchemaGenerator;
+use umi::utils;
+use umi::AirbyteCommand;
+use umi::Cli;
+use umi::Command;
 
 #[tokio::main]
 async fn main() {
@@ -33,29 +31,36 @@ async fn main() {
                 let r = backend.get_result();
                 let mut s = r.write().await;
                 s.process_start = utils::get_current_time_in_seconds();
-                s.process_source_id = env::var("PROCESS_SOURCE_ID").unwrap_or_else("unknown");
-                s.process_run_id = env::var("PROCESS_RUN_ID").unwrap_or_else("unknown");
+                s.process_source_id =
+                    env::var("PROCESS_SOURCE_ID").unwrap_or("unknown".to_string());
+                s.process_run_id = env::var("PROCESS_RUN_ID").unwrap_or("unknown".to_string());
             }
 
-            let (_, configured_catalog, _) = match &cmd {
+            let configured_catalog = match &cmd {
                 AirbyteCommand::Read {
                     config,
                     catalog,
                     state,
                 } => {
-                    let backend_config = backend.get_config().await?;
-                    utils::save_json_to_file(&backend_config, config);
-                    let backend_state = backend.get_state().await?;
+                    let backend_config = backend.get_config().await.unwrap();
+                    utils::save_json_to_file(&backend_config, config)
+                        .await
+                        .unwrap();
+                    let backend_state = backend.get_state().await.unwrap();
                     if !backend_state.is_null() && state.is_some() {
-                        utils::save_json_to_file(&backend_state, state.into());
+                        utils::save_json_to_file(&backend_state, state.as_ref().unwrap())
+                            .await
+                            .unwrap();
                     }
-                    let backend_catalog = backend.get_catalog().await?;
-                    utils::save_json_to_file(&backend_catalog, catalog);
-                    (backend_config, backend_catalog, backend_state)
+                    let backend_catalog = backend.get_configured_catalog().await.unwrap();
+                    utils::save_json_to_file(&backend_catalog, catalog)
+                        .await
+                        .unwrap();
+                    Some(backend_catalog)
                 }
-                _ => serde_json::Value::Null,
+                _ => None,
             };
-            let schema_generator = Arc::new(SchemaGenerator::new(configured_catalog));
+            let schema_generator = Arc::new(SchemaGenerator::new(configured_catalog.into()));
 
             match AirbyteSource::execute(cmd, schema_generator, backend.clone()).await {
                 Ok(()) => backend
