@@ -49,6 +49,7 @@ public class GitService : IGitService
             };
 
             //_repositoryWrapper.Clone(repositoryUrl, localPath, cloneOptions);
+
             return new Success();
         }
         catch (Exception exception)
@@ -319,5 +320,5 @@ public class GitService : IGitService
         }
     }
 
-    private Signature GetSignature() => new (_options.Value.Name, _options.Value.Email, DateTimeOffset.Now);
+    private Signature GetSignature() => new(_options.Value.Name, _options.Value.Email, DateTimeOffset.Now);
 }
