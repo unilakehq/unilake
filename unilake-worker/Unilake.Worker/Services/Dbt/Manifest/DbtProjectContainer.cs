@@ -11,7 +11,7 @@ namespace Unilake.Worker.Services.Dbt.Manifest;
 
 public class DbtProjectContainer : IDbtService
 {
-    private List<DbtDataProductFolder> _dbtDataProductFolders = new();
+    private readonly List<DbtDataProductFolder> _dbtDataProductFolders = new();
     private readonly DbtClient _dbtClient;
 
     public DbtProjectContainer(
@@ -20,12 +20,13 @@ public class DbtProjectContainer : IDbtService
     {
         _dbtClient = dbtClient;
     }
-    public async Task InitializeDBTProjects()
+    public Task InitializeDBTProjects()
     {
-        // Replace with your logic to get the list of workspace folders
         var locations = new List<DataProduct>();
         foreach (var loc in locations)
             RegisterDataProduct(loc);
+
+        return Task.CompletedTask;
     }
 
     public Task<OneOf<Success, Error<string>>> RunModelTestAsync(IRequestResponse request, Uri modelPath,
@@ -38,10 +39,10 @@ public class DbtProjectContainer : IDbtService
         CancellationToken cancellationToken) => FindDbtProject(modelPath).Match(
         p => p.RunTest(request.ProcessReferenceId, testName, cancellationToken),
         _ => Task.FromResult<OneOf<Success, Error<string>>>(new Error<string>("Could not find Uri")));
-    
+
     public Task<OneOf<Success, Error<string>>> CompileModelAsync(IRequestResponse request, Uri modelPath,
         RunModelType modelType, CancellationToken cancellationToken) => FindDbtProject(modelPath).Match(
-        p => p.CompileModel( request.ProcessReferenceId, CreateModelParams(modelPath, modelType), cancellationToken),
+        p => p.CompileModel(request.ProcessReferenceId, CreateModelParams(modelPath, modelType), cancellationToken),
         _ => Task.FromResult<OneOf<Success, Error<string>>>(new Error<string>("Could not find Uri"))
     );
 
@@ -60,21 +61,21 @@ public class DbtProjectContainer : IDbtService
         _ => new Error<string>("Could not find Uri")
     );
 
-    public OneOf<Success<string>, Error<string>> GetCompiledSql(Uri modelPath)=> FindDbtProject(modelPath).Match(
+    public OneOf<Success<string>, Error<string>> GetCompiledSql(Uri modelPath) => FindDbtProject(modelPath).Match(
         p => p.GetCompiledSqlPath(modelPath),
         _ => new Error<string>("Could not find Uri")
     );
-    
+
     public Task<OneOf<Success, Error<string>>> BuildModelAsync(IRequestResponse request, Uri modelPath,
         RunModelType modelType, CancellationToken cancellationToken) => FindDbtProject(modelPath).Match(
-        p => p.BuildModel( request.ProcessReferenceId, CreateModelParams(modelPath, modelType), cancellationToken),
+        p => p.BuildModel(request.ProcessReferenceId, CreateModelParams(modelPath, modelType), cancellationToken),
         _ => Task.FromResult<OneOf<Success, Error<string>>>(new Error<string>("Could not find Uri"))
     );
 
     public Task<OneOf<Success, Error<string>>> RunModelAsync(IRequestResponse request, Uri modelPath,
         RunModelType modelType,
         CancellationToken cancellationToken) => FindDbtProject(modelPath).Match(
-        p => p.RunModel( request.ProcessReferenceId, CreateModelParams(modelPath, modelType), cancellationToken),
+        p => p.RunModel(request.ProcessReferenceId, CreateModelParams(modelPath, modelType), cancellationToken),
         _ => Task.FromResult<OneOf<Success, Error<string>>>(new Error<string>("Could not find Uri"))
     );
 

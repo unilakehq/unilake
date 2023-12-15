@@ -20,8 +20,8 @@ public sealed class OpenSearch : KubernetesComponentResource
     /// </summary>
     public Secret @Secret { get; private set; }
 
-    public OpenSearch(KubernetesEnvironmentContext ctx, OpenSearchArgs inputArgs, Namespace? @namespace = null, 
-        string name = "opensearch", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
+    public OpenSearch(KubernetesEnvironmentContext ctx, OpenSearchArgs inputArgs, Namespace? @namespace = null,
+        string name = "opensearch", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
             : base("unilake:kubernetes:helm:opensearch", name, options, checkNamingConvention)
     {
         // check input
@@ -31,18 +31,20 @@ public sealed class OpenSearch : KubernetesComponentResource
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
         resourceOptions.Provider = ctx.Provider;
-        
+
         // Set namespace
         @namespace = SetNamespace(resourceOptions, name, @namespace);
-        
-        // Create secret for authentication
-        var secret = new Secret(name, new SecretArgs{
-            Metadata = new ObjectMetaArgs{
+
+        // Create secret for authentication and certificates
+        var secret = new Secret(name, new SecretArgs
+        {
+            Metadata = new ObjectMetaArgs
+            {
                 Name = name,
                 Namespace = @namespace.Metadata.Apply(x => x.Name),
-            },           
-        }, resourceOptions); 
-       
+            },
+        }, resourceOptions);
+
         //Get OpenSearch chart and add details
         var releaseArgs = new ReleaseArgs
         {
@@ -66,12 +68,12 @@ public sealed class OpenSearch : KubernetesComponentResource
         };
 
         // Check if a private registry is used
-        if(inputArgs.UsePrivateRegsitry)
+        if (inputArgs.UsePrivateRegsitry)
             throw new NotImplementedException("Private registry is not implemented yet");
 
         // Create the minio instance
         var opensearchInstance = new Release(name, releaseArgs, resourceOptions);
-        
+
         // Get output
         var status = opensearchInstance.Status;
         @Service = Service.Get(name, Output.All(status).Apply(s => $"{s[0].Namespace}/{s[0].Name}-cluster-master"), resourceOptions);

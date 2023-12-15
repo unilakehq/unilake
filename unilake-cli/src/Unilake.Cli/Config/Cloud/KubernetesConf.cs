@@ -6,7 +6,7 @@ namespace Unilake.Cli.Config.Cloud;
 public sealed class KubernetesConf : IConfigNode
 {
     public string Section { get; } = "kubernetes";
-    
+
     [YamlMember(Alias = "postgresql")]
     public Postgresql? Postgresql { get; set; }
     [YamlMember(Alias = "opensearch")]
@@ -15,8 +15,6 @@ public sealed class KubernetesConf : IConfigNode
     public Kafka? Kafka { get; set; }
     [YamlMember(Alias = "datalake")]
     public DataLake? DataLake { get; set; }
-    [YamlMember(Alias = "karapace")]
-    public Karapace? Karapace { get; set; }
     [YamlMember(Alias = "redis")]
     public Redis? Redis { get; set; }
 
@@ -27,7 +25,6 @@ public sealed class KubernetesConf : IConfigNode
                  .Concat(Opensearch?.Validate(config, this, "") ?? Enumerable.Empty<ValidateResult>())
                  .Concat(Kafka?.Validate(config, this, "") ?? Enumerable.Empty<ValidateResult>())
                  .Concat(DataLake?.Validate(config, this) ?? Enumerable.Empty<ValidateResult>())
-                 .Concat(Karapace?.Validate(config, this) ?? Enumerable.Empty<ValidateResult>())
                  .Concat(Redis?.Validate(config, this, "") ?? Enumerable.Empty<ValidateResult>()))
             yield return item.AddSection(this);
     }

@@ -19,7 +19,7 @@ internal class ResourceState
     public IImmutableDictionary<string, object>? OutputNew { get; private set; }
     public IImmutableDictionary<string, object>? OutputOld { get; private set; }
     private string _reportedState = "";
-    private readonly List<ResourceState> _childResources = new ();
+    private readonly List<ResourceState> _childResources = new();
 
     public ResourceState(string? parentUrn, string urn, int order, OperationType metadataOp, string metadataType)
     {
@@ -31,7 +31,7 @@ internal class ResourceState
     }
 
     public void AddChildResourceState(ResourceState child) => _childResources.Add(child);
-    
+
     public void SetOutputEventData(IImmutableDictionary<string, object>? old, IImmutableDictionary<string, object>? @new)
     {
         IsDone = true;
@@ -49,10 +49,10 @@ internal class ResourceState
         grid.AddColumn();
         grid.AddColumn();
         grid.AddRow(titleText, statusText);
-        
+
         return grid;
     }
-    
+
     public bool HasChildResourcesWithChanges()
     {
         bool ChildWithChanges(ResourceState[] states)
@@ -61,7 +61,7 @@ internal class ResourceState
             {
                 if (state.ReportableOperation)
                     return true;
-                if (state._childResources.Count > 0 && ChildWithChanges(state._childResources.ToArray())) 
+                if (state._childResources.Count > 0 && ChildWithChanges(state._childResources.ToArray()))
                     return true;
             }
 
@@ -86,7 +86,7 @@ internal class ResourceState
         }
         else if (HasChildResources)
             return "";
-        
+
         if (string.IsNullOrWhiteSpace(_reportedState))
         {
             _reportedState = Op switch

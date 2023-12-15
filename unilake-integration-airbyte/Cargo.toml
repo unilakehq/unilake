@@ -1,6 +1,6 @@
 [package]
 name = "umi"
-description = "Airbyte rust cli wrapper for unilake"
+description = "Singer protocol wrapper for unilake"
 authors = ["Unilake Authors <oss@unilake.com>"]
 version = "0.1.0"
 edition = "2021"
@@ -17,9 +17,20 @@ serde_json = "1.0.93"
 log = "0.4.17"
 env_logger = "0.10.0"
 handlebars = "4.3.6"
-clap =  { version = "4.1.8", features = ["derive", "color", "help", "usage", "error-context", "env"] }
+clap = { version = "4.1.8", features = [
+    "derive",
+    "color",
+    "help",
+    "usage",
+    "error-context",
+    "env",
+] }
 duct = "0.13.6"
-arrow2 = { version = "0.15.0", features = ["io_parquet", "io_parquet_compression", "serde_types"] }
+arrow2 = { version = "0.15.0", features = [
+    "io_parquet",
+    "io_parquet_compression",
+    "serde_types",
+] }
 sha1_smol = "1.0.0"
 thiserror = "1.0.38"
 anyhow = "1.0.69"
@@ -28,5 +39,5 @@ chrono = "0.4.23"
 async-trait = "0.1.64"
 
 [profile.release]
-strip = true  # Automatically strip symbols from the binary.
-opt-level = "z"  # Optimize for size.
+strip = true    # Automatically strip symbols from the binary.
+opt-level = "z" # Optimize for size.

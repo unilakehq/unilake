@@ -6,6 +6,7 @@ pub mod flatten;
 pub mod model;
 pub mod parquet;
 pub mod schema;
+pub mod transform;
 pub mod utils;
 
 use std::ffi::OsString;
@@ -89,4 +90,8 @@ pub enum AirbyteCommand {
         #[arg(long)]
         state: Option<OsString>,
     },
+}
+
+pub enum MeltanoCommand {
+    Invoke,
 }
