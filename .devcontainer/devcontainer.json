@@ -1,10 +1,10 @@
 {
 	"name": "Unilake",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
-	//--> UNCOMMENT FOR IMAGE BUILD 
-	//"image": "ghcr.io/unilakehq/dev-oss:latest",
+	//--> UNCOMMENT FOR LOCAL BUILD 
+	// "build": {
+	// 	"dockerfile": "Dockerfile"
+	// },
+	"image": "ghcr.io/unilakehq/dev-oss:latest",
 	"mounts": [
 		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
 		"source=${localEnv:HOME}/.cargo/registry,target=/home/coder/.cargo/registry,type=bind,consistency=cached",
