@@ -87,4 +87,14 @@ select{
     z-index: 60;
 }
 
+.activeSectionOfArticle {
+    padding: 12px 32px 12px 0px;
+}
+
+.activeSectionOfArticle span {
+   padding-left: 32px;
+   border-left: 1px solid white;
+   color: #CCCCCC
+}
+
 @tailwind utilities;

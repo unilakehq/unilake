@@ -1,45 +1,64 @@
-<header class="top-0 fixed z-50 h-14 bg-white dark:bg-black opacity-90 w-full shadow pr-3">
-    <div class="flex flex-wrap items-center">
-        <div class="absolute z-10 top-2 left-2 sm:static flex-shrink flex-grow-0">
-            <div class="cursor-pointer">
-                <a class="navbar-brand flex items-center" href="./">
-                    <svg class="w-8 h-8 sm:ml-2 sm:w-12 sm:h-12" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path fill="currentColor" d="M10 6c1.544 1.76 2.276 4.15 2.217 6.61c3.968 1.67 9.924 6.12 11.181 12.39H28C26.051 14.31 14.918 6.77 10 6zm-2 7c4.67 4.913.81 11.582-4 12h18.97C21.5 18.289 11.95 13.533 8 13z"/></svg>
-                    <span class="hidden sm:block text-2xl font-semibold">Unilake.Www</span>
-                </a>
-            </div>
+<header class="2xl:container mx-auto sm:h-[91px] h-[80px] bg-white dark:bg-black px-L items-center justify-between py-L grid grid-cols-4 font-inter">
+    <div class="col-span-1">
+        <div class="cursor-pointer">
+            <a class="navbar-brand flex items-center" href="./">
+                <svg xmlns="http://www.w3.org/2000/svg" width="171" height="33" viewBox="0 0 171 33" fill="none">
+                    <path d="M51.5706 21.3496C51.5706 25.8077 49.5008 28.3654 45.8927 28.3654C42.6237 28.3654 40.7567 25.9207 40.7567 21.6552V10.2482H36.558V21.7708C36.558 29.6828 41.4372 32.4896 45.6334 32.4896C47.9677 32.4896 49.9836 31.8425 51.5783 30.6175V32.107H55.7795V10.2482H51.5783L51.5706 21.3496Z" fill="#E6EFF4" />
+                    <path d="M70.1269 9.86548C67.7926 9.86548 65.7613 10.5126 64.1794 11.7376V10.2481H59.9807V32.1069H64.1794V21.0055C64.1794 16.5448 66.2492 13.9871 69.8573 13.9871C73.1263 13.9871 74.9933 16.4344 74.9933 20.6999V32.1069H79.1945V20.5843C79.1945 12.6723 74.3153 9.86548 70.1192 9.86548" fill="#E6EFF4" />
+                    <path d="M87.3043 10.2482H83.1056V32.107H87.3043V10.2482Z" fill="#E6EFF4" />
+                    <path d="M85.2242 3.86402C84.5633 3.86242 83.928 4.11897 83.4536 4.579C82.9792 5.03903 82.7032 5.66617 82.6844 6.32674C82.6858 6.99991 82.9538 7.64511 83.4298 8.12111C83.9058 8.59711 84.551 8.86512 85.2242 8.86648C85.8923 8.86037 86.5308 8.58961 86.9997 8.11354C87.4685 7.63746 87.7295 6.99491 87.7254 6.32674C87.712 5.67112 87.443 5.04667 86.9757 4.5866C86.5085 4.12653 85.8799 3.86723 85.2242 3.86402Z" fill="#E6EFF4" />
+                    <path d="M99.5125 28.1394C99.1378 28.2868 98.739 28.3634 98.3364 28.3653C97.8998 28.3653 97.1679 28.3653 97.1679 26.7013V0.50769H92.9667V26.786C92.9667 30.3119 94.9518 32.4998 98.1438 32.4998C99.127 32.5075 100.099 32.2942 100.989 31.8758L101.932 31.4033L101.354 27.2226L99.5125 28.1394Z" fill="#E6EFF4" />
+                    <path d="M120.249 12.3127C118.308 10.7093 115.864 9.84258 113.346 9.86543C107.25 9.86543 102.476 14.8422 102.476 21.1954C102.476 27.5487 107.25 32.4946 113.346 32.4946C115.869 32.5001 118.313 31.6173 120.249 30.0011V32.1069H124.448V10.2481H120.249V12.3127ZM113.462 28.3653C109.656 28.3653 106.675 25.2169 106.675 21.1954C106.675 17.174 109.656 13.9871 113.462 13.9871C117.332 13.9871 120.249 17.0866 120.249 21.1954C120.249 25.2169 117.268 28.3653 113.462 28.3653Z" fill="#E6EFF4" />
+                    <path d="M150.631 10.2481H145.007L137.057 18.9639H134.319V0.5H130.12V32.1069H134.319V23.1241H136.972L144.999 32.1069H150.569L140.752 21.0568L150.631 10.2481Z" fill="#E6EFF4" />
+                    <path d="M160.181 9.86549C153.898 9.86549 149.157 14.7447 149.157 21.1955C149.157 27.5282 154.082 32.4947 160.374 32.4947C163.985 32.4947 167.195 31.0155 169.419 28.3294L170.269 27.3022L167.341 24.3747L166.314 25.6202C165.597 26.4996 164.69 27.2045 163.661 27.6814C162.632 28.1584 161.508 28.3949 160.374 28.3731C158.831 28.3811 157.33 27.8764 156.105 26.9385C154.88 26.0005 154.002 24.6823 153.607 23.1908H170.446L170.682 22.0096C170.762 21.6003 170.797 21.1835 170.787 20.7666C170.787 14.6471 166.129 9.85522 160.181 9.85522M153.613 19.1C154.439 16.0518 157.007 13.964 160.181 13.964C163.237 13.964 165.715 16.0826 166.427 19.1H153.613Z" fill="#E6EFF4" />
+                    <path d="M0.00771272 17.0867V32.1069H4.43237V30.3093C1.60757 27.7182 0.00514221 22.0532 0.00514221 17.0764" fill="#F37441" />
+                    <path d="M26.9383 17.0867V32.1069H22.5111V30.3093C25.3359 27.7182 26.9383 22.0532 26.9383 17.0764" fill="#F37441" />
+                    <path d="M22.5111 6.06993V17.6413C22.5111 21.3059 21.4531 24.1435 19.5322 25.936V14.4955H14.9612V28.0006C14.4653 28.0721 13.965 28.109 13.464 28.111C12.9639 28.1089 12.4645 28.072 11.9694 28.0006V1.99194H7.40611V25.936C5.48525 24.1384 4.42723 21.3136 4.42723 17.6413V10.2352H0V17.6413C0 26.6601 5.28494 32.4895 13.464 32.4895C21.6431 32.4895 26.9306 26.6601 26.9306 17.6413V6.06993H22.5111Z" fill="#F37441" />
+                </svg>
+            </a>
         </div>
-        <div class="flex flex-grow flex-shrink flex-nowrap justify-end items-center">
-            <nav class="relative flex flex-grow leading-6 font-semibold text-slate-700 dark:text-slate-200">
-                <ul class="flex flex-wrap items-center justify-end w-full m-0 pb-2 sm:pb-0">
-                    @{
-                        void RenderNavLink(string href, string childContent, string? cls = null)
-                        {
-                            <li class="@Html.ClassNames("relative flex flex-wrap just-fu-start m-0",cls)">
-                                <a href="@href" class="@Html.ClassNames("p-4 flex items-center justify-start mw-full hover:text-sky-500 dark:hover:text-sky-400", 
+    </div>
+    <nav class="flex flex-grow col-span-2 items-center justify-center md:block hidden mx-auto">
+        <ul class="flex gap-XL items-center">
+            @{
+                void RenderNavLink(string href, string childContent, string? cls = null)
+                {
+                    <li class="@Html.ClassNames("flex items-center",cls)">
+                        <a href="@href" class="@Html.ClassNames("flex items-center justify-start hover:text-sky-500 dark:hover:text-sky-400",
                                     Html.MatchesPath(href) ? "text-blue-700 dark:text-blue-300" : "")">
-                                    @Html.Raw(childContent)
-                                </a>
-                            </li>
+                            @Html.Raw(childContent)
+                        </a>
+                        @if (href == "whatsnew" || href == "videos")
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none">
+                                <path d="M5.83447 6.22668L8.89447 9.28002L11.9545 6.22668L12.8945 7.16668L8.89447 11.1667L4.89447 7.16668L5.83447 6.22668Z" fill="#E6EFF4" />
+                            </svg>
                         }
-                        RenderNavLink("whatsnew", "What's New");
-                        RenderNavLink("videos", "Videos");
-                        RenderNavLink("creatorkit/", "Creator Kit");
-                        RenderNavLink("blog", "Blog");
-                        RenderNavLink("posts/", "Archive");
-                        RenderNavLink("speaking", "Speaking");
-                        RenderNavLink("uses", "Uses");
-                        RenderNavLink("about", "About");
-                    }
-                    <li class="relative flex flex-wrap just-fu-start m-0">
-                        <div data-component="DarkModeToggle" class="ml-2 w-10"></div>
                     </li>
-                </ul>
-            </nav>
-
-        </div>
+                }
+                RenderNavLink("whatsnew", "Products");
+                RenderNavLink("videos", "Developers");
+                RenderNavLink("creatorkit/", "Pricing");
+                RenderNavLink("uses", "Documents");
+                RenderNavLink("blog", "Blog");
+            }
+        </ul>
+    </nav>
+    <div class="md:block hidden">
+    <div class="col-span-1 justify-end flex items-center gap-L">
+        <div data-component="DarkModeToggle" class="ml-2 w-10"></div>
+        <button class="bg-brandPrimary px-L py-SM rounded-L h-[43px] w-[208px] flex gap-S items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="17" viewBox="0 0 16 17" fill="none">
+                <path d="M8 2.5C7.21207 2.5 6.43185 2.65905 5.7039 2.96806C4.97595 3.27708 4.31451 3.73001 3.75736 4.30099C2.63214 5.45414 2 7.01816 2 8.64896C2 11.3668 3.722 13.6727 6.104 14.4905C6.404 14.5397 6.5 14.349 6.5 14.183V13.1439C4.838 13.5128 4.484 12.3199 4.484 12.3199C4.208 11.6066 3.818 11.416 3.818 11.416C3.272 11.0348 3.86 11.0471 3.86 11.0471C4.46 11.0901 4.778 11.6804 4.778 11.6804C5.3 12.615 6.182 12.3383 6.524 12.1908C6.578 11.7911 6.734 11.5205 6.902 11.3668C5.57 11.2131 4.172 10.6843 4.172 8.34151C4.172 7.65898 4.4 7.11172 4.79 6.67515C4.73 6.52142 4.52 5.88193 4.85 5.05182C4.85 5.05182 5.354 4.8858 6.5 5.67901C6.974 5.54374 7.49 5.4761 8 5.4761C8.51 5.4761 9.026 5.54374 9.5 5.67901C10.646 4.8858 11.15 5.05182 11.15 5.05182C11.48 5.88193 11.27 6.52142 11.21 6.67515C11.6 7.11172 11.828 7.65898 11.828 8.34151C11.828 10.6904 10.424 11.2069 9.086 11.3607C9.302 11.5513 9.5 11.9264 9.5 12.4982V14.183C9.5 14.349 9.596 14.5458 9.902 14.4905C12.284 13.6665 14 11.3668 14 8.64896C14 7.84147 13.8448 7.04188 13.5433 6.29586C13.2417 5.54983 12.7998 4.87197 12.2426 4.30099C11.6855 3.73001 11.0241 3.27708 10.2961 2.96806C9.56815 2.65905 8.78793 2.5 8 2.5Z" fill="#4F1B05" />
+            </svg>
+            <span class="text-onBrandPrimary text-Medium">
+                Start Your Project
+            </span>
+        </button>
+    </div>
     </div>
 </header>
 <script type="module">
-import { mountAll } from "app.mjs"
-mountAll()
+    import { mountAll } from "app.mjs"
+    mountAll()
 </script>

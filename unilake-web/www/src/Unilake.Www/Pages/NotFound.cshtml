@@ -10,32 +10,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Page Not Found</title>
     <base href="@(RazorSsg.GetBaseHref() ?? "/")"/>
+    <script>
+    if (location.search === "?dark") localStorage.setItem('color-scheme','dark')
+    if (location.search === "?light") localStorage.removeItem('color-scheme')
+    const cls = document.querySelector('html').classList
+    if (localStorage.getItem('color-scheme') === 'dark')
+        cls.add('dark')
+    else
+        cls.remove('dark')
+    </script>
     <link rel="stylesheet" href="css/app.css">
 </head>
-<body>
-@await Html.PartialAsync("Header")
+<body class="bg-white dark:bg-black dark:text-white">
+<div class="mx-auto border-b border-borderSecondary">
+    @await Html.PartialAsync("Header")
+    </div>
 
-<div class="">
-    <main role="main" class="h-screen px-4 text-black bg-white text-center flex flex-col items-center justify-center">
-        <div class="-mt-48 flex items-center">
-            <h1 class="inline-block border-gray-300 border-r m-0 mr-5 py-2 pr-4 text-2xl font-medium">404</h1>
-            <div class="inline-block text-left">
-                <h2 class="text-sm font-normal">This page does not exist.</h2>
-            </div>
-        </div>
-        <div class="mt-2">
-            <button onclick="history.back()"
-                    class="inline-flex justify-center py-1 px-2 shadow rounded text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M10.05 16.94v-4h8.92l.03-2.01h-8.95V6.94l-5 5Z"/>
-                </svg>
-                back
-            </button>
-        </div>
-    </main>
+<div class="min-h-screen bg-backgroundSecondary font-inter">  
+    <div class="2xl:container mx-auto px-L md:py-[112px] py-[64px] grid gap-XL justify-center">
+     <div class="max-h-[376px] max-w-[950px]">
+     <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 950 376" fill="none">
+     <path d="M0.324219 301.136V248.757L154.621 4.97159H198.3V79.5455H171.667L67.7958 244.141V246.982H283.172V301.136H0.324219ZM173.797 368.608V285.156L174.507 261.719V4.97159H236.652V368.608H173.797Z" fill="#F37441"/>
+     <path d="M474.312 375.533C445.074 375.533 419.98 368.134 399.028 353.338C378.195 338.423 362.155 316.939 350.91 288.885C339.783 260.713 334.22 226.799 334.22 187.145C334.338 147.491 339.961 113.755 351.088 85.9375C362.333 58.0019 378.372 36.6951 399.206 22.0171C420.157 7.33902 445.193 0 474.312 0C503.431 0 528.467 7.33902 549.419 22.0171C570.37 36.6951 586.41 58.0019 597.537 85.9375C608.782 113.873 614.404 147.609 614.404 187.145C614.404 226.918 608.782 260.89 597.537 289.062C586.41 317.116 570.37 338.542 549.419 353.338C528.585 368.134 503.55 375.533 474.312 375.533ZM474.312 319.957C497.039 319.957 514.973 308.771 528.112 286.399C541.369 263.909 547.998 230.824 547.998 187.145C547.998 158.262 544.98 133.996 538.943 114.347C532.906 94.697 524.383 79.9006 513.375 69.9574C502.366 59.8958 489.345 54.8651 474.312 54.8651C451.703 54.8651 433.829 66.1103 420.69 88.6008C407.551 110.973 400.922 143.821 400.804 187.145C400.685 216.146 403.585 240.53 409.504 260.298C415.541 280.066 424.064 294.981 435.072 305.043C446.081 314.986 459.161 319.957 474.312 319.957Z" fill="#F37441"/>
+     <path d="M666.828 301.136V248.757L821.125 4.97159H864.804V79.5455H838.17L734.3 244.141V246.982H949.676V301.136H666.828ZM840.301 368.608V285.156L841.011 261.719V4.97159H903.156V368.608H840.301Z" fill="#F37441"/>
+     </svg>
+     </div>
+
+
+      <div class="grid justify-center gap-SM">
+          <p class="md:text-H3 text-H4 text-textPrimary mx-auto grid text-center">The page you looking for could not be found</p>
+          <p class="text-H5 text-textPrimary mx-auto grid text-center">We are sorry, but you may have mistyped the address or the page have moved</p>
+      </div>
+
+      <button class="mx-auto bg-errorPrimary h-[43px] max-w-[193px] text-onErrorPrimary px-L py-SM rounded-L items-center flex justify-center">Back to Homepage</button>
+      </div>
+      
 </div>
 
 @await Html.PartialAsync("Footer")
+<script type="module">
+import { init } from "app.mjs"
+init()
+</script>
 
 </body>
 </html>

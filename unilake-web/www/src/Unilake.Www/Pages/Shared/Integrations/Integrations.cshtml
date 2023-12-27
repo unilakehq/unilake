@@ -1,0 +1,460 @@
+﻿@page "/integrations"
+@attribute [RenderStatic]
+@model Unilake.Www.Pages.Shared.Integrations.IntegrationsModel
+@{
+    ViewData["Title"] = "Unilake.Www Integrations";
+}
+<div class="2xl:container px-L md:py-XXL py-[64px] mx-auto grid grid-cols-1 md:gap-[64px] gap-XL font-inter">
+    @{
+
+        <div class="flex flex-col gap-M">
+            <span class="text-H3 text-brandPrimary">Integrations</span>
+            <span class="text-H5 text-textSecondary">Description</span>
+        </div>
+
+        <div class="grid md:gap-XL gap-L">
+
+            <ul class="flex flex-wrap gap-M h-fit">
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">API</li>
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">Auth</li>
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">Catching / Offline-First</li>
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">Data Platform</li>
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">DevTools</li>
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">Forreign Data Wrapper</li>
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">Low-Code</li>
+                <li class="text-Medium border border-borderPrimary text-textPrimary px-L py-SM rounded-L h-[43px]">Messaging</li>
+            </ul>
+
+            <div class="grid md:gap-XL gap-M">
+
+                <div class="grid md:p-L p-M bg-backgroundTertiary md:rounded-XL rounded-L cursor-pointer" tabindex="1" onfocus="showData(event)">
+
+                    <div class="flex justify-between items-center">
+                        <span class="md:text-H4 text-H5 text-textPrimary">API</span>
+                        <span class="transition-all duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" fill="#F37441" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="grid gap-L xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 invisible h-auto items-center opacity-0 transition-all max-h-0 opacity-100 duration-1000">
+
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+                <div class="grid md:p-L p-M bg-backgroundTertiary md:rounded-XL rounded-L cursor-pointer" tabindex="2" onfocus="showData(event)">
+
+                    <div class="flex justify-between items-center">
+                        <span class="md:text-H4 text-H5 text-textPrimary">AUTH</span>
+                        <span class="transition-all duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" fill="#F37441" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="grid gap-L xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 invisible h-auto items-center opacity-0 transition-all max-h-0 opacity-100 duration-1000">
+
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+                <div class="grid md:p-L p-M bg-backgroundTertiary md:rounded-XL rounded-L cursor-pointer" tabindex="3" onfocus="showData(event)">
+
+                    <div class="flex justify-between items-center">
+                        <span class="md:text-H4 text-H5 text-textPrimary">Catching / Offline-First</span>
+                        <span class="transition-all duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" fill="#F37441" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="grid gap-L xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 invisible h-auto items-center opacity-0 transition-all max-h-0 opacity-100 duration-1000">
+
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+                <div class="grid md:p-L p-M bg-backgroundTertiary md:rounded-XL rounded-L cursor-pointer" tabindex="4" onfocus="showData(event)">
+
+                    <div class="flex justify-between items-center">
+                        <span class="md:text-H4 text-H5 text-textPrimary">Data Platform</span>
+                        <span class="transition-all duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" fill="#F37441" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="grid gap-L xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 invisible h-auto items-center opacity-0 transition-all max-h-0 opacity-100 duration-1000">
+
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+                <div class="grid md:p-L p-M bg-backgroundTertiary md:rounded-XL rounded-L cursor-pointer" tabindex="5" onfocus="showData(event)">
+
+                    <div class="flex justify-between items-center">
+                        <span class="md:text-H4 text-H5 text-textPrimary">DevTools</span>
+                        <span class="transition-all duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" fill="#F37441" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="grid gap-L xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 invisible h-auto items-center opacity-0 transition-all max-h-0 opacity-100 duration-1000">
+
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+                        <div class="border border-borderSecondary rounded-L p-L grid gap-L">
+                            <div class="grid grid-cols-1 gap-L">
+                                <span class="mx-auto">
+                                    <img src="./img/feature.svg" class="rounded-XS">
+                                </span>
+                                <span class="text-H5 text-textPrimary mx-auto">Feature</span>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    }
+
+</div>
+
+<script>
+
+    function showData(event) {
+        const classesToAdd = ['max-h-full', 'mt-S', 'md:mt-L']
+        const classesToRemove = ['invisible', 'max-h-0']
+        event.target.children[0].children[1].classList.add('-rotate-180')
+        classesToAdd.forEach(className => {
+            event.target.children[1].classList.add(className);
+        });
+
+        classesToRemove.forEach(className => {
+            event.target.children[1].classList.remove(className);
+        });
+    }
+</script>
