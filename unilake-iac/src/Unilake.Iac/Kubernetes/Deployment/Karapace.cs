@@ -11,32 +11,36 @@ public sealed class Karapace : KubernetesComponentResource
 {
     public const string RegistryName = "karapace-registry";
     public const string RestName = "karapace-rest";
-    
+    private string _imageVersion;
+
     public Service RegistryService { get; private set; }
     public Service RestService { get; private set; }
-    
-    public Karapace(KubernetesEnvironmentContext ctx, KarapaceInputArgs? inputArgs = null, Namespace? @namespace = null, string name = "karapace", 
+
+    public Karapace(KubernetesEnvironmentContext ctx, KarapaceInputArgs? inputArgs = null, Namespace? @namespace = null, string name = "karapace",
         ComponentResourceOptions? options = null, bool checkNamingConvention = true)
         : base("unilake:kubernetes:deployment:karapace", name, options, checkNamingConvention)
     {
         // TODO: https://github.com/aiven/karapace/blob/main/container/compose.yml
         // Step 1: translate to yaml https://kubernetes.io/docs/tasks/configure-pod-container/translate-compose-kubernetes/
         // Step 2: translate to pulumi https://www.pulumi.com/kube2pulumi/
-        
+
         // Also check: https://github.com/aiven/karapace/pull/257
-        
+
         // Check input
         if (inputArgs == null)
-            throw new ArgumentNullException(nameof(inputArgs), "inputArgs cannot be null");
-        
+            throw new ArgumentNullException(nameof(inputArgs), "InputArgs cannot be null");
+        if (string.IsNullOrWhiteSpace(inputArgs.ImageVersion))
+            throw new ArgumentNullException(nameof(inputArgs.ImageVersion), "ImageVersion cannot be null");
+        _imageVersion = inputArgs.ImageVersion;
+
         // Set default options
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
         resourceOptions.Provider = ctx.Provider;
-        
+
         // Set namespace
         @namespace = SetNamespace(resourceOptions, name, @namespace);
-        
+
         // set resources
         var registryPod = GetKarapaceRegistryPod(@namespace, inputArgs.KafkaServiceName, inputArgs.KafkaServicePort, resourceOptions);
         var restPod = GetKarapaceRestPod(@namespace, inputArgs.KafkaServiceName, inputArgs.KafkaServicePort, resourceOptions);
@@ -44,8 +48,8 @@ public sealed class Karapace : KubernetesComponentResource
         RestService = GetRestService(@namespace, restPod, resourceOptions);
     }
 
-    Pulumi.Kubernetes.Apps.V1.Deployment GetKarapaceRegistryPod(Namespace @namespace, string kafkaservicename, int kafkaserviceport, 
-        CustomResourceOptions resourceOptions, string name = RegistryName) => new (name, new DeploymentArgs
+    Pulumi.Kubernetes.Apps.V1.Deployment GetKarapaceRegistryPod(Namespace @namespace, string kafkaservicename, int kafkaserviceport,
+        CustomResourceOptions resourceOptions, string name = RegistryName) => new(name, new DeploymentArgs
         {
             ApiVersion = "apps/v1",
             Kind = "Deployment",
@@ -80,7 +84,7 @@ public sealed class Karapace : KubernetesComponentResource
                             new ContainerArgs
                             {
                                 Name = name,
-                                Image = "ghcr.io/aiven/karapace:develop",
+                                Image = $"ghcr.io/aiven-open/karapace:{_imageVersion}",
                                 Ports =
                                 {
                                     new ContainerPortArgs
@@ -154,9 +158,9 @@ public sealed class Karapace : KubernetesComponentResource
                 },
             },
         }, resourceOptions);
-    
-    Pulumi.Kubernetes.Apps.V1.Deployment GetKarapaceRestPod(Namespace @namespace, string kafkaservicename, int kafkaserviceport, 
-        CustomResourceOptions resourceOptions, string registryName = RegistryName, string name = RestName) => new (name, new DeploymentArgs
+
+    Pulumi.Kubernetes.Apps.V1.Deployment GetKarapaceRestPod(Namespace @namespace, string kafkaservicename, int kafkaserviceport,
+        CustomResourceOptions resourceOptions, string registryName = RegistryName, string name = RestName) => new(name, new DeploymentArgs
         {
             ApiVersion = "apps/v1",
             Kind = "Deployment",
@@ -191,7 +195,7 @@ public sealed class Karapace : KubernetesComponentResource
                             new ContainerArgs
                             {
                                 Name = name,
-                                Image = "ghcr.io/aiven/karapace:develop",
+                                Image = $"ghcr.io/aiven-open/karapace:{_imageVersion}",
                                 Ports =
                                 {
                                     new ContainerPortArgs
@@ -250,8 +254,8 @@ public sealed class Karapace : KubernetesComponentResource
                 },
             },
         }, resourceOptions);
-    
-    Service GetRegistryService(Namespace @namespace, Pulumi.Kubernetes.Apps.V1.Deployment registryPod, CustomResourceOptions resourceOptions, string name = RegistryName + "-service") => new (name, new ServiceArgs
+
+    Service GetRegistryService(Namespace @namespace, Pulumi.Kubernetes.Apps.V1.Deployment registryPod, CustomResourceOptions resourceOptions, string name = RegistryName + "-service") => new(name, new ServiceArgs
     {
         ApiVersion = "v1",
         Kind = "Service",
@@ -282,8 +286,8 @@ public sealed class Karapace : KubernetesComponentResource
             },
         },
     }, resourceOptions);
-    
-    Service GetRestService(Namespace @namespace, Pulumi.Kubernetes.Apps.V1.Deployment restPod, CustomResourceOptions resourceOptions, string name = RestName + "-service") => new (name, new ServiceArgs
+
+    Service GetRestService(Namespace @namespace, Pulumi.Kubernetes.Apps.V1.Deployment restPod, CustomResourceOptions resourceOptions, string name = RestName + "-service") => new(name, new ServiceArgs
     {
         ApiVersion = "v1",
         Kind = "Service",

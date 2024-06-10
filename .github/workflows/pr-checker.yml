@@ -83,14 +83,14 @@ jobs:
         uses: everpcpc/comment-on-pr-action@v1
         with:
           token: ${{ github.token }}
-          identifier: 'pr-assistant-title'
+          identifier: "pr-assistant-title"
           delete: true
       - name: Comment on PR
         if: steps.check.outputs.title == 'not-semantic'
         uses: everpcpc/comment-on-pr-action@v1
         with:
           token: ${{ github.token }}
-          identifier: 'pr-assistant-title'
+          identifier: "pr-assistant-title"
           body: |
             This pull request's title is not fulfill the requirements. @${{ github.event.pull_request.user.login }} please update it 🙏.
 

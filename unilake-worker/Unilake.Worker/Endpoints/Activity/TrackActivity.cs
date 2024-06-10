@@ -5,12 +5,12 @@ namespace Unilake.Worker.Endpoints.Activity;
 public class TrackActivity : EndpointWithoutRequest
 {
     private readonly IActivityTracker _activityTracker;
-    
+
     public TrackActivity(IActivityTracker tracker)
     {
         _activityTracker = tracker;
     }
-    
+
     public override void Configure()
     {
         Post("/activity");
@@ -23,6 +23,6 @@ public class TrackActivity : EndpointWithoutRequest
         AuthSchemes("ApiKey", "LocalAuth");
     }
 
-    public override async Task HandleAsync(CancellationToken cancellationToken) 
+    public override async Task HandleAsync(CancellationToken ct)
         => _activityTracker.TrackActivity();
 }

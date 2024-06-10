@@ -21,11 +21,11 @@ public sealed class Minio : KubernetesComponentResource
     public Secret @Secret { get; private set; }
 
     public Output<string> RootUser { get; private set; }
-    
+
     public Output<string> RootPassword { get; private set; }
 
-    public Minio(KubernetesEnvironmentContext ctx, MinioArgs inputArgs, Namespace? @namespace = null, 
-        string name = "minio", ComponentResourceOptions? options = null, bool checkNamingConvention = true) 
+    public Minio(KubernetesEnvironmentContext ctx, MinioArgs inputArgs, Namespace? @namespace = null,
+        string name = "minio", ComponentResourceOptions? options = null, bool checkNamingConvention = true)
             : base("unilake:kubernetes:helm:minio", name, options, checkNamingConvention)
     {
         // check input
@@ -35,13 +35,15 @@ public sealed class Minio : KubernetesComponentResource
         var resourceOptions = CreateOptions(options);
         resourceOptions.Parent = this;
         resourceOptions.Provider = ctx.Provider;
-        
+
         // Set namespace
         @namespace = SetNamespace(resourceOptions, name, @namespace);
-        
+
         // Create secret for authentication
-        var secret = new Secret(name, new SecretArgs{
-            Metadata = new ObjectMetaArgs{
+        var secret = new Secret(name, new SecretArgs
+        {
+            Metadata = new ObjectMetaArgs
+            {
                 Name = name,
                 Namespace = @namespace.Metadata.Apply(x => x.Name),
             },
@@ -50,8 +52,8 @@ public sealed class Minio : KubernetesComponentResource
                 {"rootUser", inputArgs.RootUser.Apply(x => x.EncodeBase64())},
                 {"rootPassword", inputArgs.RootPassword.Apply(x => x.EncodeBase64())},
             }
-        }, resourceOptions); 
-       
+        }, resourceOptions);
+
         //Get Minio chart and add details
         var releaseArgs = new ReleaseArgs
         {
@@ -66,7 +68,7 @@ public sealed class Minio : KubernetesComponentResource
             Values = new InputMap<object> // https://github.com/minio/minio/blob/master/helm/minio/values.yaml
             {
                 ["mode"] = inputArgs.Replicas == 1 ? "standalone" : "distributed",
-                ["existingSecret"] = secret.Metadata.Apply(x=> x.Name),
+                ["existingSecret"] = secret.Metadata.Apply(x => x.Name),
                 ["replicas"] = inputArgs.Replicas,
                 ["persistence"] = new Dictionary<string, object>
                 {
@@ -77,8 +79,8 @@ public sealed class Minio : KubernetesComponentResource
                 {
                     ["requests"] = new Dictionary<string, object>
                     {
-                        ["cpu"] = "1250m",
-                        ["memory"] = "2Gi"
+                        ["cpu"] = "1m",
+                        ["memory"] = "1Gi"
                     }
                 },
                 ["additionalLabels"] = GetLabels(ctx, "minio", "minio", "minio", inputArgs.Version)
@@ -90,17 +92,17 @@ public sealed class Minio : KubernetesComponentResource
         };
 
         // Check if a private registry is used
-        if(inputArgs.UsePrivateRegsitry)
+        if (inputArgs.UsePrivateRegsitry)
         {
             var registrySecret = CreateRegistrySecret(ctx, resourceOptions, @namespace.Metadata.Apply(x => x.Name));
-            releaseArgs.Values.Add("imagePullSecrets", new [] {registrySecret.Metadata.Apply(x => x.Name)});
+            releaseArgs.Values.Add("imagePullSecrets", new[] { registrySecret.Metadata.Apply(x => x.Name) });
             string PrivateRegistryBase = !string.IsNullOrWhiteSpace(inputArgs.PrivateRegistryBase) ? inputArgs.PrivateRegistryBase + "/" : "";
-            releaseArgs.Values.Add("image.repository", releaseArgs.Values.Apply(x => PrivateRegistryBase + x["image.repository"] ));
-            releaseArgs.Values.Add("mcImage.repository", releaseArgs.Values.Apply(x => PrivateRegistryBase + x["mcImage.repository"] ));
+            releaseArgs.Values.Add("image.repository", releaseArgs.Values.Apply(x => PrivateRegistryBase + x["image.repository"]));
+            releaseArgs.Values.Add("mcImage.repository", releaseArgs.Values.Apply(x => PrivateRegistryBase + x["mcImage.repository"]));
         }
 
         // Check if initial buckets need to be created
-        if(inputArgs.Buckets.Length > 0)
+        if (inputArgs.Buckets.Length > 0)
             releaseArgs.Values.Add("buckets", inputArgs.Buckets.Select(x => new InputMap<object>
             {
                 ["name"] = x.Name,
@@ -112,7 +114,7 @@ public sealed class Minio : KubernetesComponentResource
 
         // Create the minio instance
         var minioInstance = new Release(name, releaseArgs, resourceOptions);
-        
+
         // Get output
         var status = minioInstance.Status;
         @Service = Service.Get(name, Output.All(status).Apply(s => $"{s[0].Namespace}/{s[0].Name}"), resourceOptions);
