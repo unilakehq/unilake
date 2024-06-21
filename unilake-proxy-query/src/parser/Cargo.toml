@@ -1,5 +1,5 @@
 [package]
-name = "parser"
+name = "unilake-sql-parser"
 version = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
