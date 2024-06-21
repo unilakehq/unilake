@@ -1,11 +1,12 @@
 use crate::{Error, Result};
+use byteorder::{ByteOrder, LittleEndian};
+use core::panic;
 use enumflags2::{bitflags, BitFlags};
 use std::borrow::BorrowMut;
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::io::ErrorKind;
-use std::borrow::Cow;
 use std::ops::Index;
-use byteorder::{ByteOrder, LittleEndian};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufWriter};
 
 uint_enum! {
@@ -206,7 +207,7 @@ enum VariableProperty {
     AttachedDatabaseFile,
     ChangePassword,
     ClientId,
-    Unused
+    Unused,
 }
 
 impl<'a> LoginMessage<'a> {
@@ -378,14 +379,16 @@ impl<'a> LoginMessage<'a> {
 
             match ty {
                 VariableProperty::Password | VariableProperty::ChangePassword => {
-                    let b = if *ty == VariableProperty::Password {
-                        &self.password
-                    } else {
-                        &self.change_password
-                    };
-                    for byte in b.encode_utf16().flat_map(|x| x.to_le_bytes()) {
-                        dst.write_u8(((byte << 4) & 0xf0 | (byte >> 4) & 0x0f) ^ 0xA5).await?;
-                    }
+                    panic!("todo");
+                    // todo(mrhamburg) check and fix this
+                    // let b = if *ty == VariableProperty::Password {
+                    //     &self.password
+                    // } else {
+                    //     &self.change_password
+                    // };
+                    // for byte in b.encode_utf16().flat_map(|x| x.to_le_bytes()) {
+                    //     dst.write_u8(((byte << 4) & 0xf0 | (byte >> 4) & 0x0f) ^ 0xA5).await?;
+                    // }
                 }
                 VariableProperty::FeatureExt => {
                     if !feature_ext_found {
@@ -539,11 +542,13 @@ impl<'a> LoginMessage<'a> {
                         *byte = (*byte << 4) & 0xf0 | (*byte >> 4) & 0x0f;
                     }
                     let buff = buff.chunks(2).map(LittleEndian::read_u16).collect::<Vec<u16>>();
-                    if *property == VariableProperty::Password {
-                        ret.password = Cow::from(String::from_utf16_lossy(&buff[..]));
-                    }    else {
-                        ret.change_password = Cow::from(String::from_utf16_lossy(&buff[..]));
-                    }
+                    panic!();
+                    // todo(mrhamburg) fix this
+                    // if *property == VariableProperty::Password {
+                    //     ret.password = Cow::from(String::from_utf16_lossy(&buff[..]));
+                    // }    else {
+                    //     ret.change_password = Cow::from(String::from_utf16_lossy(&buff[..]));
+                    // }
                 }
                 VariableProperty::SSPI => {
                     if *length == 65535 {
@@ -640,9 +645,9 @@ impl<'a> LoginMessage<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::tds::codec::login::FedAuthExt;
     use crate::{LoginMessage, OptionFlag3};
     use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
-    use crate::tds::codec::login::FedAuthExt;
 
     #[tokio::test]
     async fn login_message_round_trip() {
@@ -659,7 +664,11 @@ mod tests {
         let mut reader = BufReader::new(outer);
 
         // encode
-        input.clone().encode(&mut writer).await.expect("should be ok");
+        input
+            .clone()
+            .encode(&mut writer)
+            .await
+            .expect("should be ok");
         writer.flush().await.expect("should be ok");
 
         // decode
@@ -700,7 +709,11 @@ mod tests {
         let mut reader = BufReader::new(outer);
 
         // encode
-        input.clone().encode(&mut writer).await.expect("should be ok");
+        input
+            .clone()
+            .encode(&mut writer)
+            .await
+            .expect("should be ok");
         writer.flush().await.expect("should be ok");
 
         // decode

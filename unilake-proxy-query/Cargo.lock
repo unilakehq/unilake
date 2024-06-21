@@ -24,10 +24,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
-name = "backend"
-version = "0.1.0"
-
-[[package]]
 name = "backtrace"
 version = "0.3.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -311,14 +307,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
-name = "security"
-version = "0.1.0"
-
-[[package]]
-name = "server"
-version = "0.1.0"
-
-[[package]]
 name = "signal-hook-registry"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -352,19 +340,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "tds"
-version = "0.1.0"
-dependencies = [
- "byteorder",
- "encoding",
- "enumflags2",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -449,14 +424,46 @@ dependencies = [
 ]
 
 [[package]]
-name = "umi"
-version = "0.1.0"
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "unilake-common-policyengine"
+version = "0.1.0"
+
+[[package]]
+name = "unilake-sql-backend"
+version = "0.1.0"
+
+[[package]]
+name = "unilake-sql-protocol"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "encoding",
+ "enumflags2",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "unilake-sql-security"
+version = "0.1.0"
+
+[[package]]
+name = "unilake-sql-server"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
+name = "unilake-sql-transpiler"
+version = "0.1.0"
 
 [[package]]
 name = "uuid"

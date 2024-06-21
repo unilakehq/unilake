@@ -1,5 +1,4 @@
-[package]
-name = "umi"
+[workspace.package]
 description = "Unilake query proxy"
 authors = ["Unilake Authors <oss@unilake.com>"]
 version = "0.1.0"
@@ -15,9 +14,11 @@ members = [
     "src/parser",
     "src/security",
     "src/server",
-    "src/tds"
+    "src/protocol",
+    "src/transpiler",
+    "src/policyengine",
 ]
 
 [profile.release]
-strip = true  # Automatically strip symbols from the binary.
-opt-level = "z"  # Optimize for size.
+strip = true    # Automatically strip symbols from the binary.
+opt-level = "z" # Optimize for size.
