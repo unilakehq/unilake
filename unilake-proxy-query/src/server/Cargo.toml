@@ -9,3 +9,6 @@ edition = { workspace = true }
 
 [dependencies]
 tokio = { version = "1.20.1", features = ["full"] }
+unilake-wire-protocol = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

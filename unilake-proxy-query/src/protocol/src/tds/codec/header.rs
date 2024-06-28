@@ -1,3 +1,5 @@
+use std::fmt::{self, Write};
+
 use crate::{Error, Result};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tracing::instrument;
@@ -20,6 +22,25 @@ uint_enum! {
         Sspi = 17,
         PreLogin = 18,
         FederatedAuthenticationInfo = 238,
+    }
+}
+
+impl fmt::Display for PacketType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match &self {
+            PacketType::SQLBatch => "SQLBatch",
+            PacketType::PreTDSv7Login => "PreTDSv7Login",
+            PacketType::Rpc => "Rpc",
+            PacketType::TabularResult => "TabularResult",
+            PacketType::AttentionSignal => "AttentionSignal",
+            PacketType::BulkLoad => "BulkLoad",
+            PacketType::Fat => "Fat",
+            PacketType::TransactionManagerReq => "TransactionManagerReq",
+            PacketType::TDSv7Login => "TDSv7Login",
+            PacketType::Sspi => "Sspi",
+            PacketType::PreLogin => "PreLogin",
+            PacketType::FederatedAuthenticationInfo => "FederatedAuthenticationInfo",
+        })
     }
 }
 
@@ -143,7 +164,7 @@ impl PacketHeader {
 
         tracing::debug!(
             message = "Receiving packet",
-            message_type = raw_ty,
+            message_type = ty.to_string(),
             message_length = length
         );
 

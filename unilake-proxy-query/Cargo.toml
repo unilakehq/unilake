@@ -19,6 +19,24 @@ members = [
     "src/policyengine",
 ]
 
+[workspace.dependencies]
+# Workspace dependencies
+unilake-wire-protocol = { path = "src/protocol" }
+unilake-common-policyengine = { path = "src/policyengine" }
+unilake-sql-parser = { path = "src/parser" }
+unilake-sql-backend = { path = "src/backend" }
+unilake-sql-security = { path = "src/security" }
+
+# External
+tracing = "0.1.36"
+tracing-subscriber = "0.3.0"
+string_enum = "0.4.4"
+tokio-util = { version = "0.7.3", features = ["codec", "io"], optional = false }
+tokio-rustls = { version = "0.26", optional = false, default-features = false, features = [
+    "logging",
+    "tls12",
+] }
+
 [profile.release]
 strip = true    # Automatically strip symbols from the binary.
 opt-level = "z" # Optimize for size.

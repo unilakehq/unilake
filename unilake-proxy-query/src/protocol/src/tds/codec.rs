@@ -13,12 +13,14 @@ mod token;
 mod tokenfactory;
 mod type_info;
 
-pub(crate) use column_data::*;
+pub use column_data::*;
+pub use header::*;
 pub use login::*;
-pub(crate) use packet::*;
-pub(crate) use row::*;
+pub use packet::*;
+pub use pre_login::*;
+pub use row::*;
 pub use token::*;
-pub(crate) use type_info::*;
+pub use type_info::*;
 
 const HEADER_BYTES: usize = 8;
 const ALL_HEADERS_LEN_TX: usize = 22;

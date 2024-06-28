@@ -2,7 +2,7 @@
 
 use crate::tds::codec::header::{PacketHeader, PacketStatus};
 use crate::*;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use prot::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 pub struct Packet {
     pub header: PacketHeader,

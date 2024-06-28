@@ -7,6 +7,7 @@ pub(crate) use error::Error;
 mod macros;
 
 pub mod error;
+pub mod prot;
 pub mod tds;
 mod to_sql;
 
