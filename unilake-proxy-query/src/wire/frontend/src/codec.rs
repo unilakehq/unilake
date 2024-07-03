@@ -7,11 +7,12 @@ use futures::future::poll_fn;
 use futures::{SinkExt, StreamExt};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
+use tokio::sync::RwLock;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
-use crate::prot::{DefaultSession, SessionInfo, TdsWireHandlerFactory};
+use crate::prot::{InstanceInfo, SessionInfo, TdsWireHandlerFactory};
 
 #[non_exhaustive]
 #[derive(Debug, new)]
@@ -98,7 +99,8 @@ where
 pub async fn process_socket<H, S>(
     tcp_socket: TcpStream,
     tls_acceptor: Option<Arc<TlsAcceptor>>,
-    handlers: Arc<H>,
+    handler: Arc<H>,
+    instance_info: Arc<RwLock<InstanceInfo>>,
 ) -> Result<(), IOError>
 where
     S: SessionInfo,
@@ -107,8 +109,22 @@ where
     let addr = tcp_socket.peer_addr()?;
     tcp_socket.set_nodelay(true)?;
 
-    // todo(mrhamburg): refactor this, S sessioninfo and when we instantiate
-    let session_info = handlers.open_session(&addr).unwrap();
+    let session_info = {
+        let instance_info_ref = instance_info.read().await;
+        handler.open_session(&addr, &instance_info_ref)
+    };
+
+    let session_info = match session_info {
+        Ok(s) => {
+            instance_info.write().await.active_sessions += 1;
+            s
+        }
+        Err(e) => {
+            // process_error(&mut socket, e).await?;
+            return Ok(());
+        }
+    };
+
     let mut tcp_socket = Framed::new(tcp_socket, TdsWireMessageServerCodec::new(session_info));
     let ssl = peek_for_sslrequest(&mut tcp_socket, tls_acceptor.is_some()).await?;
 
@@ -116,7 +132,7 @@ where
         let mut socket = tcp_socket;
 
         while let Some(Ok(msg)) = socket.next().await {
-            if let Err(e) = process_message(msg, &mut socket, handlers.clone()).await {
+            if let Err(e) = process_message(msg, &mut socket, handler.clone()).await {
                 todo!();
                 // process_error(&mut socket, e).await?;
             }
@@ -131,7 +147,7 @@ where
 pub struct SslRequest;
 
 impl SslRequest {
-    pub const BODY_MAGIC_NUMBER: i32 = 80877103;
+    pub const BODY_MAGIC_NUMBER: i32 = -1;
     pub const BODY_SIZE: usize = 8;
 }
 

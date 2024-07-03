@@ -1,8 +1,5 @@
-use std::net::SocketAddr;
-use tokio::net::{TcpListener, TcpSocket, TcpStream};
-use tokio_util::codec::{Decoder, Encoder, Framed};
-
 use crate::codec::TdsWireError;
+use std::net::SocketAddr;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -131,27 +128,39 @@ where
     S: SessionInfo,
 {
     /// Create a new TDS server session
-    fn open_session(&self, socker_addr: &SocketAddr) -> Result<S, TdsWireError> {
-        todo!()
-    }
+    fn open_session(
+        &self,
+        socker_addr: &SocketAddr,
+        instance_info: &InstanceInfo,
+    ) -> Result<S, TdsWireError>;
 
     /// Close TDS server session
-    fn close_session(&self, session: &S) {}
+    fn close_session(&self, session: &S);
 
     /// Called when pre-login request arrives
-    fn on_prelogin_request(&self, session: &S) {}
+    fn on_prelogin_request(&self, session: &S);
 
     /// Called when login request arrives
-    fn on_login7_request(&self, session: &S) {}
+    fn on_login7_request(&self, session: &S);
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
     /// token is part of a login request.
-    fn on_federated_authentication_token_message(&self, session: &S) {}
+    fn on_federated_authentication_token_message(&self, session: &S);
 
     /// Called when SQL batch request arrives
-    fn on_sql_batch_request(&self, session: &S) {}
+    fn on_sql_batch_request(&self, session: &S);
 
     /// Called when attention arrives
-    fn on_attention(&self, session: &S) {}
+    fn on_attention(&self, session: &S);
+}
+
+pub struct InstanceInfo {
+    pub active_sessions: usize,
+}
+
+impl InstanceInfo {
+    pub fn new() -> Self {
+        InstanceInfo { active_sessions: 0 }
+    }
 }
