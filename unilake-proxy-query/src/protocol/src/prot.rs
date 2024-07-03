@@ -139,16 +139,16 @@ where
     fn on_prelogin_request(session: &S) {}
 
     /// Called when login request arrives
-    fn on_login7_request() {}
+    fn on_login7_request(session: &S) {}
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
     /// token is part of a login request.
-    fn on_federated_authentication_token_message() {}
+    fn on_federated_authentication_token_message(session: &S) {}
 
     /// Called when SQL batch request arrives
-    fn on_sql_batch_request() {}
+    fn on_sql_batch_request(session: &S) {}
 
     /// Called when attention arrives
-    fn on_attention() {}
+    fn on_attention(session: &S) {}
 }
