@@ -1,11 +1,11 @@
-use std::borrow::Borrow;
 use std::env;
 use std::error::Error;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use std::sync::Arc;
 use tokio::net::TcpListener;
-use tracing::{info, Level};
+use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use unilake_wire_frontend::tds;
+use unilake_wire_frontend::codec::process_socket;
+use unilake_wire_frontend::prot::{DefaultSession, SessionInfo, TdsWireHandlerFactory};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -26,36 +26,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(&addr).await?;
     println!("Listening on: {}", addr);
 
+    let factory = Arc::new(DefaultTdsHandlerFactory {});
+
     loop {
         let (mut socket, _) = listener.accept().await?;
+        let factory_ref = factory.clone();
 
-        tokio::spawn(async move {
-            println!("New connection!");
-
-            // In a loop, read data from the socket and write the data back.
-            loop {
-                let mut buf = [0; 4096];
-                // while let Ok(data) = socket.try_read(&mut buf) {
-                //     // residual data
-                //     println!("len: {}", data);
-                // }
-                // // 12032 bytes
-                // break;
-
-                let p = tds::codec::PacketHeader::decode(&mut socket).await.unwrap();
-                println!("{}", p.id);
-                let dc = tds::codec::PreloginMessage::decode(&mut socket)
-                    .await
-                    .unwrap();
-                println!("{}", dc.instance_name.unwrap_or("unknown".to_string()));
-
-                // We don't have anything to write back yet...
-                while let Ok(data) = socket.try_read(&mut buf) {
-                    // residual data
-                    println!("Got {} unparsed data!", data);
-                }
-                break;
-            }
-        });
+        tokio::spawn(async move { process_socket(socket, None, factory_ref).await });
     }
+}
+
+struct DefaultTdsHandlerFactory {}
+impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
+    for DefaultTdsHandlerFactory
+{
 }

@@ -19,3 +19,5 @@ tracing = { workspace = true }
 string_enum = { workspace = true }
 tokio-util = { workspace = true }
 tokio-rustls = { workspace = true }
+derive-new = { workspace = true }
+futures = { workspace = true }

@@ -6,6 +6,7 @@ pub(crate) use error::Error;
 #[macro_use]
 mod macros;
 
+pub mod codec;
 pub mod error;
 pub mod prot;
 pub mod tds;

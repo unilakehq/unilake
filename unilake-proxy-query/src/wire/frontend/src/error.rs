@@ -1,5 +1,6 @@
 //! Error module
 pub use crate::tds::codec::TokenError;
+pub use std::io::Error as IOError;
 pub use std::io::ErrorKind as IoErrorKind;
 use std::io::ErrorKind;
 use std::rc::Rc;

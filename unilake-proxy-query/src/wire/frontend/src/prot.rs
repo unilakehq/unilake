@@ -1,5 +1,8 @@
-use std::{default, net::SocketAddr};
+use std::net::SocketAddr;
+use tokio::net::{TcpListener, TcpSocket, TcpStream};
 use tokio_util::codec::{Decoder, Encoder, Framed};
+
+use crate::codec::TdsWireError;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -29,7 +32,7 @@ pub enum TdsSessionState {
 }
 
 pub trait SessionInfo {
-    /// Currently in use socket addr
+    /// Currently in use socket
     fn socket_addr(&self) -> SocketAddr;
 
     /// Current session state
@@ -63,7 +66,7 @@ pub struct DefaultSession {
     session_id: usize,
     packet_size: usize,
     sql_user_id: usize,
-    database: String,
+    database: Option<String>,
     tds_version: String,
 }
 
@@ -110,7 +113,7 @@ pub struct TdsWireMessageServerCodec {
 }
 
 impl DefaultSession {
-    pub fn new(socket_addr: SocketAddr, database: String) -> Self {
+    pub fn new(socket_addr: SocketAddr) -> Self {
         DefaultSession {
             socket_addr,
             packet_size: 1200,
@@ -118,7 +121,7 @@ impl DefaultSession {
             sql_user_id: 0,
             tds_version: "".to_string(),
             state: TdsSessionState::default(),
-            database: database,
+            database: None,
         }
     }
 }
@@ -128,27 +131,27 @@ where
     S: SessionInfo,
 {
     /// Create a new TDS server session
-    fn open_session() -> S {
+    fn open_session(&self, socker_addr: &SocketAddr) -> Result<S, TdsWireError> {
         todo!()
     }
 
     /// Close TDS server session
-    fn close_session(session: &S) {}
+    fn close_session(&self, session: &S) {}
 
     /// Called when pre-login request arrives
-    fn on_prelogin_request(session: &S) {}
+    fn on_prelogin_request(&self, session: &S) {}
 
     /// Called when login request arrives
-    fn on_login7_request(session: &S) {}
+    fn on_login7_request(&self, session: &S) {}
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
     /// token is part of a login request.
-    fn on_federated_authentication_token_message(session: &S) {}
+    fn on_federated_authentication_token_message(&self, session: &S) {}
 
     /// Called when SQL batch request arrives
-    fn on_sql_batch_request(session: &S) {}
+    fn on_sql_batch_request(&self, session: &S) {}
 
     /// Called when attention arrives
-    fn on_attention(session: &S) {}
+    fn on_attention(&self, session: &S) {}
 }
