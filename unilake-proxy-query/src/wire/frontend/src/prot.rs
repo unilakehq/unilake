@@ -133,7 +133,7 @@ where
     /// Create a new TDS server session
     fn open_session(
         &self,
-        socker_addr: &SocketAddr,
+        socket_addr: &SocketAddr,
         instance_info: &ServerInstance,
     ) -> Result<S, TdsWireError>;
 
@@ -159,8 +159,30 @@ where
 }
 
 pub enum ServerInstanceMessage {
+    /// Used to increase the current session counter by one
     IncrementSessionCounter,
+    /// Used to decrement the current session counter by one
     DecrementSessionCounter,
+    /// Used to send an audit message for a connected session
+    Audit(SessionAuditMessage),
+}
+
+/// These messages should be forwarded to SIEM/Audit logging endpoint
+/// todo(mrhamburg): extend and expand where needed
+pub enum SessionAuditMessage {
+    /// SqlBatch execution by a user
+    SqlBatch(SessionUserInfo, String, String),
+    /// Login succeeded event
+    LoginSucceeded(SessionUserInfo),
+    /// Login failed event
+    LoginFailed(SessionUserInfo),
+}
+
+#[allow(unused)]
+/// todo(mrhamburg): properly implement and use where applicable
+pub struct SessionUserInfo {
+    socket_addr: SocketAddr,
+    userid: String,
 }
 
 pub struct ServerInstance {
@@ -172,6 +194,7 @@ pub struct ServerInstance {
 }
 
 impl ServerInstance {
+    // todo(mrhamburg): implement logic for processing messages to kafka for audit logging and other informational purposes
     pub fn new() -> Self {
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<ServerInstanceMessage>();
         ServerInstance {
@@ -187,11 +210,15 @@ impl ServerInstance {
             instance: Arc<RwLock<ServerInstance>>,
             mut receiver: tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>,
         ) {
-            while let Some(r) = receiver.recv().await {
-                let mut rwself = instance.write().await;
-                match r {
-                    ServerInstanceMessage::IncrementSessionCounter => rwself.active_sessions += 1,
-                    ServerInstanceMessage::DecrementSessionCounter => rwself.active_sessions -= 1,
+            while let Some(msg) = receiver.recv().await {
+                match msg {
+                    ServerInstanceMessage::IncrementSessionCounter => {
+                        instance.write().await.active_sessions += 1
+                    }
+                    ServerInstanceMessage::DecrementSessionCounter => {
+                        instance.write().await.active_sessions -= 1
+                    }
+                    _ => todo!(),
                 }
             }
         }

@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use unilake_wire_frontend::codec::process_socket;
-use unilake_wire_frontend::prot::{ServerInstance, TdsWireHandlerFactory};
+use unilake_wire_frontend::prot::{DefaultSession, ServerInstance, TdsWireHandlerFactory};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -28,7 +28,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Listening on: {}", addr);
 
     let factory = Arc::new(DefaultTdsHandlerFactory {});
-    let (instance, bgworker) = {
+    // todo(mrhamburg): use bgworker for graceful shutdown
+    let (instance, _) = {
         let instance = ServerInstance::new();
         let rwlock = Arc::new(RwLock::new(instance));
         let bgworker = rwlock.write().await.start_instance(rwlock.clone());
@@ -42,8 +43,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         tokio::spawn(async move { process_socket(socket, None, factory_ref, instance_ref).await });
     }
-
-    bgworker.abort();
 }
 
 struct DefaultTdsHandlerFactory {}
@@ -54,13 +53,13 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
 {
     fn open_session(
         &self,
-        socker_addr: &std::net::SocketAddr,
+        socket_addr: &std::net::SocketAddr,
         instance_info: &ServerInstance,
     ) -> Result<
         unilake_wire_frontend::prot::DefaultSession,
         unilake_wire_frontend::codec::TdsWireError,
     > {
-        todo!()
+        Ok(DefaultSession::new(socket_addr.clone()))
     }
 
     fn close_session(&self, session: &unilake_wire_frontend::prot::DefaultSession) {
