@@ -1,5 +1,8 @@
+use futures::future;
+use tokio::sync::RwLock;
+
 use crate::codec::TdsWireError;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -131,7 +134,7 @@ where
     fn open_session(
         &self,
         socker_addr: &SocketAddr,
-        instance_info: &InstanceInfo,
+        instance_info: &ServerInstance,
     ) -> Result<S, TdsWireError>;
 
     /// Close TDS server session
@@ -155,12 +158,59 @@ where
     fn on_attention(&self, session: &S);
 }
 
-pub struct InstanceInfo {
-    pub active_sessions: usize,
+pub enum ServerInstanceMessage {
+    IncrementSessionCounter,
+    DecrementSessionCounter,
 }
 
-impl InstanceInfo {
+pub struct ServerInstance {
+    active_sessions: usize,
+    session_limit: usize,
+    #[allow(dead_code)]
+    receiver: Option<tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>>,
+    sender: Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>>,
+}
+
+impl ServerInstance {
     pub fn new() -> Self {
-        InstanceInfo { active_sessions: 0 }
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<ServerInstanceMessage>();
+        ServerInstance {
+            active_sessions: 0,
+            session_limit: 32767,
+            receiver: Some(receiver),
+            sender: Arc::new(sender),
+        }
+    }
+
+    pub fn start_instance(&mut self, instance: Arc<RwLock<Self>>) -> tokio::task::JoinHandle<()> {
+        async fn run(
+            instance: Arc<RwLock<ServerInstance>>,
+            mut receiver: tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>,
+        ) {
+            while let Some(r) = receiver.recv().await {
+                let mut rwself = instance.write().await;
+                match r {
+                    ServerInstanceMessage::IncrementSessionCounter => rwself.active_sessions += 1,
+                    ServerInstanceMessage::DecrementSessionCounter => rwself.active_sessions -= 1,
+                }
+            }
+        }
+        if self.receiver.is_none() {
+            panic!("server instance is already started")
+        }
+        let r = self.receiver.take().unwrap();
+        tokio::spawn(async move { run(instance, r).await })
+    }
+
+    pub fn active_session_count(&self) -> usize {
+        self.active_sessions
+    }
+
+    pub fn session_limit(&self) -> usize {
+        self.session_limit
+    }
+
+    pub fn get_sender(&self) -> Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>> {
+        self.sender.clone()
     }
 }

@@ -1,5 +1,4 @@
 use std::io::Error as IOError;
-use std::ops::Deref;
 use std::sync::Arc;
 
 use derive_new::new;
@@ -12,7 +11,7 @@ use tokio_rustls::TlsAcceptor;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
-use crate::prot::{InstanceInfo, SessionInfo, TdsWireHandlerFactory};
+use crate::prot::{ServerInstance, SessionInfo, TdsWireHandlerFactory};
 
 #[non_exhaustive]
 #[derive(Debug, new)]
@@ -100,7 +99,7 @@ pub async fn process_socket<H, S>(
     tcp_socket: TcpStream,
     tls_acceptor: Option<Arc<TlsAcceptor>>,
     handler: Arc<H>,
-    instance_info: Arc<RwLock<InstanceInfo>>,
+    instance: Arc<RwLock<ServerInstance>>,
 ) -> Result<(), IOError>
 where
     S: SessionInfo,
@@ -110,13 +109,18 @@ where
     tcp_socket.set_nodelay(true)?;
 
     let session_info = {
-        let instance_info_ref = instance_info.read().await;
+        let instance_info_ref = instance.read().await;
         handler.open_session(&addr, &instance_info_ref)
     };
 
     let session_info = match session_info {
         Ok(s) => {
-            instance_info.write().await.active_sessions += 1;
+            instance
+                .read()
+                .await
+                .get_sender()
+                .send(crate::prot::ServerInstanceMessage::IncrementSessionCounter)
+                .unwrap();
             s
         }
         Err(e) => {
