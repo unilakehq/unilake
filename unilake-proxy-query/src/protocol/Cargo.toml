@@ -9,12 +9,12 @@ publish = { workspace = true }
 
 
 [dependencies]
-tokio = { version = "1.20.1", features = ["full"] }
-enumflags2 = "0.7.5"
-thiserror = "1.0.32"
-encoding = "0.2.33"
-byteorder = "1.4.3"
-uuid = "1.0"
+tokio = { workspace = true }
+enumflags2 = { workspace = true }
+encoding = { workspace = true }
+byteorder = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true }
 string_enum = { workspace = true }
 tokio-util = { workspace = true }

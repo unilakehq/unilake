@@ -1,8 +1,9 @@
 // TODO: this, note you can send multiple tds_tokens in a single response, with one header
 
+use tokio::io::{AsyncRead, AsyncWrite};
+
 use crate::tds::codec::header::{PacketHeader, PacketStatus};
 use crate::*;
-use prot::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 pub struct Packet {
     pub header: PacketHeader,
