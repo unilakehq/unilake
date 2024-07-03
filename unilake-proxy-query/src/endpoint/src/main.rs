@@ -5,7 +5,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-use unilake_wire_protocol::tds;
+use unilake_wire_frontend::tds;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

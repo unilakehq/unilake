@@ -1,5 +1,5 @@
 [package]
-name = "unilake-wire-protocol"
+name = "unilake-wire-frontend"
 version = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
