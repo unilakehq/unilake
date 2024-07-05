@@ -2,6 +2,7 @@ use std::fmt::{self, Write};
 
 use crate::{Error, Result};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use tracing::instrument;
 
 uint_enum! {
@@ -128,39 +129,33 @@ impl PacketHeader {
     }
 
     #[instrument(skip(dst))]
-    pub async fn encode<W>(&self, dst: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         tracing::debug!(
             message = "Sending packet",
             message_type = self.ty as u8,
             message_length = self.length
         );
 
-        dst.write_u8(self.ty as u8).await?;
-        dst.write_u8(self.status as u8).await?;
-        dst.write_u16_le(self.length).await?;
-        dst.write_u16_le(self.spid).await?;
-        dst.write_u8(self.id).await?;
-        dst.write_u8(self.window).await?;
+        dst.put_u8(self.ty as u8);
+        dst.put_u8(self.status as u8);
+        dst.put_u16_le(self.length);
+        dst.put_u16_le(self.spid);
+        dst.put_u8(self.id);
+        dst.put_u8(self.window);
 
         Ok(())
     }
 
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let raw_ty = src.read_u8().await?;
+    pub fn decode(src: &mut BytesMut) -> Result<Self> {
+        let raw_ty = src.get_u8();
         let ty = PacketType::try_from(raw_ty).map_err(|_| {
             Error::Protocol(format!("header: invalid packet type: {}", raw_ty).into())
         })?;
 
-        let status = PacketStatus::try_from(src.read_u8().await?)
+        let status = PacketStatus::try_from(src.get_u8())
             .map_err(|_| Error::Protocol("header: invalid packet status".into()))?;
 
-        let length = src.read_u16_le().await?;
+        let length = src.get_u16_le();
 
         tracing::debug!(
             message = "Receiving packet",
@@ -172,9 +167,9 @@ impl PacketHeader {
             ty,
             status,
             length,
-            spid: src.read_u16_le().await?,
-            id: src.read_u8().await?,
-            window: src.read_u8().await?,
+            spid: src.get_u16_le(),
+            id: src.get_u8(),
+            window: src.get_u8(),
         })
     }
 }

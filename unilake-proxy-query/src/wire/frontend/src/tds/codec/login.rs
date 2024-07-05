@@ -3,7 +3,6 @@ use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
 use std::borrow::BorrowMut;
-use std::borrow::Cow;
 use std::fmt::Debug;
 use std::io::ErrorKind;
 use std::ops::Index;
@@ -147,16 +146,16 @@ const FIXED_LEN: usize = 90;
 /// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/773a62b6-ee89-4c02-9e5e-344882630aac
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-struct FedAuthExt<'a> {
+struct FedAuthExt {
     fed_auth_echo: bool,
-    fed_auth_token: Cow<'a, str>,
+    fed_auth_token: String,
     nonce: Option<[u8; 32]>,
 }
 
 /// Login7 Message [2.2.6.4]
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct LoginMessage<'a> {
+pub struct LoginMessage {
     /// the highest TDS version the client supports
     tds_version: FeatureLevel,
     /// the requested packet size
@@ -176,20 +175,20 @@ pub struct LoginMessage<'a> {
     option_flags_3: BitFlags<OptionFlag3>,
     client_timezone: i32,
     client_lcid: u32,
-    hostname: Cow<'a, str>,
-    username: Cow<'a, str>,
-    password: Cow<'a, str>,
-    app_name: Cow<'a, str>,
-    server_name: Cow<'a, str>,
-    library_name: Cow<'a, str>,
-    language: Cow<'a, str>,
-    attached_database: Cow<'a, str>,
-    change_password: Cow<'a, str>,
+    hostname: String,
+    username: String,
+    password: String,
+    app_name: String,
+    server_name: String,
+    library_name: String,
+    language: String,
+    attached_database: String,
+    change_password: String,
     // Note, client_id is not actually being used, is for informational purposes only (no server actions based on it)
-    client_id: Cow<'a, str>,
+    client_id: String,
     /// the default database to connect to
-    db_name: Cow<'a, str>,
-    fed_auth_ext: Option<FedAuthExt<'a>>,
+    db_name: String,
+    fed_auth_ext: Option<FedAuthExt>,
 }
 
 #[cfg_attr(test, derive(PartialEq))]
@@ -210,8 +209,8 @@ enum VariableProperty {
     Unused,
 }
 
-impl<'a> LoginMessage<'a> {
-    pub fn new() -> LoginMessage<'a> {
+impl LoginMessage {
+    pub fn new() -> LoginMessage {
         Self {
             packet_size: 4096,
             option_flags_1: OptionFlag1::UseDbNotify | OptionFlag1::InitDbFatal,
@@ -222,32 +221,27 @@ impl<'a> LoginMessage<'a> {
         }
     }
 
-    pub fn app_name(&mut self, name: impl Into<Cow<'a, str>>) {
+    pub fn app_name(&mut self, name: &str) {
         self.app_name = name.into();
     }
 
-    pub fn db_name(&mut self, db_name: impl Into<Cow<'a, str>>) {
+    pub fn db_name(&mut self, db_name: &str) {
         self.db_name = db_name.into();
     }
 
-    pub fn server_name(&mut self, server_name: impl Into<Cow<'a, str>>) {
+    pub fn server_name(&mut self, server_name: &str) {
         self.server_name = server_name.into();
     }
 
-    pub fn user_name(&mut self, user_name: impl Into<Cow<'a, str>>) {
+    pub fn user_name(&mut self, user_name: &str) {
         self.username = user_name.into();
     }
 
-    pub fn password(&mut self, password: impl Into<Cow<'a, str>>) {
+    pub fn password(&mut self, password: &str) {
         self.password = password.into();
     }
 
-    pub fn aad_token(
-        &mut self,
-        token: impl Into<Cow<'a, str>>,
-        fed_auth_echo: bool,
-        nonce: Option<[u8; 32]>,
-    ) {
+    pub fn aad_token(&mut self, token: String, fed_auth_echo: bool, nonce: Option<[u8; 32]>) {
         self.option_flags_3.insert(OptionFlag3::ExtensionUsed);
 
         self.fed_auth_ext = Some(FedAuthExt {
@@ -321,15 +315,15 @@ impl<'a> LoginMessage<'a> {
         dst.write_u32_le(self.client_lcid).await?;
 
         // variable length data
-        let mut options = Vec::<(VariableProperty, usize, usize, Option<&Cow<str>>)>::with_capacity(13);
-        let get_position = |v: &Vec<(VariableProperty, usize, usize, Option<&Cow<str>>)>|
+        let mut options = Vec::<(VariableProperty, usize, usize, Option<String>)>::with_capacity(13);
+        let get_position = |v: &Vec<(VariableProperty, usize, usize, Option<String>)>|
             v.last().unwrap().1 + v.last().unwrap().2;
 
-        options.push((VariableProperty::HostName, FIXED_LEN, self.hostname.len()*2, Some(&self.hostname)));
-        options.push((VariableProperty::UserName, get_position(&options), self.username.len()*2, Some(&self.username)));
-        options.push((VariableProperty::Password, get_position(&options), self.password.len()*2, Some(&self.password)));
-        options.push((VariableProperty::ApplicationName, get_position(&options), self.app_name.len()*2, Some(&self.app_name)));
-        options.push((VariableProperty::ServerName, get_position(&options), self.server_name.len()*2, Some(&self.server_name)));
+        options.push((VariableProperty::HostName, FIXED_LEN, self.hostname.len()*2, Some(self.hostname)));
+        options.push((VariableProperty::UserName, get_position(&options), self.username.len()*2, Some(self.username)));
+        options.push((VariableProperty::Password, get_position(&options), self.password.len()*2, Some(self.password)));
+        options.push((VariableProperty::ApplicationName, get_position(&options), self.app_name.len()*2, Some(self.app_name)));
+        options.push((VariableProperty::ServerName, get_position(&options), self.server_name.len()*2, Some(self.server_name)));
 
         // check if we have extensions
         if self.option_flags_3.contains(OptionFlag3::ExtensionUsed) {
@@ -337,9 +331,9 @@ impl<'a> LoginMessage<'a> {
         } else {
             options.push((VariableProperty::Unused, get_position(&options), 0, None));
         }
-        options.push((VariableProperty::LibraryName, get_position(&options), self.library_name.len()*2, Some(&self.library_name)));
-        options.push((VariableProperty::Language, get_position(&options), self.language.len()*2, Some(&self.language)));
-        options.push((VariableProperty::Database, get_position(&options), self.db_name.len()*2, Some(&self.db_name)));
+        options.push((VariableProperty::LibraryName, get_position(&options), self.library_name.len()*2, Some(self.library_name)));
+        options.push((VariableProperty::Language, get_position(&options), self.language.len()*2, Some(self.language)));
+        options.push((VariableProperty::Database, get_position(&options), self.db_name.len()*2, Some(self.db_name)));
 
         let last_position = get_position(&options);
         options.push((VariableProperty::ClientId, 0, 0, None));
@@ -349,8 +343,8 @@ impl<'a> LoginMessage<'a> {
         } else {
             options.push((VariableProperty::SSPI, last_position, 0, None));
         }
-        options.push((VariableProperty::AttachedDatabaseFile, get_position(&options), self.attached_database.len()*2, Some(&self.attached_database)));
-        options.push((VariableProperty::ChangePassword, get_position(&options), self.change_password.len()*2, Some(&self.change_password)));
+        options.push((VariableProperty::AttachedDatabaseFile, get_position(&options), self.attached_database.len()*2, Some(self.attached_database)));
+        options.push((VariableProperty::ChangePassword, get_position(&options), self.change_password.len()*2, Some(self.change_password)));
 
         for (ty, position, length, _) in &options {
             match ty {
@@ -406,7 +400,7 @@ impl<'a> LoginMessage<'a> {
                 }
                 _ => {
                     if data.is_some() {
-                        dst.write_all(data.unwrap()
+                        dst.write_all(data.as_ref().unwrap()
                             .encode_utf16()
                             .flat_map(|x| x.to_le_bytes())
                             .collect::<Vec<u8>>()
@@ -422,7 +416,7 @@ impl<'a> LoginMessage<'a> {
     }
 
     #[rustfmt::skip]
-    pub async fn decode<R>(src: &mut R) -> Result<LoginMessage<'a>>
+    pub async fn decode<R>(src: &mut R) -> Result<LoginMessage>
     where
         R: AsyncRead + Unpin,
     {
@@ -616,7 +610,7 @@ impl<'a> LoginMessage<'a> {
                     src.take(*length as u64).read_to_end(&mut buff).await?;
 
                     let buff = buff.chunks(2).map(LittleEndian::read_u16).collect::<Vec<u16>>();
-                    let value = Cow::from(String::from_utf16_lossy(&buff[..]));
+                    let value = String::from_utf16_lossy(&buff[..]);
 
                     match property {
                         VariableProperty::HostName => { ret.hostname = value; }
@@ -682,16 +676,16 @@ mod tests {
     #[test]
     fn specify_aad_token() {
         let mut input = LoginMessage::new();
-        let token = "fake-aad-token";
+        let token = "fake-aad-token".to_string();
         let nonce = [3u8; 32];
-        input.aad_token(token, true, Some(nonce.clone()));
+        input.aad_token(token.clone(), true, Some(nonce.clone()));
 
         assert!(input.option_flags_3.contains(OptionFlag3::ExtensionUsed));
         assert_eq!(
             input.fed_auth_ext.expect("fed_auto_specified"),
             FedAuthExt {
                 fed_auth_echo: true,
-                fed_auth_token: token.into(),
+                fed_auth_token: token,
                 nonce: Some(nonce)
             }
         )
@@ -701,7 +695,7 @@ mod tests {
     async fn login_message_with_fed_auth_round_trip() {
         let mut input = LoginMessage::new();
         let nonce = [1u8; 32];
-        input.aad_token("fake-aad-token", true, Some(nonce));
+        input.aad_token("fake-aad-token".to_string(), true, Some(nonce));
 
         // arrange
         let (inner, outer) = tokio::io::duplex(usize::MAX);

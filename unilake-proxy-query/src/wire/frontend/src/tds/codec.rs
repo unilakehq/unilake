@@ -10,7 +10,7 @@ mod pre_login;
 mod row;
 mod rpc_request;
 mod token;
-mod tokenfactory;
+pub mod tokenfactory;
 mod type_info;
 
 pub use column_data::*;
@@ -20,6 +20,7 @@ pub use packet::*;
 pub use pre_login::*;
 pub use row::*;
 pub use token::*;
+pub use tokenfactory::*;
 pub use type_info::*;
 
 const HEADER_BYTES: usize = 8;

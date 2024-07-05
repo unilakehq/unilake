@@ -1,9 +1,11 @@
 use crate::{
-    codec::TdsWireResult, LoginMessage, PreloginMessage, Result, TdsToken, TokenDone,
-    TokenEnvChange, TokenError, TokenInfo, TokenOrder, TokenType,
+    codec::TdsWireResult,
+    tds::codec::{header, pre_login},
+    LoginMessage, PreloginMessage, Result, TdsToken, TokenDone, TokenEnvChange, TokenError,
+    TokenInfo, TokenOrder, TokenType,
 };
 use tokio::io::{AsyncRead, AsyncReadExt};
-use tokio_util::bytes::BytesMut;
+use tokio_util::bytes::{Buf, BytesMut};
 
 use super::batch_request::BatchRequest;
 
@@ -61,18 +63,26 @@ impl TokenFactory {
 }
 
 /// Messages sent from Frontend
-pub enum TdsFrontendMessage<'a> {
+pub enum TdsFrontendMessage {
     PreLogin(PreloginMessage),
-    BatchRequest(BatchRequest<'a>),
-    Login(LoginMessage<'a>),
+    BatchRequest(BatchRequest),
+    Login(LoginMessage),
 }
 
-impl<'a> TdsFrontendMessage<'a> {
+impl TdsFrontendMessage {
     pub fn encode(&self, buf: &mut BytesMut) -> TdsWireResult<()> {
         todo!()
     }
 
     pub fn decode(buf: &mut BytesMut) -> TdsWireResult<Option<Self>> {
+        // todo(mrhamburg): improve error handling here! (no unwrap)
+        let header = header::PacketHeader::decode(buf).unwrap();
+        let _ = match header.ty {
+            crate::PacketType::PreLogin => pre_login::PreloginMessage::decode(buf),
+            _ => todo!("Not implemented"),
+        };
         todo!()
     }
 }
+
+pub enum TdsBackendMessage {}

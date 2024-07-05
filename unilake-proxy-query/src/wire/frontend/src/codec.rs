@@ -12,6 +12,8 @@ use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
 use crate::prot::{ServerInstance, SessionInfo, TdsWireHandlerFactory};
+use crate::TdsBackendMessage;
+use crate::TdsFrontendMessage;
 
 #[non_exhaustive]
 #[derive(Debug, new)]
@@ -36,25 +38,11 @@ impl From<std::io::Error> for TdsWireError {
     }
 }
 
-pub struct TdsWireFrontendMessage {}
-impl TdsWireFrontendMessage {
-    pub fn decode(src: &mut BytesMut) -> Result<Option<Self>, TdsWireError> {
-        todo!();
-    }
-}
-
-pub struct TdsWireBackendMessage {}
-impl TdsWireBackendMessage {
-    pub fn encode(&self, dst: &mut BytesMut) -> Result<(), TdsWireError> {
-        todo!()
-    }
-}
-
 impl<S> Decoder for TdsWireMessageServerCodec<S>
 where
     S: SessionInfo,
 {
-    type Item = TdsWireFrontendMessage;
+    type Item = TdsFrontendMessage;
     type Error = TdsWireError;
 
     fn decode(
@@ -62,22 +50,18 @@ where
         src: &mut tokio_util::bytes::BytesMut,
     ) -> Result<Option<Self::Item>, Self::Error> {
         match self.session_info.state() {
-            _ => TdsWireFrontendMessage::decode(src),
+            _ => TdsFrontendMessage::decode(src),
         }
     }
 }
 
-impl<S> Encoder<TdsWireBackendMessage> for TdsWireMessageServerCodec<S>
+impl<S> Encoder<TdsFrontendMessage> for TdsWireMessageServerCodec<S>
 where
     S: SessionInfo,
 {
     type Error = TdsWireError;
 
-    fn encode(
-        &mut self,
-        item: TdsWireBackendMessage,
-        dst: &mut BytesMut,
-    ) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: TdsFrontendMessage, dst: &mut BytesMut) -> Result<(), Self::Error> {
         item.encode(dst).map_err(Into::into)
     }
 }
@@ -125,7 +109,7 @@ where
 
 pub type TdsWireResult<T> = Result<T, TdsWireError>;
 async fn process_message<T, H, S>(
-    message: TdsWireFrontendMessage,
+    message: TdsFrontendMessage,
     socket: &mut Framed<T, TdsWireMessageServerCodec<S>>,
     handlers: Arc<H>,
 ) -> TdsWireResult<()>
@@ -134,6 +118,25 @@ where
     S: SessionInfo,
     H: TdsWireHandlerFactory<S>,
 {
+    // todo(mrhamburg): implement state machine
+    match socket.state() {
+        crate::prot::TdsSessionState::PreLoginSent => {
+            dbg!("Got your message!");
+            todo!()
+        }
+        crate::prot::TdsSessionState::SSLNegotiationSent => todo!(),
+        crate::prot::TdsSessionState::CompleteLogin7Sent => todo!(),
+        crate::prot::TdsSessionState::Login7SPNEGOSent => todo!(),
+        crate::prot::TdsSessionState::Login7FederatedAuthenticationInformationRequestSent => {
+            todo!()
+        }
+        crate::prot::TdsSessionState::LoggedIn => todo!(),
+        crate::prot::TdsSessionState::RequestSent => todo!(),
+        crate::prot::TdsSessionState::AttentionSent => todo!(),
+        crate::prot::TdsSessionState::ReConnect => todo!(),
+        crate::prot::TdsSessionState::LogoutSent => todo!(),
+        crate::prot::TdsSessionState::Final => todo!(),
+    }
     todo!()
 }
 
@@ -217,7 +220,7 @@ where
             // TdsWireBackendMessage::SslResponse(SslResponse::Refuse)
             todo!()
         };
-        socket.send(response).await?;
+        // socket.send(response).await?;
     }
     Ok(ssl)
 }

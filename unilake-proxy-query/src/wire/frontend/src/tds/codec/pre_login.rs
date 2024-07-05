@@ -1,6 +1,7 @@
 use crate::tds::codec::guid::reorder_bytes;
 use crate::{tds::EncryptionLevel, Error, Result};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use uuid::Uuid;
 
 /// Client application activity id token used for debugging purposes introduced in TDS 7.4.
@@ -63,10 +64,7 @@ impl PreloginMessage {
         }
     }
 
-    pub async fn encode<W>(&self, dst: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         // create headers
         let mut options = Vec::<(u8, u16, u16)>::with_capacity(3);
         options.push((PRELOGIN_VERSION, 6, 0));
@@ -96,24 +94,24 @@ impl PreloginMessage {
         for i in 0..options.len() {
             let option = &options[i];
             // type
-            dst.write_u8(option.0).await?;
+            dst.put_u8(option.0);
             if option.0 != PRELOGIN_TERMINATOR {
                 // position
-                dst.write_u16(option.2).await?;
+                dst.put_u16(option.2);
                 // length
-                dst.write_u16(option.1).await?;
+                dst.put_u16(option.1);
             }
         }
 
         // write version
-        dst.write_u32(self.version).await?;
-        dst.write_u16(self.sub_build).await?;
+        dst.put_u32(self.version);
+        dst.put_u16(self.sub_build);
 
         // write thread_id
-        dst.write_u32(self.thread_id).await?;
+        dst.put_u32(self.thread_id);
 
         // write mars
-        dst.write_u8(self.mars as u8).await?;
+        dst.put_u8(self.mars as u8);
 
         // TODO: I believe we can skip this
         // write trace_id
@@ -123,38 +121,35 @@ impl PreloginMessage {
 
         // write fed_auth_required
         if self.fed_auth_required.is_some() & self.fed_auth_required.unwrap() {
-            dst.write_u8(self.fed_auth_required.unwrap() as u8).await?;
+            dst.put_u8(self.fed_auth_required.unwrap() as u8);
         }
 
         // write nonce
         if self.nonce.is_some() {
-            dst.write_all(self.nonce.unwrap().as_slice()).await?;
+            dst.put(self.nonce.unwrap().as_slice());
         }
 
         // write encryption
         if self.encryption.is_some() {
-            dst.write_u8(self.encryption.unwrap() as u8).await?;
+            dst.put_u8(self.encryption.unwrap() as u8);
         }
 
         Ok(())
     }
 
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
+    pub fn decode(src: &mut BytesMut) -> Result<Self> {
         let mut ret = PreloginMessage::new();
         let options = {
             let mut options = Vec::new();
             loop {
-                let token = src.read_u8().await?;
+                let token = src.get_u8();
 
                 // read until terminator
                 if token == 0xff {
                     break;
                 }
-                let position = src.read_u16().await?;
-                let length = src.read_u16().await?;
+                let position = src.get_u16();
+                let length = src.get_u16();
                 options.push((token, position, length));
             }
 
@@ -171,7 +166,7 @@ impl PreloginMessage {
             let length = option.1 .2;
 
             while decode_offset_initial < position {
-                let _ = src.read_u8().await?;
+                let _ = src.get_u8();
                 decode_offset_initial += 1;
             }
 
@@ -180,13 +175,13 @@ impl PreloginMessage {
             match token {
                 // version
                 PRELOGIN_VERSION => {
-                    ret.version = src.read_u32().await?;
-                    ret.sub_build = src.read_u16().await?;
+                    ret.version = src.get_u32();
+                    ret.sub_build = src.get_u16();
                     decode_offset_initial += 6;
                 }
                 // encryption
                 PRELOGIN_ENCRYPTION => {
-                    let encrypt = src.read_u8().await?;
+                    let encrypt = src.get_u8();
                     ret.encryption =
                         Some(crate::tds::EncryptionLevel::try_from(encrypt).map_err(|_| {
                             Error::Protocol(format!("invalid encryption value: {}", encrypt).into())
@@ -196,12 +191,12 @@ impl PreloginMessage {
                 // instance name
                 PRELOGIN_INSTOPT => {
                     let mut bytes = Vec::new();
-                    let mut next_byte = src.read_u8().await?;
+                    let mut next_byte = src.get_u8();
                     decode_offset_initial += 1;
 
                     while next_byte != 0x00 {
                         bytes.push(next_byte);
-                        next_byte = src.read_u8().await?;
+                        next_byte = src.get_u8();
                         decode_offset_initial += 1;
                     }
 
@@ -213,7 +208,7 @@ impl PreloginMessage {
                     ret.thread_id = if length == 0 {
                         0
                     } else if length == 4 {
-                        src.read_u32().await?
+                        src.get_u32()
                     } else {
                         panic!("should never happen")
                     };
@@ -221,32 +216,33 @@ impl PreloginMessage {
                 }
                 // mars
                 PRELOGIN_MARS => {
-                    ret.mars = src.read_u8().await? == 0x01;
+                    ret.mars = src.get_u8() == 0x01;
                     decode_offset_initial += 1;
                 }
                 // activity id
                 PRELOGIN_TRACEID => {
                     // Data is a Guid, 16 bytes and ordered the wrong way around than Uuid.
                     let mut data = [0u8; 16];
-
-                    src.read_exact(&mut data).await?;
+                    src.get(0..data.len());
+                    src.advance(data.len());
                     reorder_bytes(&mut data);
 
                     ret.activity_id = Some(ActivityId {
                         id: Uuid::from_bytes(data),
-                        sequence: src.read_u32_le().await?,
+                        sequence: src.get_u32_le(),
                     });
                     decode_offset_initial += 36;
                 }
                 // fed auth
                 PRELOGIN_FEDAUTHREQUIRED => {
-                    ret.fed_auth_required = Some(src.read_u8().await? != 0);
+                    ret.fed_auth_required = Some(src.get_u8() != 0);
                     decode_offset_initial += 1;
                 }
                 // nonce
                 PRELOGIN_NONCEOPT => {
                     let mut data = [0u8; 32];
-                    src.read_exact(&mut data).await?;
+                    src.get(0..data.len());
+                    src.advance(data.len());
                     ret.nonce = Some(data);
                     decode_offset_initial += 32;
                 }
@@ -261,23 +257,20 @@ impl PreloginMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 
-    #[tokio::test]
-    async fn prelogin_roundtrip() -> Result<()> {
-        let mut input = PreloginMessage::new();
+    #[test]
+    fn prelogin_roundtrip() -> Result<()> {
+        let input = PreloginMessage::new();
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut writer = BytesMut::new();
+        let mut reader = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut writer).unwrap();
 
         // decode
-        let result = PreloginMessage::decode(&mut reader).await?;
+        let result = PreloginMessage::decode(&mut reader).unwrap();
 
         // assert
         assert_eq!(input.version, result.version);
@@ -290,8 +283,8 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn prelogin_with_fedauth_roundtrip() {
+    #[test]
+    fn prelogin_with_fedauth_roundtrip() {
         todo!("");
     }
 }

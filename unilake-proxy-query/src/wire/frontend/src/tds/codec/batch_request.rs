@@ -1,17 +1,16 @@
 use crate::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::{Error, Result, TokenError};
 use byteorder::{ByteOrder, LittleEndian};
-use std::borrow::Cow;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// SQLBatch Message [2.2.6.7]
-pub struct BatchRequest<'a> {
-    queries: Cow<'a, str>,
+pub struct BatchRequest {
+    queries: String,
     transaction_descriptor: [u8; 8],
 }
 
-impl<'a> BatchRequest<'a> {
-    pub(crate) async fn decode<R>(src: &mut R) -> Result<BatchRequest<'a>>
+impl BatchRequest {
+    pub(crate) async fn decode<R>(src: &mut R) -> Result<BatchRequest>
     where
         R: AsyncRead + Unpin,
     {
@@ -52,7 +51,7 @@ impl<'a> BatchRequest<'a> {
             qtx.chunks(2).map(LittleEndian::read_u16).collect()
         };
 
-        let query_text = Cow::from(String::from_utf16_lossy(&qtx[..]));
+        let query_text = String::from_utf16_lossy(&qtx[..]);
 
         Ok(BatchRequest {
             queries: query_text,
@@ -83,15 +82,14 @@ impl<'a> BatchRequest<'a> {
 mod tests {
     use crate::tds::codec::batch_request::BatchRequest;
     use crate::Result;
-    use std::borrow::Cow;
     use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 
     #[tokio::test]
     async fn encode_decode_batchrequest() -> Result<()> {
         let mut input = BatchRequest {
-            queries: Cow::from(String::from(
+            queries: String::from(
                 "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
-            )),
+            ),
             transaction_descriptor: [0x00u8; 8],
         };
 
