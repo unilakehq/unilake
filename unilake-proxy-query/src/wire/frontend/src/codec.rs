@@ -81,6 +81,48 @@ where
         item.encode(dst).map_err(Into::into)
     }
 }
+
+impl<T, S> SessionInfo for Framed<T, TdsWireMessageServerCodec<S>>
+where
+    S: SessionInfo,
+{
+    fn socket_addr(&self) -> std::net::SocketAddr {
+        self.codec().session_info.socket_addr()
+    }
+
+    fn state(&self) -> &crate::prot::TdsSessionState {
+        self.codec().session_info.state()
+    }
+
+    fn set_state(&mut self, new_state: crate::prot::TdsSessionState) {
+        self.codec_mut().session_info.set_state(new_state)
+    }
+
+    fn session_id() -> usize {
+        todo!()
+    }
+
+    fn packet_size() -> usize {
+        todo!()
+    }
+
+    fn sql_user_id() -> String {
+        todo!()
+    }
+
+    fn database() -> String {
+        todo!()
+    }
+
+    fn tds_version() -> String {
+        todo!()
+    }
+
+    fn connection_reset_request_count() -> usize {
+        todo!()
+    }
+}
+
 pub type TdsWireResult<T> = Result<T, TdsWireError>;
 async fn process_message<T, H, S>(
     message: TdsWireFrontendMessage,
@@ -191,6 +233,7 @@ async fn is_sslrequest_pending(tcp_socket: &TcpStream) -> Result<bool, IOError> 
     }
 
     let mut buf = BytesMut::from(buf.filled());
+    return Ok(false);
     todo!();
     // if let Ok(Some(_)) = SslRequest::decode(&mut buf) {
     //     return Ok(true);

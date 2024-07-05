@@ -171,7 +171,7 @@ pub enum ServerInstanceMessage {
 /// todo(mrhamburg): extend and expand where needed
 pub enum SessionAuditMessage {
     /// SqlBatch execution by a user
-    SqlBatch(SessionUserInfo, String, String),
+    SqlBatch(SessionUserInfo, Arc<str>, Arc<str>),
     /// Login succeeded event
     LoginSucceeded(SessionUserInfo),
     /// Login failed event
@@ -182,7 +182,7 @@ pub enum SessionAuditMessage {
 /// todo(mrhamburg): properly implement and use where applicable
 pub struct SessionUserInfo {
     socket_addr: SocketAddr,
-    userid: String,
+    userid: Arc<str>,
 }
 
 pub struct ServerInstance {
@@ -194,7 +194,7 @@ pub struct ServerInstance {
 }
 
 impl ServerInstance {
-    // todo(mrhamburg): implement logic for processing messages to kafka for audit logging and other informational purposes
+    // todo(mrhamburg): implement logic for processing messages to retraced api or kafka for audit logging and other informational purposes
     pub fn new() -> Self {
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<ServerInstanceMessage>();
         ServerInstance {

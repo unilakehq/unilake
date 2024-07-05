@@ -1,7 +1,11 @@
 use crate::{
-    Result, TdsToken, TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenOrder, TokenType,
+    codec::TdsWireResult, LoginMessage, PreloginMessage, Result, TdsToken, TokenDone,
+    TokenEnvChange, TokenError, TokenInfo, TokenOrder, TokenType,
 };
 use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio_util::bytes::BytesMut;
+
+use super::batch_request::BatchRequest;
 
 struct TokenFactory {}
 
@@ -53,5 +57,22 @@ impl TokenFactory {
         }
 
         Ok(buff)
+    }
+}
+
+/// Messages sent from Frontend
+pub enum TdsFrontendMessage<'a> {
+    PreLogin(PreloginMessage),
+    BatchRequest(BatchRequest<'a>),
+    Login(LoginMessage<'a>),
+}
+
+impl<'a> TdsFrontendMessage<'a> {
+    pub fn encode(&self, buf: &mut BytesMut) -> TdsWireResult<()> {
+        todo!()
+    }
+
+    pub fn decode(buf: &mut BytesMut) -> TdsWireResult<Option<Self>> {
+        todo!()
     }
 }
