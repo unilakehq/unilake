@@ -1,7 +1,7 @@
 use futures::future;
 use tokio::sync::RwLock;
 
-use crate::codec::TdsWireError;
+use crate::{codec::TdsWireError, PreloginMessage, TdsFrontendMessage};
 use std::{net::SocketAddr, sync::Arc};
 
 #[derive(Debug, Default)]
@@ -141,7 +141,7 @@ where
     fn close_session(&self, session: &S);
 
     /// Called when pre-login request arrives
-    fn on_prelogin_request(&self, session: &S);
+    fn on_prelogin_request(&self, session: &S, msg: &PreloginMessage);
 
     /// Called when login request arrives
     fn on_login7_request(&self, session: &S);

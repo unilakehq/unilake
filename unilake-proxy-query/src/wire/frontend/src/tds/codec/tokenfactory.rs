@@ -77,11 +77,14 @@ impl TdsFrontendMessage {
     pub fn decode(buf: &mut BytesMut) -> TdsWireResult<Option<Self>> {
         // todo(mrhamburg): improve error handling here! (no unwrap)
         let header = header::PacketHeader::decode(buf).unwrap();
-        let _ = match header.ty {
-            crate::PacketType::PreLogin => pre_login::PreloginMessage::decode(buf),
+        match header.ty {
+            crate::PacketType::PreLogin => TdsWireResult::Ok(Some(
+                pre_login::PreloginMessage::decode(buf)
+                    .map(|v| Self::PreLogin(v))
+                    .unwrap(),
+            )),
             _ => todo!("Not implemented"),
-        };
-        todo!()
+        }
     }
 }
 

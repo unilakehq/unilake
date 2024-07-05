@@ -263,14 +263,13 @@ mod tests {
         let input = PreloginMessage::new();
 
         // arrange
-        let mut writer = BytesMut::new();
-        let mut reader = BytesMut::new();
+        let mut src = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).unwrap();
+        input.encode(&mut src).unwrap();
 
         // decode
-        let result = PreloginMessage::decode(&mut reader).unwrap();
+        let result = PreloginMessage::decode(&mut src).unwrap();
 
         // assert
         assert_eq!(input.version, result.version);

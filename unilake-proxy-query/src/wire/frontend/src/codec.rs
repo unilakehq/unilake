@@ -121,7 +121,9 @@ where
     // todo(mrhamburg): implement state machine
     match socket.state() {
         crate::prot::TdsSessionState::PreLoginSent => {
-            dbg!("Got your message!");
+            if let TdsFrontendMessage::PreLogin(p) = &message {
+                handlers.on_prelogin_request(&socket.codec().session_info, p);
+            }
             todo!()
         }
         crate::prot::TdsSessionState::SSLNegotiationSent => todo!(),

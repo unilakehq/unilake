@@ -7,6 +7,7 @@ use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use unilake_wire_frontend::codec::process_socket;
 use unilake_wire_frontend::prot::{DefaultSession, ServerInstance, TdsWireHandlerFactory};
+use unilake_wire_frontend::tds::codec::{PreloginMessage, TdsFrontendMessage};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -66,7 +67,12 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         todo!()
     }
 
-    fn on_prelogin_request(&self, session: &unilake_wire_frontend::prot::DefaultSession) {
+    fn on_prelogin_request(
+        &self,
+        session: &unilake_wire_frontend::prot::DefaultSession,
+        msg: &PreloginMessage,
+    ) {
+        dbg!(msg.sub_build);
         todo!()
     }
 
