@@ -11,6 +11,7 @@ pub mod error;
 pub mod prot;
 pub mod tds;
 mod to_sql;
+pub(crate) mod utils;
 
 /// An alias for a result that holds crate's error type as the error.
 pub type Result<T> = std::result::Result<T, Error>;

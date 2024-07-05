@@ -1,38 +1,35 @@
 use crate::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
+use crate::utils::ReadAndAdvance;
 use crate::{Error, Result, TokenError};
 use byteorder::{ByteOrder, LittleEndian};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// SQLBatch Message [2.2.6.7]
 pub struct BatchRequest {
     queries: String,
-    transaction_descriptor: [u8; 8],
+    transaction_descriptor: Vec<u8>,
 }
 
 impl BatchRequest {
-    pub(crate) async fn decode<R>(src: &mut R) -> Result<BatchRequest>
-    where
-        R: AsyncRead + Unpin,
-    {
+    pub fn decode(src: &mut BytesMut) -> Result<BatchRequest> {
         let _headers = {
             let mut headers = Vec::with_capacity(2);
-            headers.push(src.read_u32_le().await?);
-            headers.push(src.read_u32_le().await? + 4);
+            headers.push(src.get_u32_le());
+            headers.push(src.get_u32_le() + 4);
             headers
         };
 
-        let _hty = src.read_u16_le().await?;
-        let mut tx_descriptor = [0x00u8; 8];
-        src.read_exact(&mut tx_descriptor).await?;
-        let _outstanding_requests = src.read_u32_le().await?;
+        let _hty = src.get_u16_le();
+        let (_, tx_descriptor) = src.read_and_advance(8);
+        let _outstanding_requests = src.get_u32_le();
 
         let qtx: Vec<_> = {
             let max_len = 100_000_000;
             let mut qtx: Vec<u8> = Vec::with_capacity(1024);
             loop {
-                let mut buff = [0u8; 1024];
-                let len = src.read(&mut buff).await?;
-                qtx.extend_from_slice(&buff[..len]);
+                let (len, buff) = src.read_and_advance(1024);
+
+                qtx.extend_from_slice(&buff);
                 if len < 1024 {
                     break;
                 } else if qtx.len() >= max_len {
@@ -59,19 +56,16 @@ impl BatchRequest {
         })
     }
 
-    pub(crate) async fn encode<W>(&mut self, dst: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dst.write_u32_le(ALL_HEADERS_LEN_TX as u32).await?;
-        dst.write_u32_le(ALL_HEADERS_LEN_TX as u32 - 4).await?;
-        dst.write_u16_le(AllHeaderTy::TransactionDescriptor as u16)
-            .await?;
-        dst.write_all(&self.transaction_descriptor).await?;
-        dst.write_u32_le(1).await?;
+    pub fn encode(&mut self, dst: &mut BytesMut) -> Result<()> {
+        dst.put_u32_le(ALL_HEADERS_LEN_TX as u32);
+        dst.put_u32_le(ALL_HEADERS_LEN_TX as u32 - 4);
+        dst.put_u16_le(AllHeaderTy::TransactionDescriptor as u16);
+
+        dst.put(&self.transaction_descriptor[..]);
+        dst.put_u32_le(1);
 
         for c in self.queries.encode_utf16() {
-            dst.write_u16_le(c).await?;
+            dst.put_u16_le(c);
         }
 
         Ok(())
@@ -82,28 +76,25 @@ impl BatchRequest {
 mod tests {
     use crate::tds::codec::batch_request::BatchRequest;
     use crate::Result;
-    use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
+    use tokio_util::bytes::BytesMut;
 
-    #[tokio::test]
-    async fn encode_decode_batchrequest() -> Result<()> {
+    #[test]
+    fn encode_decode_batchrequest() -> Result<()> {
         let mut input = BatchRequest {
             queries: String::from(
                 "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
             ),
-            transaction_descriptor: [0x00u8; 8],
+            transaction_descriptor: vec![0; 8],
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).unwrap();
 
         // decode
-        let result = BatchRequest::decode(&mut reader).await?;
+        let result = BatchRequest::decode(&mut buff).unwrap();
 
         // assert
         assert_eq!(result.queries, input.queries);

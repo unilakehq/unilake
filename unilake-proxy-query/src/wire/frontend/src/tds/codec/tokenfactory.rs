@@ -76,6 +76,8 @@ impl TdsFrontendMessage {
 
     pub fn decode(buf: &mut BytesMut) -> TdsWireResult<Option<Self>> {
         // todo(mrhamburg): improve error handling here! (no unwrap)
+        // todo(mrhamburg): check if we need to create a collection instead (not sure why though)
+        // todo(mrhamburg): add error handling here as well (without unwrap)
         let header = header::PacketHeader::decode(buf).unwrap();
         match header.ty {
             crate::PacketType::PreLogin => TdsWireResult::Ok(Some(
