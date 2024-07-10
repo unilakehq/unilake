@@ -1,5 +1,8 @@
-use crate::{Result, TokenType, FEA_EXT_FEDAUTH, FEA_EXT_TERMINATOR};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use crate::{
+    utils::ReadAndAdvance, Result, TdsToken, TdsTokenCodec, TdsTokenType, FEA_EXT_FEDAUTH,
+    FEA_EXT_TERMINATOR,
+};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Feature Extension Acknowledgement token [2.2.7.11]
 /// Introduced in TDS 7.4, FEATUREEXTACK is used to send an optional acknowledge
@@ -12,7 +15,7 @@ pub struct TokenFeatureExtAck {
 
 #[derive(Debug)]
 pub enum FedAuthAck {
-    SecurityToken { nonce: Option<[u8; 32]> },
+    SecurityToken { nonce: Option<Vec<u8>> },
 }
 
 #[derive(Debug)]
@@ -23,24 +26,19 @@ pub enum FeatureAck {
     Utf8Support(bool),
 }
 
-impl TokenFeatureExtAck {
-    pub(crate) async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
+impl TdsTokenCodec for TokenFeatureExtAck {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let mut features = Vec::new();
         loop {
-            let feature_id = src.read_u8().await?;
+            let feature_id = src.get_u8();
 
             if feature_id == FEA_EXT_TERMINATOR {
                 break;
             } else if feature_id == FEA_EXT_FEDAUTH {
-                let data_len = src.read_u32_le().await?;
+                let data_len = src.get_u32_le();
 
                 let nonce = if data_len == 32 {
-                    let mut n = [0u8; 32];
-                    src.read_exact(&mut n).await?;
-
+                    let (_, n) = src.read_and_advance(32);
                     Some(n)
                 } else if data_len == 0 {
                     None
@@ -54,61 +52,60 @@ impl TokenFeatureExtAck {
             }
         }
 
-        Ok(TokenFeatureExtAck { features })
+        Ok(TdsToken::FeatureExtAck(TokenFeatureExtAck { features }))
     }
 
-    pub(crate) async fn encode<W>(&mut self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::FeatureExtAck as u8).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::FeatureExtAck as u8);
         for item in self.features.iter() {
             match item {
                 FeatureAck::FedAuth(s) => match s {
                     FedAuthAck::SecurityToken { nonce } => {
-                        dest.write_u8(FEA_EXT_FEDAUTH).await?;
-                        dest.write_u32_le(nonce.unwrap().len() as u32).await?;
-                        dest.write_all(&nonce.unwrap()).await?;
+                        dest.put_u8(FEA_EXT_FEDAUTH);
+                        let len = nonce.as_ref().unwrap().len();
+                        dest.put_u32_le(len as u32);
+                        dest.put_slice(nonce.as_ref().unwrap());
                     }
                 },
                 _ => unimplemented!("unsupported feature {:?}", item),
             }
         }
 
-        dest.write_u8(FEA_EXT_TERMINATOR).await?;
+        dest.put_u8(FEA_EXT_TERMINATOR);
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    use crate::{FeatureAck, FedAuthAck, TokenFeatureExtAck, TokenType};
+    use crate::{
+        FeatureAck, FedAuthAck, TdsToken, TdsTokenCodec, TdsTokenType, TokenFeatureExtAck,
+    };
 
-    #[tokio::test]
-    async fn encode_decode_token_feature_ext_ack() {
-        let mut input = TokenFeatureExtAck {
+    #[test]
+    fn encode_decode_token_feature_ext_ack() {
+        let input = TokenFeatureExtAck {
             features: vec![FeatureAck::FedAuth(FedAuthAck::SecurityToken {
-                nonce: Some([0u8; 32]),
+                nonce: Some(Vec::from([0u8; 32])),
             })],
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await.expect("should be ok");
-        writer.flush().await.expect("should be ok");
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
-        let token_type = reader.read_u8().await.unwrap();
-        let result = TokenFeatureExtAck::decode(&mut reader).await.unwrap();
+        let token_type = buff.get_u8();
+        let result = TokenFeatureExtAck::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(token_type, TokenType::FeatureExtAck as u8);
-        assert_eq!(result.features.len(), input.features.len());
+        assert_eq!(token_type, TdsTokenType::FeatureExtAck as u8);
+        if let TdsToken::FeatureExtAck(result) = result {
+            assert_eq!(result.features.len(), input.features.len());
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::{Result, TokenType};
+use crate::{Result, TdsTokenType};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// Sspi token [2.2.7.22]
@@ -22,7 +22,7 @@ impl TokenSspi {
     where
         W: AsyncWrite + Unpin,
     {
-        dest.write_u8(TokenType::Sspi as u8).await?;
+        dest.write_u8(TdsTokenType::Sspi as u8).await?;
         dest.write_u16_le(self.0.len() as u16).await?;
         dest.write_all(&self.0).await?;
         Ok(())
@@ -31,7 +31,7 @@ impl TokenSspi {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Result, TokenSspi, TokenType};
+    use crate::{Result, TokenSspi, TdsTokenType};
     use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 
     #[tokio::test]
@@ -54,7 +54,7 @@ mod tests {
         let result = TokenSspi::decode(&mut reader).await?;
 
         // assert
-        assert_eq!(tokentype, TokenType::Sspi as u8);
+        assert_eq!(tokentype, TdsTokenType::Sspi as u8);
         assert_eq!(input.0, result.0);
 
         Ok(())

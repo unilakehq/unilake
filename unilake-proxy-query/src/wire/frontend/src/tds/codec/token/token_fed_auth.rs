@@ -1,6 +1,6 @@
-use crate::{Error, Result, TokenType};
+use crate::{utils::ReadAndAdvance, Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use std::borrow::Cow;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 #[derive(PartialEq, Debug)]
 pub enum TokenFedAuthOption {
@@ -13,29 +13,24 @@ pub struct TokenFedAuth {
     pub options: Vec<TokenFedAuthOption>,
 }
 
-impl TokenFedAuth {
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
+impl TdsTokenCodec for TokenFedAuth {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let mut options = Vec::new();
-        let _token_length = src.read_u32_le().await?;
-        let count_of_ids = src.read_u32_le().await?;
+        let _token_length = src.get_u32_le();
+        let count_of_ids = src.get_u32_le();
         let mut items: Vec<(u8, u32, u32)> = Vec::with_capacity(count_of_ids as usize);
         let mut current_count = 0;
         while current_count < count_of_ids {
-            let ty = src.read_u8().await?;
-            let info_data_length = src.read_u32_le().await?;
-            let info_data_offset = src.read_u32_le().await?;
+            let ty = src.get_u8();
+            let info_data_length = src.get_u32_le();
+            let info_data_offset = src.get_u32_le();
             items.push((ty, info_data_length, info_data_offset));
             current_count += 1;
         }
 
         for (ty, info_data_length, _) in items {
-            let mut buff = Vec::with_capacity(info_data_length as usize);
-            src.take(info_data_length as u64)
-                .read_to_end(&mut buff)
-                .await?;
+            let (_, buff) = src.read_and_advance(info_data_length as usize);
+
             let content = String::from_utf8(buff)
                 .map_err(|_| Error::Protocol(Cow::from("Failed to convert UTF-8 to String")))
                 .unwrap();
@@ -56,14 +51,11 @@ impl TokenFedAuth {
             }
         }
 
-        Ok(TokenFedAuth { options })
+        Ok(TdsToken::FedAuth(TokenFedAuth { options }))
     }
 
-    pub async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::FedAuthInfo as u8).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::FedAuthInfo as u8);
         let options_length = self.options.len() * 9;
         let mut token_length = 4 + options_length;
         let mut buff = Vec::with_capacity(token_length as usize);
@@ -77,27 +69,27 @@ impl TokenFedAuth {
             }
         }
 
-        dest.write_u32_le(token_length as u32).await?;
-        dest.write_u32_le(self.options.len() as u32).await?;
+        dest.put_u32_le(token_length as u32);
+        dest.put_u32_le(self.options.len() as u32);
         let mut curr_offset = (4 + options_length) as u32;
         for t in &self.options {
-            let mut length = 0;
+            let length;
             match t {
                 TokenFedAuthOption::Spn(d) => {
-                    dest.write_u8(0x01).await?;
+                    dest.put_u8(0x01);
                     length = d.as_bytes().len() as u32;
                 }
                 TokenFedAuthOption::StsUrl(d) => {
-                    dest.write_u8(0x02).await?;
+                    dest.put_u8(0x02);
                     length = d.as_bytes().len() as u32;
                 }
             }
-            dest.write_u32_le(length).await?;
-            dest.write_u32_le(curr_offset).await?;
+            dest.put_u32_le(length);
+            dest.put_u32_le(curr_offset);
             curr_offset += length;
         }
 
-        dest.write_all(&buff).await?;
+        dest.put_slice(&buff);
 
         Ok(())
     }
@@ -105,12 +97,13 @@ impl TokenFedAuth {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Result, TokenFedAuth, TokenFedAuthOption, TokenType};
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    #[tokio::test]
-    async fn encode_decode_token_fed_auth() -> Result<()> {
-        let mut input = TokenFedAuth {
+    use crate::{Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenFedAuth, TokenFedAuthOption};
+
+    #[test]
+    fn encode_decode_token_fed_auth() -> Result<()> {
+        let input = TokenFedAuth {
             options: vec![
                 TokenFedAuthOption::StsUrl(String::from("https://example.com")),
                 TokenFedAuthOption::Spn(String::from("b59a9020-5cd6-4867-a1ed-f3ecb2e3f49f")),
@@ -118,22 +111,21 @@ mod tests {
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
-        let token_type = reader.read_u8().await?;
-        let result = TokenFedAuth::decode(&mut reader).await?;
+        let tokentype = buff.get_u8();
+        let result = TokenFedAuth::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(token_type, TokenType::FedAuthInfo as u8);
-        assert_eq!(result.options[0], input.options[0]);
-        assert_eq!(result.options[1], input.options[1]);
+        assert_eq!(tokentype, TdsTokenType::FedAuthInfo as u8);
+        if let TdsToken::FedAuth(result) = result {
+            assert_eq!(result.options[0], input.options[0]);
+            assert_eq!(result.options[1], input.options[1]);
+        }
 
         Ok(())
     }

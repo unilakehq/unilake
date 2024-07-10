@@ -1,8 +1,10 @@
+use tokio_util::bytes::BytesMut;
+
 uint_enum! {
     /// The token type [2.2.4]
     /// Types of tokens in a token stream. Read from the first byte of the stream.
     #[repr(u8)]
-    pub enum TokenType {
+    pub enum TdsTokenType {
         /// Used to send the status value of an RPC to the client. The server
         /// also uses this token to send the result status value of a stored
         /// procedure executed through SQL Batch.

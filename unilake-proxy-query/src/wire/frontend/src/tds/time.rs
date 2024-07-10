@@ -1,6 +1,6 @@
-use crate::Result;
+use crate::{utils::ReadAndAdvance, Result};
 use byteorder::{ByteOrder, LittleEndian};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// A presentation of `date` type in the server.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -23,23 +23,16 @@ impl Date {
         self.0
     }
 
-    pub(crate) async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let mut bytes = [0u8; 4];
-        src.read_exact(&mut bytes[..3]).await?;
+    pub(crate) fn decode(src: &mut BytesMut) -> Result<Self> {
+        let (_len, bytes) = src.read_and_advance(4);
         Ok(Self::new(LittleEndian::read_u32(&bytes)))
     }
 
-    pub(crate) async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         let mut tmp = [0u8; 4];
         LittleEndian::write_u32(&mut tmp, self.days());
         assert_eq!(tmp[3], 0);
-        dest.write_all(&tmp[0..3]).await?;
+        dest.put_slice(&tmp[0..3]);
         Ok(())
     }
 }
@@ -71,12 +64,9 @@ impl DateTime {
         self.seconds_fragments
     }
 
-    pub(crate) async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let days = src.read_i32_le().await?;
-        let seconds_fragments = src.read_u32_le().await?;
+    pub(crate) fn decode(src: &mut BytesMut) -> Result<Self> {
+        let days = src.get_i32_le();
+        let seconds_fragments = src.get_u32_le();
 
         Ok(Self {
             days,
@@ -84,12 +74,9 @@ impl DateTime {
         })
     }
 
-    pub(crate) async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_i32_le(self.days).await?;
-        dest.write_u32_le(self.seconds_fragments).await?;
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_i32_le(self.days);
+        dest.put_u32_le(self.seconds_fragments);
 
         Ok(())
     }
@@ -120,12 +107,9 @@ impl SmallDateTime {
         self.seconds_fragments
     }
 
-    pub(crate) async fn decode<R>(src: &mut R) -> crate::Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let days = src.read_u16_le().await?;
-        let seconds_fragments = src.read_u16_le().await?;
+    pub(crate) fn decode(src: &mut BytesMut) -> crate::Result<Self> {
+        let days = src.get_u16_le();
+        let seconds_fragments = src.get_u16_le();
 
         Ok(Self {
             days,
@@ -133,12 +117,9 @@ impl SmallDateTime {
         })
     }
 
-    pub(crate) async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u16_le(self.days).await?;
-        dest.write_u16_le(self.seconds_fragments).await?;
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u16_le(self.days);
+        dest.put_u16_le(self.seconds_fragments);
 
         Ok(())
     }
@@ -194,21 +175,18 @@ impl Time {
         })
     }
 
-    pub(crate) async fn decode<R>(src: &mut R, n: usize, rlen: usize) -> Result<Time>
-    where
-        R: AsyncRead + Unpin,
-    {
+    pub(crate) fn decode(src: &mut BytesMut, n: usize, rlen: usize) -> Result<Time> {
         let val = match (n, rlen) {
             (0..=2, 3) => {
-                let hi = src.read_u16_le().await? as u64;
-                let lo = src.read_u8().await? as u64;
+                let hi = src.get_u16_le() as u64;
+                let lo = src.get_u8() as u64;
 
                 hi | lo << 16
             }
-            (3..=4, 4) => src.read_u32_le().await? as u64,
+            (3..=4, 4) => src.get_u32_le() as u64,
             (5..=7, 5) => {
-                let hi = src.read_u32_le().await? as u64;
-                let lo = src.read_u8().await? as u64;
+                let hi = src.get_u32_le() as u64;
+                let lo = src.get_u8() as u64;
 
                 hi | lo << 32
             }
@@ -225,24 +203,21 @@ impl Time {
         })
     }
 
-    pub(crate) async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         match self.len()? {
             3 => {
                 assert_eq!(self.increments >> 24, 0);
-                dest.write_u16_le(self.increments as u16).await?;
-                dest.write_u8((self.increments >> 16) as u8).await?;
+                dest.put_u16_le(self.increments as u16);
+                dest.put_u8((self.increments >> 16) as u8);
             }
             4 => {
                 assert_eq!(self.increments >> 32, 0);
-                dest.write_u32_le(self.increments as u32).await?;
+                dest.put_u32_le(self.increments as u32);
             }
             5 => {
                 assert_eq!(self.increments >> 40, 0);
-                dest.write_u32_le(self.increments as u32).await?;
-                dest.write_u8((self.increments >> 32) as u8).await?;
+                dest.put_u32_le(self.increments as u32);
+                dest.put_u8((self.increments >> 32) as u8);
             }
             _ => unreachable!(),
         }
@@ -274,29 +249,22 @@ impl DateTime2 {
         self.time
     }
 
-    pub(crate) async fn decode<R>(src: &mut R, n: usize, rlen: usize) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let time = Time::decode(src, n, rlen as usize).await?;
+    pub(crate) fn decode(src: &mut BytesMut, n: usize, rlen: usize) -> Result<Self> {
+        let time = Time::decode(src, n, rlen as usize)?;
 
-        let mut bytes = [0u8; 4];
-        src.read_exact(&mut bytes[..3]).await?;
+        let (_len, bytes) = src.read_and_advance(4);
         let date = Date::new(LittleEndian::read_u32(&bytes));
 
         Ok(Self::new(date, time))
     }
 
-    pub(crate) async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        self.time.encode(dest).await?;
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        self.time.encode(dest)?;
 
         let mut tmp = [0u8; 4];
         LittleEndian::write_u32(&mut tmp, self.date.days());
         assert_eq!(tmp[3], 0);
-        dest.write_all(&tmp[0..3]).await?;
+        dest.put_slice(&tmp[0..3]);
 
         Ok(())
     }
@@ -327,22 +295,16 @@ impl DateTimeOffset {
         self.offset
     }
 
-    pub(crate) async fn decode<R>(src: &mut R, n: usize, rlen: u8) -> crate::Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let datetime2 = DateTime2::decode(src, n, rlen as usize).await?;
-        let offset = src.read_i16_le().await?;
+    pub(crate) fn decode(src: &mut BytesMut, n: usize, rlen: u8) -> crate::Result<Self> {
+        let datetime2 = DateTime2::decode(src, n, rlen as usize)?;
+        let offset = src.get_i16_le();
 
         Ok(Self { datetime2, offset })
     }
 
-    pub(crate) async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        self.datetime2.encode(dest).await?;
-        dest.write_i16_le(self.offset).await?;
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        self.datetime2.encode(dest)?;
+        dest.put_i16_le(self.offset);
 
         Ok(())
     }

@@ -1,4 +1,4 @@
-use crate::{ColumnData, Result, TokenColMetaData, TokenType};
+use crate::{ColumnData, Result, TokenColMetaData, TdsTokenType};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
@@ -48,7 +48,7 @@ impl<'a> TokenRow<'a> {
     where
         W: AsyncWrite + Unpin,
     {
-        dest.write_u8(TokenType::Row as u8).await?;
+        dest.write_u8(TdsTokenType::Row as u8).await?;
 
         for column in &self.data {
             column.encode(dest).await?;
@@ -87,7 +87,7 @@ impl<'a> TokenRow<'a> {
     where
         W: AsyncWrite + Unpin,
     {
-        dest.write_u8(TokenType::NbcRow as u8).await?;
+        dest.write_u8(TdsTokenType::NbcRow as u8).await?;
         let bm = RowBitmap::from(&self.data);
         bm.encode(dest).await?;
         for (i, d) in self.data.iter().enumerate() {

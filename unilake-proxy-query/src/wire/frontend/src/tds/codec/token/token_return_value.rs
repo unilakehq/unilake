@@ -1,7 +1,7 @@
 use super::BaseMetaDataColumn;
 use crate::tds::codec::{decode, encode};
-use crate::{ColumnData, Error, Result, TokenType};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use crate::{ColumnData, Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// ReturnValue Token [2.2.7.19]
 /// Used to send the return value of an RPC to the client. When an RPC is executed,
@@ -17,22 +17,19 @@ pub struct TokenReturnValue {
     pub value: ColumnData<'static>,
 }
 
-impl TokenReturnValue {
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let param_ordinal = src.read_u16_le().await?;
-        let param_name = decode::read_b_varchar(src).await?;
+impl TdsTokenCodec for TokenReturnValue {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let param_ordinal = src.get_u16_le();
+        let param_name = decode::read_b_varchar(src)?;
 
-        let udf = match src.read_u8().await? {
+        let udf = match src.get_u8() {
             0x01 => false,
             0x02 => true,
             _ => return Err(Error::Protocol("ReturnValue: invalid status".into())),
         };
 
-        let meta = BaseMetaDataColumn::decode(src).await?;
-        let value = ColumnData::decode(src, &meta.ty).await?;
+        let meta = BaseMetaDataColumn::decode(src)?;
+        let value = ColumnData::decode(src, &meta.ty)?;
 
         let token = TokenReturnValue {
             param_ordinal,
@@ -42,20 +39,17 @@ impl TokenReturnValue {
             value,
         };
 
-        Ok(token)
+        Ok(TdsToken::ReturnValue(token))
     }
 
-    pub async fn encode<W>(&mut self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::ReturnValue as u8).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::ReturnValue as u8);
 
-        dest.write_u16_le(self.param_ordinal).await?;
-        encode::write_b_varchar(dest, &self.param_name).await?;
-        dest.write_u8(self.udf as u8).await?;
-        self.meta.encode(dest).await?;
-        self.value.encode(dest).await?;
+        dest.put_u16_le(self.param_ordinal);
+        encode::write_b_varchar(dest, &self.param_name)?;
+        dest.put_u8(self.udf as u8);
+        self.meta.encode(dest)?;
+        self.value.encode(dest)?;
 
         Ok(())
     }
@@ -64,15 +58,18 @@ impl TokenReturnValue {
 #[cfg(test)]
 mod tests {
     use enumflags2::BitFlags;
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    use crate::{ColumnData, FixedLenType, Result, TokenReturnValue, TokenType, TypeInfo};
+    use crate::{
+        ColumnData, FixedLenType, Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenReturnValue,
+        TypeInfo,
+    };
 
     use super::BaseMetaDataColumn;
 
-    #[tokio::test]
-    async fn encode_decode_token_return_value() -> Result<()> {
-        let mut input = TokenReturnValue {
+    #[test]
+    fn encode_decode_token_return_value() -> Result<()> {
+        let input = TokenReturnValue {
             param_ordinal: 0,
             param_name: "some_parm".to_string(),
             udf: false,
@@ -84,27 +81,28 @@ mod tests {
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).expect("this should be ok");
 
         // decode
-        let tokentype = reader.read_u8().await?;
-        let result = TokenReturnValue::decode(&mut reader).await?;
+        let tokentype = buff.get_u8();
+        let result = TokenReturnValue::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(tokentype, TokenType::ReturnValue as u8);
-        assert_eq!(input.param_ordinal, result.param_ordinal);
-        assert_eq!(input.param_name, result.param_name);
-        assert_eq!(input.udf, result.udf);
+        assert_eq!(tokentype, TdsTokenType::ReturnValue as u8);
+        if let TdsToken::ReturnValue(result) = result {
+            assert_eq!(input.param_ordinal, result.param_ordinal);
+            assert_eq!(input.param_name, result.param_name);
+            assert_eq!(input.udf, result.udf);
+
         //assert_eq!(input.meta.ty, result.meta.ty);
         //assert_eq!(input.meta.flags, result.meta.flags);
         //assert_eq!(input.value, result.value);
-
+        } else {
+            panic!("Could not find Return Value Token")
+        }
         Ok(())
     }
 }

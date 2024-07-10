@@ -1,4 +1,4 @@
-use crate::{Result, TokenType};
+use crate::{Result, TdsTokenType};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// Return Status token [2.2.7.18]
@@ -22,7 +22,7 @@ impl TokenReturnStatus {
     where
         W: AsyncWrite + Unpin,
     {
-        dest.write_u8(TokenType::ReturnStatus as u8).await?;
+        dest.write_u8(TdsTokenType::ReturnStatus as u8).await?;
         dest.write_i32_le(self.value).await?;
         Ok(())
     }
@@ -30,7 +30,7 @@ impl TokenReturnStatus {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Result, TokenReturnStatus, TokenType};
+    use crate::{Result, TokenReturnStatus, TdsTokenType};
     use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 
     #[tokio::test]
@@ -51,7 +51,7 @@ mod tests {
         let result = TokenReturnStatus::decode(&mut reader).await?;
 
         // assert
-        assert_eq!(tokentype, TokenType::ReturnStatus as u8);
+        assert_eq!(tokentype, TdsTokenType::ReturnStatus as u8);
         assert_eq!(input.value, result.value);
 
         Ok(())

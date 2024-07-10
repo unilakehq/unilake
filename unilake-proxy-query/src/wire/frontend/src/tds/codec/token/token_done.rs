@@ -1,7 +1,7 @@
-use crate::{Error, Result, TokenType};
+use crate::{Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use enumflags2::{bitflags, BitFlags};
 use std::fmt;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Done Token [2.2.7.6]
 /// Indicates the completion status of a SQL statement.
@@ -109,35 +109,31 @@ impl TokenDone {
         }
     }
 
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let status = BitFlags::from_bits(src.read_u16_le().await?)
-            .map_err(|_| Error::Protocol("token(done): invalid status".into()))?;
-        let cur_cmd = src.read_u16_le().await?;
-        let done_rows = src.read_u64_le().await?;
+    pub fn is_final(&self) -> bool {
+        self.status.is_empty()
+    }
+}
 
-        Ok(TokenDone {
+impl TdsTokenCodec for TokenDone {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let status = BitFlags::from_bits(src.get_u16_le())
+            .map_err(|_| Error::Protocol("token(done): invalid status".into()))?;
+        let cur_cmd = src.get_u16_le();
+        let done_rows = src.get_u64_le();
+
+        Ok(TdsToken::Done(TokenDone {
             status,
             cur_cmd,
             done_rows,
-        })
+        }))
     }
 
-    pub async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::Done as u8).await?;
-        dest.write_u16_le(self.status.bits() as u16).await?;
-        dest.write_u16_le(self.cur_cmd).await?;
-        dest.write_u64_le(self.done_rows).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::Done as u8);
+        dest.put_u16_le(self.status.bits() as u16);
+        dest.put_u16_le(self.cur_cmd);
+        dest.put_u64_le(self.done_rows);
         Ok(())
-    }
-
-    pub fn is_final(&self) -> bool {
-        self.status.is_empty()
     }
 }
 
@@ -159,64 +155,61 @@ impl fmt::Display for TokenDone {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DoneStatus, Result, TokenDone, TokenType};
+    use crate::{Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenDone};
     use enumflags2::BitFlags;
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    #[tokio::test]
-    async fn encode_decode_token_done_attention() -> Result<()> {
-        let mut input = TokenDone::count(1, 127);
+    #[test]
+    fn encode_decode_token_done_attention() -> Result<()> {
+        let input = TokenDone::count(1, 127);
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
-        let token_type = reader.read_u8().await?;
-        let result = TokenDone::decode(&mut reader).await?;
+        let token_type = buff.get_u8();
+        let result = TokenDone::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(token_type, TokenType::Done as u8);
-        assert_eq!(result.cur_cmd, input.cur_cmd);
-        assert_eq!(result.done_rows, input.done_rows);
-        assert_eq!(result.status, input.status);
-        assert_eq!(result.is_final(), false);
-
+        assert_eq!(token_type, TdsTokenType::Done as u8);
+        if let TdsToken::Done(result) = result {
+            assert_eq!(result.cur_cmd, input.cur_cmd);
+            assert_eq!(result.done_rows, input.done_rows);
+            assert_eq!(result.status, input.status);
+            assert_eq!(result.is_final(), false);
+        }
         Ok(())
     }
 
-    #[tokio::test]
-    async fn encode_decode_token_done_final() -> Result<()> {
-        let mut input = TokenDone {
+    #[test]
+    fn encode_decode_token_done_final() -> Result<()> {
+        let input = TokenDone {
             done_rows: 128,
             cur_cmd: 1,
             status: BitFlags::empty(),
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
-        let token_type = reader.read_u8().await?;
-        let result = TokenDone::decode(&mut reader).await?;
+        let token_type = buff.get_u8();
+        let result = TokenDone::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(token_type, TokenType::Done as u8);
-        assert_eq!(result.cur_cmd, input.cur_cmd);
-        assert_eq!(result.done_rows, input.done_rows);
-        assert_eq!(result.status, input.status);
-        assert_eq!(result.is_final(), true);
+        assert_eq!(token_type, TdsTokenType::Done as u8);
+        if let TdsToken::Done(result) = result {
+            assert_eq!(result.cur_cmd, input.cur_cmd);
+            assert_eq!(result.done_rows, input.done_rows);
+            assert_eq!(result.status, input.status);
+            assert_eq!(result.is_final(), true);
+        }
 
         Ok(())
     }

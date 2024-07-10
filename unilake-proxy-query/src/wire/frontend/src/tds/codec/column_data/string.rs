@@ -2,20 +2,17 @@ use crate::{Collation, ColumnData, Error, Result, VarLenType};
 use byteorder::{ByteOrder, LittleEndian};
 use encoding::DecoderTrap;
 use std::borrow::Cow;
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio_util::bytes::BytesMut;
 
-pub(crate) async fn decode<R>(
-    src: &mut R,
+pub(crate) fn decode(
+    src: &mut BytesMut,
     ty: VarLenType,
     len: usize,
     collation: Option<Collation>,
-) -> Result<Option<Cow<'static, str>>>
-where
-    R: AsyncRead + Unpin,
-{
+) -> Result<Option<Cow<'static, str>>> {
     use VarLenType::*;
 
-    let data = super::plp::decode(src, len).await?;
+    let data = super::plp::decode(src, len)?;
 
     match (data, ty) {
         // Codepages other than UTF
@@ -42,10 +39,7 @@ where
     }
 }
 
-pub(crate) async fn encode<W>(dst: &mut W, data: &ColumnData<'_>) -> Result<()>
-where
-    W: AsyncWrite + Unpin,
-{
+pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData<'_>) -> Result<()> {
     //super::plp::encode(dst, data).await?;
     todo!();
     Ok(())

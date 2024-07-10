@@ -1,20 +1,14 @@
 use crate::Result;
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{BufMut, BytesMut};
 
-pub async fn write_us_varchar<R>(dest: &mut R, s: &String) -> Result<()>
-where
-    R: AsyncWrite + Unpin,
-{
-    dest.write_u16_le(s.len() as u16).await?;
-    dest.write_all(s.as_bytes()).await?;
+pub fn write_us_varchar(dest: &mut BytesMut, s: &String) -> Result<()> {
+    dest.put_u16_le(s.len() as u16);
+    dest.put(s.as_bytes());
     Ok(())
 }
 
-pub async fn write_b_varchar<R>(dest: &mut R, s: &String) -> Result<()>
-where
-    R: AsyncWrite + Unpin,
-{
-    dest.write_u8(s.len() as u8).await?;
-    dest.write_all(s.as_bytes()).await?;
+pub fn write_b_varchar(dest: &mut BytesMut, s: &String) -> Result<()> {
+    dest.put_u8(s.len() as u8);
+    dest.put(s.as_bytes());
     Ok(())
 }

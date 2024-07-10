@@ -1,9 +1,9 @@
 use crate::tds::codec::{decode, encode};
-use crate::Result;
-use crate::TokenType;
+use crate::{Result, TdsTokenCodec};
+use crate::{TdsToken, TdsTokenType};
 use std::fmt;
 use std::mem::size_of;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Error token [2.2.7.10]
 /// Used to send an error message to the client.
@@ -42,22 +42,21 @@ impl TokenError {
             line,
         }
     }
+}
 
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let _length = src.read_u16_le().await? as usize;
+impl TdsTokenCodec for TokenError {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let _length = src.get_u16_le() as usize;
 
-        let code = src.read_u32_le().await?;
-        let state = src.read_u8().await?;
-        let class = src.read_u8().await?;
+        let code = src.get_u32_le();
+        let state = src.get_u8();
+        let class = src.get_u8();
 
-        let message = decode::read_us_varchar(src).await?;
-        let server = decode::read_b_varchar(src).await?;
-        let procedure = decode::read_b_varchar(src).await?;
+        let message = decode::read_us_varchar(src)?;
+        let server = decode::read_b_varchar(src)?;
+        let procedure = decode::read_b_varchar(src)?;
 
-        let line = src.read_u32_le().await?;
+        let line = src.get_u32_le();
 
         let token = TokenError {
             code,
@@ -69,14 +68,11 @@ impl TokenError {
             line,
         };
 
-        Ok(token)
+        Ok(TdsToken::Error(token))
     }
 
-    pub async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::Error as u8).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::Error as u8);
 
         let message_length = self.message.len();
         let server_length = self.server.len();
@@ -91,16 +87,16 @@ impl TokenError {
             // Line number
         ) as u16;
 
-        dest.write_u16_le(length).await?;
-        dest.write_u32_le(self.code).await?;
-        dest.write_u8(self.state).await?;
-        dest.write_u8(self.class).await?;
+        dest.put_u16_le(length);
+        dest.put_u32_le(self.code);
+        dest.put_u8(self.state);
+        dest.put_u8(self.class);
 
-        encode::write_us_varchar(dest, &self.message).await?;
-        encode::write_b_varchar(dest, &self.server).await?;
-        encode::write_b_varchar(dest, &self.procedure).await?;
+        encode::write_us_varchar(dest, &self.message)?;
+        encode::write_b_varchar(dest, &self.server)?;
+        encode::write_b_varchar(dest, &self.procedure)?;
 
-        dest.write_u32_le(self.line).await?;
+        dest.put_u32_le(self.line);
 
         Ok(())
     }
@@ -118,12 +114,13 @@ impl fmt::Display for TokenError {
 
 #[cfg(test)]
 mod tests {
-    use crate::{TokenError, TokenType};
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    #[tokio::test]
-    async fn encode_decode_token_error() {
-        let mut input = TokenError {
+    use crate::{TdsToken, TdsTokenCodec, TdsTokenType, TokenError};
+
+    #[test]
+    fn encode_decode_token_error() {
+        let input = TokenError {
             code: 12,
             server: String::from("mydatabase.some.domain.com"),
             message: String::from("There is something wrong here"),
@@ -134,26 +131,27 @@ mod tests {
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await.expect("should be ok");
-        writer.flush().await.expect("should be ok");
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
-        let tokentype = reader.read_u8().await.unwrap();
-        let result = TokenError::decode(&mut reader).await.unwrap();
+        let tokentype = buff.get_u8();
+        let result = TokenError::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(tokentype, TokenType::Error as u8);
-        assert_eq!(result.code, input.code);
-        assert_eq!(result.server, input.server);
-        assert_eq!(result.message, input.message);
-        assert_eq!(result.procedure, input.procedure);
-        assert_eq!(result.class, input.class);
-        assert_eq!(result.line, input.line);
-        assert_eq!(result.state, input.state);
+        if let TdsToken::Error(result) = result {
+            assert_eq!(tokentype, TdsTokenType::Error as u8);
+            assert_eq!(result.code, input.code);
+            assert_eq!(result.server, input.server);
+            assert_eq!(result.message, input.message);
+            assert_eq!(result.procedure, input.procedure);
+            assert_eq!(result.class, input.class);
+            assert_eq!(result.line, input.line);
+            assert_eq!(result.state, input.state);
+        } else {
+            panic!("Expected TokenError")
+        }
     }
 }

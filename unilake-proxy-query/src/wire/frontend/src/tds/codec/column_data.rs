@@ -4,6 +4,7 @@ use crate::{
 };
 use std::borrow::Cow;
 use tokio::io::{AsyncRead, AsyncWrite};
+use tokio_util::bytes::BytesMut;
 
 mod binary;
 mod bit;
@@ -90,13 +91,10 @@ impl<'a> ColumnData<'a> {
         }
     }
 
-    pub async fn decode<R>(src: &mut R, ctx: &TypeInfo) -> Result<ColumnData<'a>>
-    where
-        R: AsyncRead + Unpin,
-    {
+    pub fn decode(src: &mut BytesMut, ctx: &TypeInfo) -> Result<ColumnData<'a>> {
         let res = match ctx {
-            TypeInfo::FixedLen(fixed_ty) => fixed_len::decode(src, fixed_ty).await?,
-            TypeInfo::VarLenSized(cx) => var_len::decode(src, cx).await?,
+            TypeInfo::FixedLen(fixed_ty) => fixed_len::decode(src, fixed_ty),
+            TypeInfo::VarLenSized(cx) => var_len::decode(src, cx),
             TypeInfo::VarLenSizedPrecision { ty, scale, .. } => match ty {
                 VarLenType::Decimaln | VarLenType::Numericn => {
                     ColumnData::Numeric(Numeric::decode(src, *scale).await?)
@@ -108,10 +106,7 @@ impl<'a> ColumnData<'a> {
         Ok(res)
     }
 
-    pub async fn encode<W>(&self, dst: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         match self {
             ColumnData::Bit(_)
             | ColumnData::U8(_)
@@ -119,10 +114,10 @@ impl<'a> ColumnData<'a> {
             | ColumnData::I32(_)
             | ColumnData::I64(_)
             | ColumnData::F32(_)
-            | ColumnData::F64(_) => fixed_len::encode(dst, &self).await?,
-            ColumnData::String(_) => string::encode(dst, &self).await?,
-            ColumnData::Date(_) => date::encode(dst, &self).await?,
-            ColumnData::DateTime2(_) => datetime2::encode(dst, &self).await?,
+            | ColumnData::F64(_) => fixed_len::encode(dst, &self)?,
+            ColumnData::String(_) => string::encode(dst, &self)?,
+            ColumnData::Date(_) => date::encode(dst, &self)?,
+            ColumnData::DateTime2(_) => datetime2::encode(dst, &self)?,
             _ => unreachable!("ColumData of type {:?} is not supported", self),
         }
 

@@ -1,5 +1,5 @@
-use crate::{Result, TokenType};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use crate::{Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Order token [2.2.7.17]
 /// Used to inform the client by which columns the data is ordered.
@@ -9,29 +9,22 @@ pub struct TokenOrder {
     pub column_indexes: Vec<u16>,
 }
 
-impl TokenOrder {
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let len = src.read_u16_le().await? / 2;
+impl TdsTokenCodec for TokenOrder {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let len = src.get_u16_le() / 2;
         let mut column_indexes = Vec::with_capacity(len as usize);
         for _ in 0..len {
-            column_indexes.push(src.read_u16_le().await?);
+            column_indexes.push(src.get_u16_le());
         }
 
-        Ok(TokenOrder { column_indexes })
+        Ok(TdsToken::Order(TokenOrder { column_indexes }))
     }
 
-    pub async fn encode<W>(&mut self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::Order as u8).await?;
-        dest.write_u16_le((self.column_indexes.len() * 2) as u16)
-            .await?;
+    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+        dst.put_u8(TdsTokenType::Order as u8);
+        dst.put_u16_le((self.column_indexes.len() * 2) as u16);
         for item in self.column_indexes.iter() {
-            dest.write_u16_le(*item).await?;
+            dst.put_u16_le(*item);
         }
 
         Ok(())
@@ -40,33 +33,32 @@ impl TokenOrder {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Result, TokenOrder, TokenType};
-    use enumflags2::BitFlags;
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use crate::{Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenOrder};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    #[tokio::test]
-    async fn encode_decode_token_order() -> Result<()> {
-        let mut input = TokenOrder {
+    #[test]
+    fn encode_decode_token_order() -> Result<()> {
+        let input = TokenOrder {
             column_indexes: vec![1, 2, 3, 4, 5, 6, 7],
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).expect("this should be ok");
 
         // decode
-        let tokentype = reader.read_u8().await?;
-        let result = TokenOrder::decode(&mut reader).await?;
+        let tokentype = buff.get_u8();
+        let result = TokenOrder::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(tokentype, TokenType::Order as u8);
-        assert_eq!(input.column_indexes, result.column_indexes);
-
+        assert_eq!(tokentype, TdsTokenType::Order as u8);
+        if let TdsToken::Order(result) = result {
+            assert_eq!(input.column_indexes, result.column_indexes);
+        } else {
+            panic!("Did not receive Order Token")
+        }
         Ok(())
     }
 }

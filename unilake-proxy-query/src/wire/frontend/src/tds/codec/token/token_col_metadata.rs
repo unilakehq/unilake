@@ -1,9 +1,10 @@
 use crate::tds::codec::{decode, encode};
 use crate::{
-    Column, ColumnData, ColumnType, Error, FixedLenType, Result, TokenType, TypeInfo, VarLenType,
+    Column, ColumnData, ColumnType, Error, FixedLenType, Result, TdsToken, TdsTokenCodec,
+    TdsTokenType, TypeInfo, VarLenType,
 };
 use enumflags2::{bitflags, BitFlags};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Column Metadata Token [2.2.7.4]
 /// Describes the result set for interpretation of following ROW data streams.
@@ -61,46 +62,6 @@ pub enum ColumnFlag {
 }
 
 impl TokenColMetaData {
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let column_count = src.read_u16_le().await?;
-        let mut columns = Vec::with_capacity(column_count as usize);
-
-        if column_count > 0 && column_count < 0xffff {
-            for _ in 0..column_count {
-                let base = BaseMetaDataColumn::decode(src).await?;
-                let col_name = decode::read_b_varchar(src).await?;
-
-                columns.push(MetaDataColumn { base, col_name });
-            }
-        }
-
-        Ok(TokenColMetaData { columns })
-    }
-
-    pub async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::ColMetaData as u8).await?;
-
-        dest.write_u16_le(if self.columns.len() > 0 {
-            self.columns.len() as u16
-        } else {
-            0xFFFF
-        })
-        .await?;
-
-        for column in &self.columns {
-            column.base.encode(dest).await?;
-            encode::write_b_varchar(dest, &column.col_name).await?;
-        }
-
-        Ok(())
-    }
-
     pub fn columns(&self) -> impl Iterator<Item = Column> + '_ {
         self.columns.iter().map(|x| Column {
             name: x.col_name.clone(),
@@ -109,8 +70,43 @@ impl TokenColMetaData {
     }
 }
 
+impl TdsTokenCodec for TokenColMetaData {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let column_count = src.get_u16_le();
+        let mut columns = Vec::with_capacity(column_count as usize);
+
+        if column_count > 0 && column_count < 0xffff {
+            for _ in 0..column_count {
+                let base = BaseMetaDataColumn::decode(src)?;
+                let col_name = decode::read_b_varchar(src)?;
+
+                columns.push(MetaDataColumn { base, col_name });
+            }
+        }
+
+        Ok(TdsToken::ColMetaData(TokenColMetaData { columns }))
+    }
+
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::ColMetaData as u8);
+
+        dest.put_u16_le(if self.columns.len() > 0 {
+            self.columns.len() as u16
+        } else {
+            0xFFFF
+        });
+
+        for column in &self.columns {
+            column.base.encode(dest);
+            encode::write_b_varchar(dest, &column.col_name);
+        }
+
+        Ok(())
+    }
+}
+
 impl BaseMetaDataColumn {
-    pub(crate) fn null_value(&self) -> ColumnData<'static> {
+    fn null_value(&self) -> ColumnData<'static> {
         match self.ty {
             TypeInfo::FixedLen(ty) => match ty {
                 FixedLenType::Null => ColumnData::I32(None),
@@ -165,27 +161,21 @@ impl BaseMetaDataColumn {
         }
     }
 
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let _user_ty = src.read_u32_le().await?;
+    pub fn decode(src: &mut BytesMut) -> Result<Self> {
+        let _user_ty = src.get_u32_le();
 
-        let flags = BitFlags::from_bits(src.read_u16_le().await?)
+        let flags = BitFlags::from_bits(src.get_u16_le())
             .map_err(|_| Error::Protocol("column metadata: invalid flags".into()))?;
 
-        let ty = TypeInfo::decode(src).await?;
+        let ty = TypeInfo::decode(src)?;
 
         Ok(BaseMetaDataColumn { flags, ty })
     }
 
-    pub async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u32_le(0x00).await?;
-        dest.write_u16_le(self.flags.bits()).await?;
-        self.ty.encode(dest).await?;
+    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u32_le(0x00);
+        dest.put_u16_le(self.flags.bits());
+        self.ty.encode(dest);
         Ok(())
     }
 }

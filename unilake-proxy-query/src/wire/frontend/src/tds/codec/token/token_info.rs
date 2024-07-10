@@ -1,7 +1,7 @@
 use crate::tds::codec::{decode, encode};
-use crate::{Result, TokenType};
+use crate::{Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use std::mem::size_of;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Info Token [2.2.7.13]
 /// Used to send an information message to the client.
@@ -20,22 +20,19 @@ pub struct TokenInfo {
     pub line: u32,
 }
 
-impl TokenInfo {
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let _length = src.read_u16_le().await?;
+impl TdsTokenCodec for TokenInfo {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let _length = src.get_u16_le();
 
-        let number = src.read_u32_le().await?;
-        let state = src.read_u8().await?;
-        let class = src.read_u8().await?;
-        let message = decode::read_us_varchar(src).await?;
-        let server = decode::read_b_varchar(src).await?;
-        let procedure = decode::read_b_varchar(src).await?;
-        let line = src.read_u32_le().await?;
+        let number = src.get_u32_le();
+        let state = src.get_u8();
+        let class = src.get_u8();
+        let message = decode::read_us_varchar(src)?;
+        let server = decode::read_b_varchar(src)?;
+        let procedure = decode::read_b_varchar(src)?;
+        let line = src.get_u32_le();
 
-        Ok(TokenInfo {
+        Ok(TdsToken::Info(TokenInfo {
             number,
             state,
             class,
@@ -43,14 +40,11 @@ impl TokenInfo {
             server,
             procedure,
             line,
-        })
+        }))
     }
 
-    pub async fn encode<W>(&mut self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::Info as u8).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::Info as u8);
 
         let message_length = self.message.len();
         let server_length = self.server.len();
@@ -65,14 +59,14 @@ impl TokenInfo {
             // Line number
         ) as u16;
 
-        dest.write_u16_le(length).await?;
-        dest.write_u32_le(self.number).await?;
-        dest.write_u8(self.state).await?;
-        dest.write_u8(self.class).await?;
-        encode::write_us_varchar(dest, &self.message).await?;
-        encode::write_b_varchar(dest, &self.server).await?;
-        encode::write_b_varchar(dest, &self.procedure).await?;
-        dest.write_u32_le(self.line).await?;
+        dest.put_u16_le(length);
+        dest.put_u32_le(self.number);
+        dest.put_u8(self.state);
+        dest.put_u8(self.class);
+        encode::write_us_varchar(dest, &self.message);
+        encode::write_b_varchar(dest, &self.server);
+        encode::write_b_varchar(dest, &self.procedure);
+        dest.put_u32_le(self.line);
 
         Ok(())
     }
@@ -80,13 +74,13 @@ impl TokenInfo {
 
 #[cfg(test)]
 mod tests {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    use crate::{Result, TokenInfo, TokenType};
+    use crate::{Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenInfo};
 
-    #[tokio::test]
-    async fn encode_decode_token_info() -> Result<()> {
-        let mut input = TokenInfo {
+    #[test]
+    fn encode_decode_token_info() -> Result<()> {
+        let input = TokenInfo {
             line: 12,
             class: 1,
             number: 1321,
@@ -97,27 +91,26 @@ mod tests {
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
-        let token_type = reader.read_u8().await?;
-        let result = TokenInfo::decode(&mut reader).await?;
+        let tokentype = buff.get_u8();
+        let result = TokenInfo::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(token_type, TokenType::Info as u8);
-        assert_eq!(result.server, input.server);
-        assert_eq!(result.message, input.message);
-        assert_eq!(result.procedure, input.procedure);
-        assert_eq!(result.class, input.class);
-        assert_eq!(result.line, input.line);
-        assert_eq!(result.state, input.state);
-        assert_eq!(result.number, input.number);
+        assert_eq!(tokentype, TdsTokenType::Info as u8);
+        if let TdsToken::Info(result) = result {
+            assert_eq!(result.server, input.server);
+            assert_eq!(result.message, input.message);
+            assert_eq!(result.procedure, input.procedure);
+            assert_eq!(result.class, input.class);
+            assert_eq!(result.line, input.line);
+            assert_eq!(result.state, input.state);
+            assert_eq!(result.number, input.number);
+        }
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use crate::tds::collation::Collation;
 use crate::{Error, Result};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 #[derive(Debug)]
 pub enum TypeInfo {
@@ -88,11 +88,8 @@ uint_enum! {
 }
 
 impl TypeInfo {
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let ty = src.read_u8().await?;
+    pub fn decode(src: &mut BytesMut) -> Result<Self> {
+        let ty = src.get_u8();
 
         if let Ok(ty) = FixedLenType::try_from(ty) {
             return Ok(TypeInfo::FixedLen(ty));
@@ -107,7 +104,7 @@ impl TypeInfo {
             Ok(ty) => {
                 let len = match ty {
                     VarLenType::Timen | VarLenType::DatetimeOffsetn | VarLenType::Datetime2 => {
-                        src.read_u8().await? as usize
+                        src.get_u8() as usize
                     }
                     VarLenType::Daten => 3,
                     VarLenType::Bitn
@@ -115,13 +112,13 @@ impl TypeInfo {
                     | VarLenType::Floatn
                     | VarLenType::Decimaln
                     | VarLenType::Numericn
-                    | VarLenType::Datetimen => src.read_u8().await? as usize,
+                    | VarLenType::Datetimen => src.get_u8() as usize,
                     VarLenType::NChar
                     | VarLenType::BigChar
                     | VarLenType::NVarchar
                     | VarLenType::BigVarChar
                     | VarLenType::BigBinary
-                    | VarLenType::BigVarBin => src.read_u16_le().await? as usize,
+                    | VarLenType::BigVarBin => src.get_u16_le() as usize,
                     _ => todo!("not yet implemented for {:?}", ty),
                 };
 
@@ -130,8 +127,8 @@ impl TypeInfo {
                     | VarLenType::NChar
                     | VarLenType::NVarchar
                     | VarLenType::BigVarChar => {
-                        let info = src.read_u32_le().await?;
-                        let sort_id = src.read_u8().await?;
+                        let info = src.get_u32_le();
+                        let sort_id = src.get_u8();
 
                         Some(Collation::new(info, sort_id))
                     }
@@ -140,8 +137,8 @@ impl TypeInfo {
 
                 let vty = match ty {
                     VarLenType::Decimaln | VarLenType::Numericn => {
-                        let precision = src.read_u8().await?;
-                        let scale = src.read_u8().await?;
+                        let precision = src.get_u8();
+                        let scale = src.get_u8();
 
                         TypeInfo::VarLenSizedPrecision {
                             size: len,
@@ -161,13 +158,10 @@ impl TypeInfo {
         }
     }
 
-    pub async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
+    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         match self {
             TypeInfo::VarLenSized(ty) => {
-                dest.write_u8(ty.r#type as u8).await?;
+                dest.put_u8(ty.r#type as u8);
 
                 // write length
                 match ty.r#type {
@@ -177,15 +171,15 @@ impl TypeInfo {
                     | VarLenType::Bitn
                     | VarLenType::Intn
                     | VarLenType::Floatn
-                    | VarLenType::Datetimen => dest.write_u8(ty.len() as u8).await?,
+                    | VarLenType::Datetimen => dest.put_u8(ty.len() as u8),
                     VarLenType::NChar
                     | VarLenType::BigChar
                     | VarLenType::NVarchar
                     | VarLenType::BigVarChar
                     | VarLenType::BigBinary
-                    | VarLenType::BigVarBin => dest.write_u16_le(ty.len() as u16).await?,
+                    | VarLenType::BigVarBin => dest.put_u16_le(ty.len() as u16),
                     VarLenType::Daten => {
-                        dest.write_u8(3 as u8).await?;
+                        dest.put_u8(3 as u8);
                     }
                     _ => {}
                 }
@@ -193,8 +187,8 @@ impl TypeInfo {
                 // write collation
                 match ty.collation {
                     Some(c) => {
-                        dest.write_u32_le(c.info).await?;
-                        dest.write_u8(c.sort_id).await?;
+                        dest.put_u32_le(c.info);
+                        dest.put_u8(c.sort_id);
                     }
                     _ => {}
                 }
@@ -206,15 +200,15 @@ impl TypeInfo {
                 scale,
             } => match ty {
                 VarLenType::Decimaln | VarLenType::Numericn => {
-                    dest.write_u8(*ty as u8).await?;
-                    dest.write_u8(*size as u8).await?;
-                    dest.write_u8(*precision as u8).await?;
-                    dest.write_u8(*scale as u8).await?;
+                    dest.put_u8(*ty as u8);
+                    dest.put_u8(*size as u8);
+                    dest.put_u8(*precision as u8);
+                    dest.put_u8(*scale as u8);
                 }
                 _ => {}
             },
             TypeInfo::FixedLen(ty) => {
-                dest.write_u8(*ty as u8).await?;
+                dest.put_u8(*ty as u8);
             }
         }
 

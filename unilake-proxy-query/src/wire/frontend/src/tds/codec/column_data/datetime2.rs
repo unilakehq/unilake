@@ -1,16 +1,13 @@
 use crate::{ColumnData, DateTime2, Result};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
-pub(crate) async fn decode<R>(src: &mut R, len: usize) -> Result<ColumnData<'static>>
-where
-    R: AsyncRead + Unpin,
-{
-    let rlen = src.read_u8().await?;
+pub(crate) fn decode(src: &mut BytesMut, len: usize) -> Result<ColumnData<'static>> {
+    let rlen = src.get_u8();
 
     let date = match rlen {
         0 => ColumnData::DateTime2(None),
         rlen => {
-            let dt = DateTime2::decode(src, len, rlen as usize - 3).await?;
+            let dt = DateTime2::decode(src, len, rlen as usize - 3)?;
             ColumnData::DateTime2(Some(dt))
         }
     };
@@ -18,17 +15,14 @@ where
     Ok(date)
 }
 
-pub(crate) async fn encode<W>(dst: &mut W, data: &ColumnData<'_>) -> Result<()>
-where
-    W: AsyncWrite + Unpin,
-{
+pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData<'_>) -> Result<()> {
     match data {
         ColumnData::DateTime2(None) => {
-            dst.write_u8(0).await?;
+            dst.put_u8(0);
         }
         ColumnData::DateTime2(Some(val)) => {
-            dst.write_u8((3 + val.time().len()?) as u8).await?;
-            val.encode(dst).await?;
+            dst.put_u8((3 + val.time().len()?) as u8);
+            val.encode(dst)?;
         }
         _ => {}
     }

@@ -1,8 +1,8 @@
 use crate::tds::codec::{decode, encode};
-use crate::{Error, FeatureLevel, Result, TokenType};
+use crate::{Error, FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use std::convert::TryFrom;
 use std::mem::size_of;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// LoginAck Token [2.2.7.14]
 /// Used to send a response to a login request (LOGIN7) to the client.
@@ -20,33 +20,27 @@ pub struct TokenLoginAck {
     pub version: u32,
 }
 
-impl TokenLoginAck {
-    pub(crate) async fn decode<R>(src: &mut R) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let _length = src.read_u16_le().await?;
+impl TdsTokenCodec for TokenLoginAck {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let _length = src.get_u16_le();
 
-        let interface = src.read_u8().await?;
+        let interface = src.get_u8();
 
-        let tds_version = FeatureLevel::try_from(src.read_u32().await?)
+        let tds_version = FeatureLevel::try_from(src.get_u32())
             .map_err(|_| Error::Protocol("Login ACK: Invalid TDS version".into()))?;
 
-        let prog_name = decode::read_b_varchar(src).await?;
-        let version = src.read_u32_le().await?;
+        let prog_name = decode::read_b_varchar(src)?;
+        let version = src.get_u32_le();
 
-        Ok(TokenLoginAck {
+        Ok(TdsToken::LoginAck(TokenLoginAck {
             interface,
             tds_version,
             prog_name,
             version,
-        })
+        }))
     }
-    pub(crate) async fn encode<W>(&mut self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TokenType::LoginAck as u8).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::LoginAck as u8);
         let prog_name_len = self.prog_name.len();
         let len = (
             size_of::<u8>() // interface
@@ -56,11 +50,11 @@ impl TokenLoginAck {
             // version
         ) as u16;
 
-        dest.write_u16_le(len).await?;
-        dest.write_u8(self.interface).await?;
-        dest.write_u32(self.tds_version as u32).await?;
-        encode::write_b_varchar(dest, &self.prog_name).await?;
-        dest.write_u32_le(self.version).await?;
+        dest.put_u16_le(len);
+        dest.put_u8(self.interface);
+        dest.put_u32(self.tds_version as u32);
+        encode::write_b_varchar(dest, &self.prog_name)?;
+        dest.put_u32_le(self.version);
 
         Ok(())
     }
@@ -68,12 +62,12 @@ impl TokenLoginAck {
 
 #[cfg(test)]
 mod tests {
-    use crate::{FeatureLevel, Result, TokenLoginAck, TokenType};
-    use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use crate::{FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenLoginAck};
+    use tokio_util::bytes::{Buf, BytesMut};
 
-    #[tokio::test]
-    async fn encode_decode_token_login_ack() -> Result<()> {
-        let mut input = TokenLoginAck {
+    #[test]
+    fn encode_decode_token_login_ack() -> Result<()> {
+        let input = TokenLoginAck {
             interface: 12,
             prog_name: "test".to_string(),
             version: 0x74000004,
@@ -81,25 +75,25 @@ mod tests {
         };
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(256);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut writer).await?;
-        writer.flush().await?;
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
-        let tokentype = reader.read_u8().await?;
-        let result = TokenLoginAck::decode(&mut reader).await?;
+        let tokentype = buff.get_u8();
+        let result = TokenLoginAck::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(tokentype, TokenType::LoginAck as u8);
-        assert_eq!(result.interface, input.interface);
-        assert_eq!(result.prog_name, input.prog_name);
-        assert_eq!(result.version, input.version);
-        assert_eq!(result.tds_version, input.tds_version);
-
+        assert_eq!(tokentype, TdsTokenType::LoginAck as u8);
+        if let TdsToken::LoginAck(result) = result {
+            assert_eq!(result.interface, input.interface);
+            assert_eq!(result.prog_name, input.prog_name);
+            assert_eq!(result.version, input.version);
+            assert_eq!(result.tds_version, input.tds_version);
+        } else {
+            panic!("Expected token LoginAck")
+        }
         Ok(())
     }
 }

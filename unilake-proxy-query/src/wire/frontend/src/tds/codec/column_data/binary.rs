@@ -1,12 +1,9 @@
 use crate::{ColumnData, Result};
 use std::borrow::Cow;
-use tokio::io::AsyncRead;
+use tokio_util::bytes::BytesMut;
 
-pub(crate) async fn decode<R>(src: &mut R, len: usize) -> Result<ColumnData<'static>>
-where
-    R: AsyncRead + Unpin,
-{
-    let data = super::plp::decode(src, len).await?.map(Cow::from);
+pub(crate) fn decode(src: &mut BytesMut, len: usize) -> Result<ColumnData<'static>> {
+    let data = super::plp::decode(src, len)?.map(Cow::from);
 
     Ok(ColumnData::Binary(data))
 }

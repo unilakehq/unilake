@@ -1,11 +1,8 @@
 use crate::{ColumnData, Result, VarLenContext, VarLenType};
-use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio_util::bytes::{Buf, BytesMut};
 
 /// Var length token [2.2.4.2.1.3]
-pub(crate) async fn decode<R>(src: &mut R, ctx: &VarLenContext) -> Result<ColumnData<'static>>
-where
-    R: AsyncRead + Unpin,
-{
+pub(crate) fn decode(src: &mut BytesMut, ctx: &VarLenContext) -> Result<ColumnData<'static>> {
     use VarLenType::*;
 
     let ty = ctx.r#type();
@@ -13,21 +10,21 @@ where
     let collation = ctx.collation();
 
     let res = match ty {
-        Bitn => super::bit::decode(src).await?,
-        Intn => super::int::decode(src, len).await?,
-        Floatn => super::float::decode(src, len).await?,
+        Bitn => super::bit::decode(src),
+        Intn => super::int::decode(src, len),
+        Floatn => super::float::decode(src, len),
         BigChar | BigVarChar | NChar | NVarchar => {
-            ColumnData::String(super::string::decode(src, ty, len, collation).await?)
+            ColumnData::String(super::string::decode(src, ty, len, collation)?)
         }
         Datetimen => {
-            let len = src.read_u8().await?;
-            super::datetimen::decode(src, len).await?
+            let len = src.get_u8();
+            super::datetimen::decode(src, len)
         }
-        Daten => super::date::decode(src).await?,
-        Timen => super::time::decode(src, len).await?,
-        Datetime2 => super::datetime2::decode(src, len as usize).await?,
-        DatetimeOffsetn => super::datetimeoffsetn::decode(src, len as usize).await?,
-        BigBinary | BigVarBin => super::binary::decode(src, len).await?,
+        Daten => super::date::decode(src),
+        Timen => super::time::decode(src, len),
+        Datetime2 => super::datetime2::decode(src, len as usize),
+        DatetimeOffsetn => super::datetimeoffsetn::decode(src, len as usize),
+        BigBinary | BigVarBin => super::binary::decode(src, len),
         t => unimplemented!("{:?}", t),
     };
 

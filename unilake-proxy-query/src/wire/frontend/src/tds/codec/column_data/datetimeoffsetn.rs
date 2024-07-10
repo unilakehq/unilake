@@ -1,16 +1,13 @@
 use crate::{ColumnData, DateTimeOffset, Result};
-use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio_util::bytes::{Buf, BytesMut};
 
-pub(crate) async fn decode<R>(src: &mut R, len: usize) -> Result<ColumnData<'static>>
-where
-    R: AsyncRead + Unpin,
-{
-    let rlen = src.read_u8().await?;
+pub(crate) fn decode(src: &mut BytesMut, len: usize) -> Result<ColumnData<'static>> {
+    let rlen = src.get_u8();
 
     let dto = match rlen {
         0 => ColumnData::DateTimeOffset(None),
         _ => {
-            let dto = DateTimeOffset::decode(src, len, rlen - 5).await?;
+            let dto = DateTimeOffset::decode(src, len, rlen - 5)?;
             ColumnData::DateTimeOffset(Some(dto))
         }
     };

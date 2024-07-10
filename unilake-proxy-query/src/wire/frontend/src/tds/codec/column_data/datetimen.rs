@@ -1,14 +1,11 @@
 use crate::{ColumnData, DateTime, Error, Result, SmallDateTime};
-use tokio::io::AsyncRead;
+use tokio_util::bytes::BytesMut;
 
-pub(crate) async fn decode<R>(src: &mut R, len: u8) -> Result<ColumnData<'static>>
-where
-    R: AsyncRead + Unpin,
-{
+pub(crate) fn decode(src: &mut BytesMut, len: u8) -> Result<ColumnData<'static>> {
     let datetime = match len {
         0 => ColumnData::SmallDateTime(None),
-        4 => ColumnData::SmallDateTime(Some(SmallDateTime::decode(src).await?)),
-        8 => ColumnData::DateTime(Some(DateTime::decode(src).await?)),
+        4 => ColumnData::SmallDateTime(Some(SmallDateTime::decode(src)?)),
+        8 => ColumnData::DateTime(Some(DateTime::decode(src)?)),
         _ => {
             return Err(Error::Protocol(
                 format!("datetimen: length of {} is invalid", len).into(),
