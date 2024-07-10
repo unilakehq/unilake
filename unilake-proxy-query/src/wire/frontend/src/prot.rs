@@ -42,22 +42,22 @@ pub trait SessionInfo {
     fn set_state(&mut self, new_state: TdsSessionState);
 
     /// Session identifier
-    fn session_id() -> usize;
+    fn session_id(&self) -> usize;
 
     /// Size of the TDS packet
-    fn packet_size() -> usize;
+    fn packet_size(&self) -> usize;
 
     /// User name if SQL authentication is used
-    fn sql_user_id() -> String;
+    fn sql_user_id(&self) -> &str;
 
     /// Database to which connection is established
-    fn database() -> String;
+    fn database(&self) -> &str;
 
     /// TDS version of the communication
-    fn tds_version() -> String;
+    fn tds_version(&self) -> &str;
 
     /// Counter of connection reset requests for this session
-    fn connection_reset_request_count() -> usize;
+    fn connection_reset_request_count(&self) -> usize;
 }
 
 pub struct DefaultSession {
@@ -83,27 +83,27 @@ impl SessionInfo for DefaultSession {
         self.state = new_state
     }
 
-    fn session_id() -> usize {
+    fn session_id(&self) -> usize {
         todo!()
     }
 
-    fn packet_size() -> usize {
+    fn packet_size(&self) -> usize {
         todo!()
     }
 
-    fn sql_user_id() -> String {
+    fn sql_user_id(&self) -> &str {
         todo!()
     }
 
-    fn database() -> String {
+    fn database(&self) -> &str {
         todo!()
     }
 
-    fn tds_version() -> String {
+    fn tds_version(&self) -> &str {
         todo!()
     }
 
-    fn connection_reset_request_count() -> usize {
+    fn connection_reset_request_count(&self) -> usize {
         todo!()
     }
 }

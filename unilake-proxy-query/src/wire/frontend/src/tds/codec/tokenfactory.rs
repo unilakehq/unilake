@@ -79,6 +79,7 @@ impl TdsFrontendMessage {
         // todo(mrhamburg): check if we need to create a collection instead (not sure why though)
         // todo(mrhamburg): add error handling here as well (without unwrap)
         let header = header::PacketHeader::decode(buf).unwrap();
+
         match header.ty {
             crate::PacketType::PreLogin => TdsWireResult::Ok(Some(
                 pre_login::PreloginMessage::decode(buf)

@@ -1,6 +1,6 @@
 use crate::tds::codec::guid::reorder_bytes;
+use crate::utils::ReadAndAdvance;
 use crate::{tds::EncryptionLevel, Error, Result};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use uuid::Uuid;
 

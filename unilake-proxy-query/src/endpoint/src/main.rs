@@ -6,7 +6,9 @@ use tokio::sync::RwLock;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use unilake_wire_frontend::codec::process_socket;
-use unilake_wire_frontend::prot::{DefaultSession, ServerInstance, TdsWireHandlerFactory};
+use unilake_wire_frontend::prot::{
+    DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
+};
 use unilake_wire_frontend::tds::codec::{PreloginMessage, TdsFrontendMessage};
 
 #[tokio::main]

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use derive_new::new;
 use futures::future::poll_fn;
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
 use tokio::sync::RwLock;
@@ -12,7 +12,6 @@ use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
 use crate::prot::{ServerInstance, SessionInfo, TdsWireHandlerFactory};
-use crate::TdsBackendMessage;
 use crate::TdsFrontendMessage;
 
 #[non_exhaustive]
@@ -82,28 +81,28 @@ where
         self.codec_mut().session_info.set_state(new_state)
     }
 
-    fn session_id() -> usize {
-        todo!()
+    fn session_id(&self) -> usize {
+        self.codec().session_info.session_id()
     }
 
-    fn packet_size() -> usize {
-        todo!()
+    fn packet_size(&self) -> usize {
+        self.codec().session_info.packet_size()
     }
 
-    fn sql_user_id() -> String {
-        todo!()
+    fn sql_user_id(&self) -> &str {
+        &self.codec().session_info.sql_user_id()
     }
 
-    fn database() -> String {
-        todo!()
+    fn database(&self) -> &str {
+        &self.codec().session_info.database()
     }
 
-    fn tds_version() -> String {
-        todo!()
+    fn tds_version(&self) -> &str {
+        &self.codec().session_info.tds_version()
     }
 
-    fn connection_reset_request_count() -> usize {
-        todo!()
+    fn connection_reset_request_count(&self) -> usize {
+        self.codec().session_info.connection_reset_request_count()
     }
 }
 
