@@ -8,6 +8,13 @@ pub enum TokenFedAuthOption {
     StsUrl(String),
 }
 
+#[repr(u8)]
+pub enum TokenPreLoginFedAuthRequiredOption {
+    FedAuthNotRequired = 0x00,
+    FedAuthRequired = 0x01,
+    Illegal = 0x02,
+}
+
 /// FedAuthInfo Token [2.2.7.12]
 pub struct TokenFedAuth {
     pub options: Vec<TokenFedAuthOption>,

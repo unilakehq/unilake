@@ -3,7 +3,6 @@ use crate::{
     VarLenType,
 };
 use std::borrow::Cow;
-use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::bytes::BytesMut;
 
 mod binary;
@@ -92,18 +91,19 @@ impl<'a> ColumnData<'a> {
     }
 
     pub fn decode(src: &mut BytesMut, ctx: &TypeInfo) -> Result<ColumnData<'a>> {
-        let res = match ctx {
-            TypeInfo::FixedLen(fixed_ty) => fixed_len::decode(src, fixed_ty),
-            TypeInfo::VarLenSized(cx) => var_len::decode(src, cx),
-            TypeInfo::VarLenSizedPrecision { ty, scale, .. } => match ty {
-                VarLenType::Decimaln | VarLenType::Numericn => {
-                    ColumnData::Numeric(Numeric::decode(src, *scale).await?)
-                }
-                _ => unreachable!("Unsupported type {:?}", ty),
-            },
-        };
+        todo!();
+        // let res = match ctx {
+        //     TypeInfo::FixedLen(fixed_ty) => fixed_len::decode(src, fixed_ty),
+        //     TypeInfo::VarLenSized(cx) => var_len::decode(src, cx),
+        //     TypeInfo::VarLenSizedPrecision { ty, scale, .. } => match ty {
+        //         VarLenType::Decimaln | VarLenType::Numericn => {
+        //             ColumnData::Numeric(Numeric::decode(src, *scale).await?)
+        //         }
+        //         _ => unreachable!("Unsupported type {:?}", ty),
+        //     },
+        // };
 
-        Ok(res)
+        // Ok(res)
     }
 
     pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {

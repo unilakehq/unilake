@@ -4,7 +4,7 @@ use crate::{
     LoginMessage, PreloginMessage, Result, TdsToken, TdsTokenType, TokenDone, TokenEnvChange,
     TokenError, TokenInfo, TokenOrder,
 };
-use tokio_util::bytes::BytesMut;
+use tokio_util::bytes::{Buf, BytesMut};
 
 use super::batch_request::BatchRequest;
 

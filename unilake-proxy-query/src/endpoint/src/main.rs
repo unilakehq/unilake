@@ -9,7 +9,8 @@ use unilake_wire_frontend::codec::process_socket;
 use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
-use unilake_wire_frontend::tds::codec::{PreloginMessage, TdsFrontendMessage};
+use unilake_wire_frontend::tds::codec::PreloginMessage;
+use unilake_wire_frontend::tds::server_context::ServerContext;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -33,7 +34,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let factory = Arc::new(DefaultTdsHandlerFactory {});
     // todo(mrhamburg): use bgworker for graceful shutdown
     let (instance, _) = {
-        let instance = ServerInstance::new();
+        let instance = ServerInstance::new(ServerContext::default());
         let rwlock = Arc::new(RwLock::new(instance));
         let bgworker = rwlock.write().await.start_instance(rwlock.clone());
         (rwlock, bgworker)
@@ -62,7 +63,10 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         unilake_wire_frontend::prot::DefaultSession,
         unilake_wire_frontend::codec::TdsWireError,
     > {
-        Ok(DefaultSession::new(socket_addr.clone()))
+        Ok(DefaultSession::new(
+            socket_addr.clone(),
+            instance_info.ctx.clone(),
+        ))
     }
 
     fn close_session(&self, session: &unilake_wire_frontend::prot::DefaultSession) {
@@ -74,7 +78,13 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         session: &unilake_wire_frontend::prot::DefaultSession,
         msg: &PreloginMessage,
     ) {
-        dbg!(msg.sub_build);
+        let encryption = ServerContext::encryption_response(
+            session.tds_server_context().as_ref(),
+            msg.encryption,
+        );
+
+        let token = PreloginMessage::new();
+
         todo!()
     }
 

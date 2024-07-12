@@ -1,4 +1,4 @@
-use crate::{ColumnData, Result, TokenColMetaData, TdsTokenType};
+use crate::{ColumnData, Result, TdsTokenType, TokenColMetaData};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
@@ -35,8 +35,9 @@ impl<'a> TokenRow<'a> {
         };
 
         for column in col_meta.columns.iter() {
-            let data = ColumnData::decode(src, &column.base.ty).await?;
-            row.data.push(data);
+            todo!()
+            // let data = ColumnData::decode(src, &column.base.ty).await?;
+            // row.data.push(data);
         }
 
         Ok(row)
@@ -51,7 +52,8 @@ impl<'a> TokenRow<'a> {
         dest.write_u8(TdsTokenType::Row as u8).await?;
 
         for column in &self.data {
-            column.encode(dest).await?;
+            todo!()
+            // column.encode(dest).await?;
         }
 
         Ok(())
@@ -70,13 +72,14 @@ impl<'a> TokenRow<'a> {
         };
 
         for (i, column) in col_meta.columns.iter().enumerate() {
-            let data = if row_bitmap.is_null(i) {
-                column.base.null_value()
-            } else {
-                ColumnData::decode(src, &column.base.ty).await?
-            };
+            // let data = if row_bitmap.is_null(i) {
+            //     column.base.null_value()
+            // } else {
+            //     ColumnData::decode(src, &column.base.ty).await?
+            // };
+            todo!();
 
-            row.data.push(data);
+            // row.data.push(data);
         }
 
         Ok(row)
@@ -92,7 +95,8 @@ impl<'a> TokenRow<'a> {
         bm.encode(dest).await?;
         for (i, d) in self.data.iter().enumerate() {
             if !bm.is_null(i) {
-                d.encode(dest).await?;
+                // d.encode(dest).await?;
+                todo!()
             }
         }
 

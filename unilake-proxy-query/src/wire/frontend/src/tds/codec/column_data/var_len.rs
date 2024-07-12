@@ -7,14 +7,15 @@ pub(crate) fn decode(src: &mut BytesMut, ctx: &VarLenContext) -> Result<ColumnDa
 
     let ty = ctx.r#type();
     let len = ctx.len();
-    let collation = ctx.collation();
+    // let collation = ctx.collation();
 
     let res = match ty {
         Bitn => super::bit::decode(src),
         Intn => super::int::decode(src, len),
         Floatn => super::float::decode(src, len),
         BigChar | BigVarChar | NChar | NVarchar => {
-            ColumnData::String(super::string::decode(src, ty, len, collation)?)
+            todo!()
+            // ColumnData::String(super::string::decode(src, ty, len, collation)?)
         }
         Datetimen => {
             let len = src.get_u8();
@@ -28,5 +29,5 @@ pub(crate) fn decode(src: &mut BytesMut, ctx: &VarLenContext) -> Result<ColumnDa
         t => unimplemented!("{:?}", t),
     };
 
-    Ok(res)
+    Ok(res?)
 }

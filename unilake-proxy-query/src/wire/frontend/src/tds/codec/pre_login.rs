@@ -281,9 +281,4 @@ mod tests {
 
         Ok(())
     }
-
-    #[test]
-    fn prelogin_with_fedauth_roundtrip() {
-        todo!("");
-    }
 }

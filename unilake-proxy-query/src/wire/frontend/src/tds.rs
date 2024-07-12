@@ -1,11 +1,8 @@
 pub mod codec;
 pub mod collation;
-mod context;
 pub mod numeric;
+pub mod server_context;
 pub mod time;
-
-/// The amount of bytes a packet header consists of
-pub(crate) const HEADER_BYTES: usize = 8;
 
 uint_enum! {
     /// The configured encryption level specifying if encryption is required
@@ -19,6 +16,8 @@ uint_enum! {
         NotSupported = 2,
         /// Encrypt everything and fail if not possible
         Required = 3,
+        /// None encryption type
+        None = 10,
     }
 
 }

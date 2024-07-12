@@ -1,8 +1,6 @@
-use futures::future;
-use tokio::sync::RwLock;
-
-use crate::{codec::TdsWireError, PreloginMessage, TdsFrontendMessage};
+use crate::{codec::TdsWireError, tds::server_context::ServerContext, PreloginMessage};
 use std::{net::SocketAddr, sync::Arc};
+use tokio::sync::RwLock;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -56,6 +54,9 @@ pub trait SessionInfo {
     /// TDS version of the communication
     fn tds_version(&self) -> &str;
 
+    /// TDS server context
+    fn tds_server_context(&self) -> Arc<ServerContext>;
+
     /// Counter of connection reset requests for this session
     fn connection_reset_request_count(&self) -> usize;
 }
@@ -67,7 +68,7 @@ pub struct DefaultSession {
     packet_size: usize,
     sql_user_id: usize,
     database: Option<String>,
-    tds_version: String,
+    tds_server_context: Arc<ServerContext>,
 }
 
 impl SessionInfo for DefaultSession {
@@ -81,6 +82,10 @@ impl SessionInfo for DefaultSession {
 
     fn set_state(&mut self, new_state: TdsSessionState) {
         self.state = new_state
+    }
+
+    fn tds_server_context(&self) -> Arc<ServerContext> {
+        self.tds_server_context.clone()
     }
 
     fn session_id(&self) -> usize {
@@ -113,15 +118,15 @@ pub struct TdsWireMessageServerCodec {
 }
 
 impl DefaultSession {
-    pub fn new(socket_addr: SocketAddr) -> Self {
+    pub fn new(socket_addr: SocketAddr, ctx: Arc<ServerContext>) -> Self {
         DefaultSession {
             socket_addr,
             packet_size: 1200,
             session_id: 1,
             sql_user_id: 0,
-            tds_version: "".to_string(),
             state: TdsSessionState::default(),
             database: None,
+            tds_server_context: ctx,
         }
     }
 }
@@ -191,17 +196,19 @@ pub struct ServerInstance {
     #[allow(dead_code)]
     receiver: Option<tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>>,
     sender: Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>>,
+    pub ctx: Arc<ServerContext>,
 }
 
 impl ServerInstance {
     // todo(mrhamburg): implement logic for processing messages to retraced api or kafka for audit logging and other informational purposes
-    pub fn new() -> Self {
+    pub fn new(ctx: ServerContext) -> Self {
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<ServerInstanceMessage>();
         ServerInstance {
             active_sessions: 0,
             session_limit: 32767,
             receiver: Some(receiver),
             sender: Arc::new(sender),
+            ctx: Arc::new(ctx),
         }
     }
 
@@ -213,10 +220,24 @@ impl ServerInstance {
             while let Some(msg) = receiver.recv().await {
                 match msg {
                     ServerInstanceMessage::IncrementSessionCounter => {
-                        instance.write().await.active_sessions += 1
+                        {
+                            instance.write().await.active_sessions += 1;
+                        }
+                        let current_count = instance.read().await.active_session_count();
+                        tracing::info!(
+                            message = "Session was added",
+                            session_count = current_count
+                        );
                     }
                     ServerInstanceMessage::DecrementSessionCounter => {
-                        instance.write().await.active_sessions -= 1
+                        {
+                            instance.write().await.active_sessions -= 1;
+                        }
+                        let current_count = instance.read().await.active_session_count();
+                        tracing::info!(
+                            message = "Session was dropped",
+                            session_count = current_count
+                        );
                     }
                     _ => todo!(),
                 }

@@ -1,5 +1,3 @@
-use tokio_util::bytes::BytesMut;
-
 uint_enum! {
     /// The token type [2.2.4]
     /// Types of tokens in a token stream. Read from the first byte of the stream.

@@ -1,4 +1,5 @@
-use crate::{Error, Result};
+// TODO: where I left off....
+use crate::{utils::ReadAndAdvance, Error, Result};
 use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
@@ -7,6 +8,7 @@ use std::fmt::Debug;
 use std::io::ErrorKind;
 use std::ops::Index;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufWriter};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 uint_enum! {
     #[repr(u32)]
@@ -252,9 +254,7 @@ impl LoginMessage {
     }
 
     #[rustfmt::skip]
-    pub async fn encode<W>(self, dst: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
+    pub fn encode(self, dst: &mut BytesMut) -> Result<()>
     {
         let mut total_length = FIXED_LEN + // fixed packet length
             self.hostname.len() +
@@ -270,49 +270,47 @@ impl LoginMessage {
             0 + // sspi, not needed
             0; // extensions
 
-        let mut fed_auth_buf = BufWriter::new(Vec::new());
+        let mut fed_auth_buf = BytesMut::new();
         if let Some(ext) = self.fed_auth_ext {
-            fed_auth_buf.write_u8(FEA_EXT_FEDAUTH).await?;
+            fed_auth_buf.put_u8(FEA_EXT_FEDAUTH);
 
             // TODO: missing here are, ChannelBindingToken, Signature and MSAL, decide if needed
             let token = ext.fed_auth_token.encode_utf16().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>();
             let feature_ext_length = 1 + 4 + token.len() + if ext.nonce.is_some() { 32 } else { 0 };
-            fed_auth_buf.write_u32_le(feature_ext_length as u32).await?;
+            fed_auth_buf.put_u32_le(feature_ext_length as u32);
 
             let mut options: u8 = FED_AUTH_LIBRARY_SECURITYTOKEN << 1;
             if ext.fed_auth_echo {
                 options |= 1;
             }
-            fed_auth_buf.write_u8(options).await?;
+            fed_auth_buf.put_u8(options);
 
-            fed_auth_buf.write_u32_le(token.len() as u32).await?;
-            fed_auth_buf.write_all(&token).await?;
+            fed_auth_buf.put_u32_le(token.len() as u32);
+            fed_auth_buf.put_slice(&token);
 
             if let Some(nonce) = ext.nonce {
-                fed_auth_buf.write_all(nonce.as_ref()).await?;
+                fed_auth_buf.put_slice(&nonce);
             }
 
-            fed_auth_buf.write_u8(FEA_EXT_TERMINATOR).await?;
-            fed_auth_buf.flush().await?;
+            fed_auth_buf.put_u8(FEA_EXT_TERMINATOR);
         }
-        let fed_auth_buf = fed_auth_buf.into_inner();
         total_length += fed_auth_buf.len();
 
 
-        dst.write_u32_le(total_length as u32).await?;
-        dst.write_u32_le(self.tds_version as u32).await?;
-        dst.write_u32_le(self.packet_size).await?;
-        dst.write_u32_le(self.client_prog_ver).await?;
-        dst.write_u32_le(self.client_pid).await?;
-        dst.write_u32_le(self.connection_id).await?;
+        dst.put_u32_le(total_length as u32);
+        dst.put_u32_le(self.tds_version as u32);
+        dst.put_u32_le(self.packet_size);
+        dst.put_u32_le(self.client_prog_ver);
+        dst.put_u32_le(self.client_pid);
+        dst.put_u32_le(self.connection_id);
 
-        dst.write_u8(self.option_flags_1.bits()).await?;
-        dst.write_u8(self.option_flags_2.bits()).await?;
-        dst.write_u8(self.type_flags.bits()).await?;
-        dst.write_u8(self.option_flags_3.bits()).await?;
+        dst.put_u8(self.option_flags_1.bits());
+        dst.put_u8(self.option_flags_2.bits());
+        dst.put_u8(self.type_flags.bits());
+        dst.put_u8(self.option_flags_3.bits());
 
-        dst.write_u32_le(self.client_timezone as u32).await?;
-        dst.write_u32_le(self.client_lcid).await?;
+        dst.put_u32_le(self.client_timezone as u32);
+        dst.put_u32_le(self.client_lcid);
 
         // variable length data
         let mut options = Vec::<(VariableProperty, usize, usize, Option<String>)>::with_capacity(13);
@@ -349,18 +347,18 @@ impl LoginMessage {
         for (ty, position, length, _) in &options {
             match ty {
                 VariableProperty::ClientId => {
-                    dst.write_u32_le(0).await?; // TODO: get real client id
-                    dst.write_u16_le(42).await?;
+                    dst.put_u32_le(0); // TODO: get real client id
+                    dst.put_u16_le(42);
                 }
                 _ => {
-                    dst.write_u16_le(*length as u16).await?;
-                    dst.write_u16_le(*position as u16).await?;
+                    dst.put_u16_le(*length as u16);
+                    dst.put_u16_le(*position as u16);
                 }
             }
         }
 
         // skip long SSPI
-        dst.write_u32_le(0).await?;
+        dst.put_u32_le(0);
 
         let mut feature_ext_found = false;
         let mut current_option = 0;
@@ -387,12 +385,12 @@ impl LoginMessage {
                 VariableProperty::FeatureExt => {
                     if !feature_ext_found {
                         let position = options.last().unwrap().1 + options.last().unwrap().2;
-                        dst.write_u32_le(position as u32).await?;
+                        dst.put_u32_le(position as u32);
                         feature_ext_found = true;
                         current_option -= 1;
                         continue;
                     }
-                    dst.write_all(fed_auth_buf.as_slice()).await?;
+                    dst.put_slice(&fed_auth_buf);
                 }
                 VariableProperty::SSPI => {
                     // TODO, this
@@ -400,11 +398,11 @@ impl LoginMessage {
                 }
                 _ => {
                     if data.is_some() {
-                        dst.write_all(data.as_ref().unwrap()
+                        dst.put_slice(data.as_ref().unwrap()
                             .encode_utf16()
                             .flat_map(|x| x.to_le_bytes())
                             .collect::<Vec<u8>>()
-                            .as_slice()).await?;
+                            .as_slice());
                     }
                 }
             }
@@ -416,100 +414,97 @@ impl LoginMessage {
     }
 
     #[rustfmt::skip]
-    pub async fn decode<R>(src: &mut R) -> Result<LoginMessage>
-    where
-        R: AsyncRead + Unpin,
+    pub fn decode(src: &mut BytesMut) -> Result<LoginMessage>
     {
         // For decoding the clientid: https://docs.rs/mac_address/latest/src/mac_address/lib.rs.html#167
         let mut ret = LoginMessage::new();
 
-        let length = src.read_u32_le().await?;
+        let length = src.get_u32_le();
         if length > 128 * 1024 {
             return Err(Error::new(ErrorKind::InvalidData, "Login message too long"));
         }
 
-        ret.tds_version = FeatureLevel::try_from(src.read_u32_le().await?).expect("Cannot parse feature level");
-        ret.packet_size = src.read_u32_le().await?;
-        ret.client_prog_ver = src.read_u32_le().await?;
-        ret.client_pid = src.read_u32_le().await?;
-        ret.connection_id = src.read_u32_le().await?;
-        ret.option_flags_1 = BitFlags::from_bits(src.read_u8().await?).expect("option_flags_1 verification");
-        ret.option_flags_2 = BitFlags::from_bits(src.read_u8().await?).expect("option_flags_2 verification");
-        ret.type_flags = BitFlags::from_bits(src.read_u8().await?).expect("type_flags verification");
-        ret.option_flags_3 = BitFlags::from_bits(src.read_u8().await?).expect("option_flags_3 verification");
-        ret.client_timezone = src.read_u32_le().await? as i32;
-        ret.client_lcid = src.read_u32_le().await?;
+        ret.tds_version = FeatureLevel::try_from(src.get_u32_le()).expect("Cannot parse feature level");
+        ret.packet_size = src.get_u32_le();
+        ret.client_prog_ver = src.get_u32_le();
+        ret.client_pid = src.get_u32_le();
+        ret.connection_id = src.get_u32_le();
+        ret.option_flags_1 = BitFlags::from_bits(src.get_u8()).expect("option_flags_1 verification");
+        ret.option_flags_2 = BitFlags::from_bits(src.get_u8()).expect("option_flags_2 verification");
+        ret.type_flags = BitFlags::from_bits(src.get_u8()).expect("type_flags verification");
+        ret.option_flags_3 = BitFlags::from_bits(src.get_u8()).expect("option_flags_3 verification");
+        ret.client_timezone = src.get_u32_le() as i32;
+        ret.client_lcid = src.get_u32_le();
 
         let mut options = Vec::<(VariableProperty, usize, usize)>::with_capacity(13);
         let validate_length = |v: &Vec<(VariableProperty, usize, usize)>, s: usize| v.last().unwrap().1 < s;
-        options.push((VariableProperty::HostName, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::HostName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options, 128*2){
             // HostName, too long
             return Err(Error::new(ErrorKind::InvalidData, "HostName too long"));
         }
-        options.push((VariableProperty::UserName, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::UserName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options, 128*2) {
             // UserName, too long
             return Err(Error::new(ErrorKind::InvalidData, "UserName too long"));
         }
-        options.push((VariableProperty::Password, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::Password, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // Password, too long
             return Err(Error::new(ErrorKind::InvalidData, "Password too long"));
         }
-        options.push((VariableProperty::ApplicationName, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::ApplicationName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // ApplicationName, too long
             return Err(Error::new(ErrorKind::InvalidData, "ApplicationName too long"));
         }
-        options.push((VariableProperty::ServerName, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::ServerName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // ServerName, too long
             return Err(Error::new(ErrorKind::InvalidData, "ServerName too long"));
         }
 
         if ret.option_flags_3.contains(OptionFlag3::ExtensionUsed) {
-            options.push((VariableProperty::FeatureExt, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+            options.push((VariableProperty::FeatureExt, src.get_u16_le() as usize, src.get_u16_le() as usize));
             if !validate_length(&options,255) {
                 // FeatureExt, too long
                 return Err(Error::new(ErrorKind::InvalidData, "FeatureExt too long"));
             }
         } else {
-            src.read_u16_le().await?;
-            src.read_u16_le().await?;
+            src.get_u16_le();
+            src.get_u16_le();
         }
-        options.push((VariableProperty::LibraryName, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::LibraryName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // LibraryName, too long
             return Err(Error::new(ErrorKind::InvalidData, "LibraryName too long"));
         }
-        options.push((VariableProperty::Language, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::Language, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // Language, too long
             return Err(Error::new(ErrorKind::InvalidData, "Language too long"));
         }
-        options.push((VariableProperty::Database, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::Database, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // Database, too long
             return Err(Error::new(ErrorKind::InvalidData, "Database too long"));
         }
 
-        let mut client_id = [0u8; 6];
-        src.read_exact(&mut client_id).await?;
+        let (_, client_id) =  src.read_and_advance(6);
 
-        options.push((VariableProperty::SSPI, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
-        options.push((VariableProperty::AttachedDatabaseFile, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::SSPI, src.get_u16_le() as usize, src.get_u16_le() as usize));
+        options.push((VariableProperty::AttachedDatabaseFile, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,260*2) {
             // AttachedDatabaseFile, too long
             return Err(Error::new(ErrorKind::InvalidData, "AttachedDatabaseFile too long"));
         }
-        options.push((VariableProperty::ChangePassword, src.read_u16_le().await? as usize, src.read_u16_le().await? as usize));
+        options.push((VariableProperty::ChangePassword, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // ChangePassword, too long
             return Err(Error::new(ErrorKind::InvalidData, "ChangePassword too long"));
         }
 
-        let sspi_length = src.read_u32_le().await?;
+        let sspi_length = src.get_u32_le();
         let mut current_offset = FIXED_LEN;
         let mut current_option = 0;
         let mut feature_ext_found = false;
@@ -523,19 +518,19 @@ impl LoginMessage {
             }
 
             while current_offset < *offset {
-                src.read_u8().await?;
+                src.get_u8();
                 current_offset += 1;
             }
 
             match property {
                 VariableProperty::Password | VariableProperty::ChangePassword => {
                     let mut buff = Vec::with_capacity(*length);
-                    src.take(*length as u64).read_to_end(&mut buff).await?;
+                    src.take(*length as u64).get_to_end(&mut buff);
                     for byte in buff.iter_mut() {
                         *byte = *byte ^ 0xA5;
                         *byte = (*byte << 4) & 0xf0 | (*byte >> 4) & 0x0f;
                     }
-                    let buff = buff.chunks(2).map(LittleEndian::read_u16).collect::<Vec<u16>>();
+                    let buff = buff.chunks(2).map(LittleEndian::get_u16).collect::<Vec<u16>>();
                     panic!();
                     // todo(mrhamburg) fix this
                     // if *property == VariableProperty::Password {
@@ -553,43 +548,43 @@ impl LoginMessage {
                     }
 
                     let mut buff = Vec::with_capacity(*length);
-                    src.take(*length as u64).read_to_end(&mut buff).await?;
+                    src.take(*length as u64).get_to_end(&mut buff).await?;
                 }
                 VariableProperty::FeatureExt => {
                     if !feature_ext_found {
                         let mut item = options[current_option].borrow_mut();
-                        item.1 = src.read_u32_le().await? as usize;
+                        item.1 = src.get_u32_le() as usize;
                         feature_ext_found = true;
                         current_offset += 4;
                         continue;
                     }
 
                     loop {
-                        let fe = src.read_u8().await?;
+                        let fe = src.get_u8();
                         if fe == FEA_EXT_TERMINATOR {
                             break;
                         }
                         else if fe == FEA_EXT_FEDAUTH {
-                            let fea_ext_len = src.read_u32_le().await?;
-                            let mut options = src.read_u8().await?;
+                            let fea_ext_len = src.get_u32_le();
+                            let mut options = src.get_u8();
                             let fed_auth_echo = (options & 1) == 1;
                             options = options >> 1;
                             if options != FED_AUTH_LIBRARY_SECURITYTOKEN {
                                 return Err(Error::new(ErrorKind::InvalidData, "Invalid fed_auth_echo"));
                             }
 
-                            let token_len = src.read_u32_le().await? as usize;
+                            let token_len = src.get_u32_le() as usize;
                             let token = {
                                 let mut buff = Vec::with_capacity(token_len);
-                                src.take(token_len as u64).read_to_end(&mut buff).await?;
-                                let buff = buff.chunks(2).map(LittleEndian::read_u16).collect::<Vec<u16>>();
+                                src.take(token_len as u64).get_to_end(&mut buff);
+                                let buff = buff.chunks(2).map(LittleEndian::get_u16).collect::<Vec<u16>>();
                                 String::from_utf16(&buff[..]).expect("Failed to convert token to UTF-16")
                             };
 
                             let remaining = fea_ext_len - ((token.len()*2) as u32 + 5);
                             let nonce = if remaining == 32 {
                                 let mut n = [0u8; 32];
-                                src.read_exact(&mut n).await?;
+                                src.get_exact(&mut n);
                                 Some(n)
                             } else if remaining == 0 {
                                 None
@@ -607,9 +602,9 @@ impl LoginMessage {
                 }
                 _ => {
                     let mut buff = Vec::with_capacity(*length);
-                    src.take(*length as u64).read_to_end(&mut buff).await?;
+                    src.take(*length as u64).get_to_end(&mut buff).await?;
 
-                    let buff = buff.chunks(2).map(LittleEndian::read_u16).collect::<Vec<u16>>();
+                    let buff = buff.chunks(2).map(LittleEndian::get_u16).collect::<Vec<u16>>();
                     let value = String::from_utf16_lossy(&buff[..]);
 
                     match property {

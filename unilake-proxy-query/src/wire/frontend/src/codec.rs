@@ -1,5 +1,6 @@
 use std::io::Error as IOError;
 use std::sync::Arc;
+use std::time::Duration;
 
 use derive_new::new;
 use futures::future::poll_fn;
@@ -104,6 +105,10 @@ where
     fn connection_reset_request_count(&self) -> usize {
         self.codec().session_info.connection_reset_request_count()
     }
+
+    fn tds_server_context(&self) -> Arc<crate::tds::server_context::ServerContext> {
+        todo!()
+    }
 }
 
 pub type TdsWireResult<T> = Result<T, TdsWireError>;
@@ -187,6 +192,7 @@ where
                 // process_error(&mut socket, e).await?;
             }
         }
+        tokio::time::sleep(Duration::from_secs(12)).await;
     }
 
     Ok(())

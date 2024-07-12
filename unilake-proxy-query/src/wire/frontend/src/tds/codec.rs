@@ -17,14 +17,12 @@ pub use column_data::*;
 pub use header::*;
 pub use login::*;
 pub use packet::*;
-pub use packet::*;
 pub use pre_login::*;
 pub use row::*;
 pub use token::*;
 pub use tokenfactory::*;
 pub use type_info::*;
 
-const HEADER_BYTES: usize = 8;
 const ALL_HEADERS_LEN_TX: usize = 22;
 
 #[derive(Debug)]
