@@ -1,6 +1,9 @@
 use crate::{codec::TdsWireError, tds::server_context::ServerContext, PreloginMessage};
-use std::{net::SocketAddr, sync::Arc};
-use tokio::sync::RwLock;
+use std::{net::SocketAddr, sync::Arc, time::Duration};
+use tokio::{
+    sync::{RwLock, Semaphore},
+    time::sleep,
+};
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -164,12 +167,10 @@ where
 }
 
 pub enum ServerInstanceMessage {
-    /// Used to increase the current session counter by one
-    IncrementSessionCounter,
-    /// Used to decrement the current session counter by one
-    DecrementSessionCounter,
     /// Used to send an audit message for a connected session
     Audit(SessionAuditMessage),
+    /// Used to send telemetry data
+    Telemetry,
 }
 
 /// These messages should be forwarded to SIEM/Audit logging endpoint
@@ -191,12 +192,15 @@ pub struct SessionUserInfo {
 }
 
 pub struct ServerInstance {
-    active_sessions: usize,
-    session_limit: usize,
-    #[allow(dead_code)]
+    pub ctx: Arc<ServerContext>,
+    inner: InnerServerInstance,
+}
+
+pub struct InnerServerInstance {
     receiver: Option<tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>>,
     sender: Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>>,
-    pub ctx: Arc<ServerContext>,
+    active_sessions: RwLock<usize>,
+    semaphore: Arc<Semaphore>,
 }
 
 impl ServerInstance {
@@ -204,61 +208,74 @@ impl ServerInstance {
     pub fn new(ctx: ServerContext) -> Self {
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<ServerInstanceMessage>();
         ServerInstance {
-            active_sessions: 0,
-            session_limit: 32767,
-            receiver: Some(receiver),
-            sender: Arc::new(sender),
             ctx: Arc::new(ctx),
+            inner: InnerServerInstance {
+                receiver: Some(receiver),
+                sender: Arc::new(sender),
+                active_sessions: RwLock::new(0),
+                semaphore: Arc::new(Semaphore::new(4)),
+            },
         }
     }
 
-    pub fn start_instance(&mut self, instance: Arc<RwLock<Self>>) -> tokio::task::JoinHandle<()> {
+    async fn inner_process_message(&self, msg: ServerInstanceMessage) {
+        tracing::error!(message = "Received server instance message, processing has not been implemented, dropping message!");
+    }
+
+    /// Starts the background job server instance for processing server messages.
+    /// Currently is set to max 4 messages being processed in parallel.
+    /// In case 4 messages are already being processed, the process will check every 10 milliseconds for
+    /// an open slot to process new messages.
+    /// Note: the server instance can only be started once, will panic in case the background process has
+    /// already been started
+    pub fn start_instance(&mut self, instance: Arc<Self>) -> tokio::task::JoinHandle<()> {
         async fn run(
-            instance: Arc<RwLock<ServerInstance>>,
+            instance: Arc<ServerInstance>,
             mut receiver: tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>,
         ) {
             while let Some(msg) = receiver.recv().await {
-                match msg {
-                    ServerInstanceMessage::IncrementSessionCounter => {
-                        {
-                            instance.write().await.active_sessions += 1;
-                        }
-                        let current_count = instance.read().await.active_session_count();
-                        tracing::info!(
-                            message = "Session was added",
-                            session_count = current_count
-                        );
-                    }
-                    ServerInstanceMessage::DecrementSessionCounter => {
-                        {
-                            instance.write().await.active_sessions -= 1;
-                        }
-                        let current_count = instance.read().await.active_session_count();
-                        tracing::info!(
-                            message = "Session was dropped",
-                            session_count = current_count
-                        );
-                    }
-                    _ => todo!(),
+                let instance = instance.clone();
+                let semaphore = instance.inner.semaphore.clone();
+                while semaphore.available_permits() == 0 {
+                    sleep(Duration::from_millis(10));
                 }
+                tokio::task::spawn(async move {
+                    let semaphore = semaphore.acquire().await.unwrap();
+                    instance.inner_process_message(msg).await;
+                    drop(semaphore);
+                });
             }
         }
-        if self.receiver.is_none() {
+
+        if self.inner.receiver.is_none() {
             panic!("server instance is already started")
         }
-        let r = self.receiver.take().unwrap();
+        let r = self.inner.receiver.take().unwrap();
         tokio::spawn(async move { run(instance, r).await })
     }
 
-    pub fn active_session_count(&self) -> usize {
-        self.active_sessions
+    pub async fn active_session_count(&self) -> usize {
+        self.inner.active_sessions.read().await.clone()
+    }
+
+    pub async fn increment_session_counter(&self) -> usize {
+        let guard = self.inner.active_sessions.write().await;
+        guard.saturating_add(1)
+    }
+
+    pub async fn decrement_session_counter(&self) -> usize {
+        let guard = self.inner.active_sessions.write().await;
+        guard.saturating_sub(1)
     }
 
     pub fn session_limit(&self) -> usize {
-        self.session_limit
+        self.ctx.session_limit
     }
 
-    pub fn get_sender(&self) -> Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>> {
-        self.sender.clone()
+    pub fn process_message(
+        &self,
+        msg: ServerInstanceMessage,
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<ServerInstanceMessage>> {
+        self.inner.sender.clone().send(msg)
     }
 }

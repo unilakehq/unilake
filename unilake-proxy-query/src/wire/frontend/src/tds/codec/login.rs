@@ -1,13 +1,12 @@
 // TODO: where I left off....
 use crate::{utils::ReadAndAdvance, Error, Result};
 use byteorder::{ByteOrder, LittleEndian};
-use core::panic;
+use core::{panic, slice::SlicePattern};
 use enumflags2::{bitflags, BitFlags};
 use std::borrow::BorrowMut;
 use std::fmt::Debug;
 use std::io::ErrorKind;
 use std::ops::Index;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufWriter};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 uint_enum! {
@@ -151,7 +150,7 @@ const FIXED_LEN: usize = 90;
 struct FedAuthExt {
     fed_auth_echo: bool,
     fed_auth_token: String,
-    nonce: Option<[u8; 32]>,
+    nonce: Option<Vec<u8>>,
 }
 
 /// Login7 Message [2.2.6.4]
@@ -243,7 +242,7 @@ impl LoginMessage {
         self.password = password.into();
     }
 
-    pub fn aad_token(&mut self, token: String, fed_auth_echo: bool, nonce: Option<[u8; 32]>) {
+    pub fn aad_token(&mut self, token: String, fed_auth_echo: bool, nonce: Option<Vec<u8>>) {
         self.option_flags_3.insert(OptionFlag3::ExtensionUsed);
 
         self.fed_auth_ext = Some(FedAuthExt {
@@ -524,13 +523,12 @@ impl LoginMessage {
 
             match property {
                 VariableProperty::Password | VariableProperty::ChangePassword => {
-                    let mut buff = Vec::with_capacity(*length);
-                    src.take(*length as u64).get_to_end(&mut buff);
+                    let (_, buff) = src.read_and_advance(*length);
                     for byte in buff.iter_mut() {
                         *byte = *byte ^ 0xA5;
                         *byte = (*byte << 4) & 0xf0 | (*byte >> 4) & 0x0f;
                     }
-                    let buff = buff.chunks(2).map(LittleEndian::get_u16).collect::<Vec<u16>>();
+                    // let buff = buff.chunks(2).map(LittleEndian::read_u16(&buff[..]) ).collect::<Vec<u16>>();
                     panic!();
                     // todo(mrhamburg) fix this
                     // if *property == VariableProperty::Password {
@@ -547,8 +545,7 @@ impl LoginMessage {
                         }
                     }
 
-                    let mut buff = Vec::with_capacity(*length);
-                    src.take(*length as u64).get_to_end(&mut buff).await?;
+                    let (_, buff) = src.read_and_advance(*length);
                 }
                 VariableProperty::FeatureExt => {
                     if !feature_ext_found {
@@ -575,16 +572,15 @@ impl LoginMessage {
 
                             let token_len = src.get_u32_le() as usize;
                             let token = {
-                                let mut buff = Vec::with_capacity(token_len);
-                                src.take(token_len as u64).get_to_end(&mut buff);
-                                let buff = buff.chunks(2).map(LittleEndian::get_u16).collect::<Vec<u16>>();
+                                let (_, buff) = src.read_and_advance(token_len);
+                                // todo(mrhamburg): improve this
+                                let buff = buff.chunks(2).map(|x| LittleEndian::read_u16(&x[..])).collect::<Vec<u16>>();
                                 String::from_utf16(&buff[..]).expect("Failed to convert token to UTF-16")
                             };
 
                             let remaining = fea_ext_len - ((token.len()*2) as u32 + 5);
                             let nonce = if remaining == 32 {
-                                let mut n = [0u8; 32];
-                                src.get_exact(&mut n);
+                                let (_, n) = src.read_and_advance(32);
                                 Some(n)
                             } else if remaining == 0 {
                                 None
@@ -601,10 +597,10 @@ impl LoginMessage {
                     }
                 }
                 _ => {
-                    let mut buff = Vec::with_capacity(*length);
-                    src.take(*length as u64).get_to_end(&mut buff).await?;
+                    let (_, buff) = src.read_and_advance(*length);
 
-                    let buff = buff.chunks(2).map(LittleEndian::get_u16).collect::<Vec<u16>>();
+                    // todo(mrhamburg): improve on this
+                    let buff = buff.chunks(2).map(|x| LittleEndian::read_u16(&x[..])).collect::<Vec<u16>>();
                     let value = String::from_utf16_lossy(&buff[..]);
 
                     match property {
@@ -634,12 +630,13 @@ impl LoginMessage {
 
 #[cfg(test)]
 mod tests {
+    use tokio_util::bytes::BytesMut;
+
     use crate::tds::codec::login::FedAuthExt;
     use crate::{LoginMessage, OptionFlag3};
-    use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 
-    #[tokio::test]
-    async fn login_message_round_trip() {
+    #[test]
+    fn login_message_round_trip() {
         let mut input = LoginMessage::new();
         input.db_name("fake-database-name");
         input.app_name("fake-app-name");
@@ -648,21 +645,14 @@ mod tests {
         input.password("fake-pw");
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(usize::MAX);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input
-            .clone()
-            .encode(&mut writer)
-            .await
-            .expect("should be ok");
-        writer.flush().await.expect("should be ok");
+        input.clone().encode(&mut buff).expect("should be ok");
 
         // decode
         //let tokentype = reader.read_u8().await.unwrap();
-        let result = LoginMessage::decode(&mut reader).await.unwrap();
+        let result = LoginMessage::decode(&mut buff).unwrap();
 
         // assert
         assert_eq!(input, result);

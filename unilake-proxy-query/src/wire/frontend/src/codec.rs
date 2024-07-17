@@ -150,7 +150,7 @@ pub async fn process_socket<H, S>(
     tcp_socket: TcpStream,
     tls_acceptor: Option<Arc<TlsAcceptor>>,
     handler: Arc<H>,
-    instance: Arc<RwLock<ServerInstance>>,
+    instance: Arc<ServerInstance>,
 ) -> Result<(), IOError>
 where
     S: SessionInfo,
@@ -159,19 +159,11 @@ where
     let addr = tcp_socket.peer_addr()?;
     tcp_socket.set_nodelay(true)?;
 
-    let session_info = {
-        let instance_info_ref = instance.read().await;
-        handler.open_session(&addr, &instance_info_ref)
-    };
+    let session_info = handler.open_session(&addr, &instance.clone());
 
     let session_info = match session_info {
         Ok(s) => {
-            instance
-                .read()
-                .await
-                .get_sender()
-                .send(crate::prot::ServerInstanceMessage::IncrementSessionCounter)
-                .unwrap();
+            instance.increment_session_counter().await;
             s
         }
         Err(e) => {

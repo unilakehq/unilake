@@ -34,18 +34,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let factory = Arc::new(DefaultTdsHandlerFactory {});
     // todo(mrhamburg): use bgworker for graceful shutdown
     let (instance, _) = {
-        let instance = ServerInstance::new(ServerContext::default());
-        let rwlock = Arc::new(RwLock::new(instance));
-        let bgworker = rwlock.write().await.start_instance(rwlock.clone());
-        (rwlock, bgworker)
+        let instance = Arc::new(ServerInstance::from(ServerContext::default()));
+        let bgworker = instance.start_instance(instance);
+        (instance, bgworker)
     };
 
     loop {
         let (socket, _) = listener.accept().await?;
-        let factory_ref = factory.clone();
-        let instance_ref = instance.clone();
+        let factory = factory.clone();
+        let instance = instance.clone();
 
-        tokio::spawn(async move { process_socket(socket, None, factory_ref, instance_ref).await });
+        tokio::spawn(async move { process_socket(socket, None, factory, instance).await });
     }
 }
 
