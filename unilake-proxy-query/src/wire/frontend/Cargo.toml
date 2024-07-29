@@ -21,3 +21,4 @@ tokio-util = { workspace = true }
 tokio-rustls = { workspace = true }
 derive-new = { workspace = true }
 futures = { workspace = true }
+rand = { workspace = true }

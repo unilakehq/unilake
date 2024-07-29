@@ -1,7 +1,6 @@
-// TODO: where I left off....
 use crate::{utils::ReadAndAdvance, Error, Result};
 use byteorder::{ByteOrder, LittleEndian};
-use core::{panic, slice::SlicePattern};
+use core::panic;
 use enumflags2::{bitflags, BitFlags};
 use std::borrow::BorrowMut;
 use std::fmt::Debug;
@@ -253,7 +252,7 @@ impl LoginMessage {
     }
 
     #[rustfmt::skip]
-    pub fn encode(self, dst: &mut BytesMut) -> Result<()>
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()>
     {
         let mut total_length = FIXED_LEN + // fixed packet length
             self.hostname.len() +
@@ -270,7 +269,7 @@ impl LoginMessage {
             0; // extensions
 
         let mut fed_auth_buf = BytesMut::new();
-        if let Some(ext) = self.fed_auth_ext {
+        if let Some(ext) = &self.fed_auth_ext {
             fed_auth_buf.put_u8(FEA_EXT_FEDAUTH);
 
             // TODO: missing here are, ChannelBindingToken, Signature and MSAL, decide if needed
@@ -287,7 +286,7 @@ impl LoginMessage {
             fed_auth_buf.put_u32_le(token.len() as u32);
             fed_auth_buf.put_slice(&token);
 
-            if let Some(nonce) = ext.nonce {
+            if let Some(nonce) = &ext.nonce {
                 fed_auth_buf.put_slice(&nonce);
             }
 
@@ -316,11 +315,11 @@ impl LoginMessage {
         let get_position = |v: &Vec<(VariableProperty, usize, usize, Option<String>)>|
             v.last().unwrap().1 + v.last().unwrap().2;
 
-        options.push((VariableProperty::HostName, FIXED_LEN, self.hostname.len()*2, Some(self.hostname)));
-        options.push((VariableProperty::UserName, get_position(&options), self.username.len()*2, Some(self.username)));
-        options.push((VariableProperty::Password, get_position(&options), self.password.len()*2, Some(self.password)));
-        options.push((VariableProperty::ApplicationName, get_position(&options), self.app_name.len()*2, Some(self.app_name)));
-        options.push((VariableProperty::ServerName, get_position(&options), self.server_name.len()*2, Some(self.server_name)));
+        options.push((VariableProperty::HostName, FIXED_LEN, self.hostname.len()*2, Some(self.hostname.clone())));
+        options.push((VariableProperty::UserName, get_position(&options), self.username.len()*2, Some(self.username.clone())));
+        options.push((VariableProperty::Password, get_position(&options), self.password.len()*2, Some(self.password.clone())));
+        options.push((VariableProperty::ApplicationName, get_position(&options), self.app_name.len()*2, Some(self.app_name.clone())));
+        options.push((VariableProperty::ServerName, get_position(&options), self.server_name.len()*2, Some(self.server_name.clone())));
 
         // check if we have extensions
         if self.option_flags_3.contains(OptionFlag3::ExtensionUsed) {
@@ -328,20 +327,20 @@ impl LoginMessage {
         } else {
             options.push((VariableProperty::Unused, get_position(&options), 0, None));
         }
-        options.push((VariableProperty::LibraryName, get_position(&options), self.library_name.len()*2, Some(self.library_name)));
-        options.push((VariableProperty::Language, get_position(&options), self.language.len()*2, Some(self.language)));
-        options.push((VariableProperty::Database, get_position(&options), self.db_name.len()*2, Some(self.db_name)));
+        options.push((VariableProperty::LibraryName, get_position(&options), self.library_name.len()*2, Some(self.library_name.clone())));
+        options.push((VariableProperty::Language, get_position(&options), self.language.len()*2, Some(self.language.clone())));
+        options.push((VariableProperty::Database, get_position(&options), self.db_name.len()*2, Some(self.db_name.clone())));
 
         let last_position = get_position(&options);
         options.push((VariableProperty::ClientId, 0, 0, None));
 
-        if let Some(is) = self.integrated_security {
+        if let Some(is) = &self.integrated_security {
             options.push((VariableProperty::SSPI, last_position, is.len(), None));
         } else {
             options.push((VariableProperty::SSPI, last_position, 0, None));
         }
-        options.push((VariableProperty::AttachedDatabaseFile, get_position(&options), self.attached_database.len()*2, Some(self.attached_database)));
-        options.push((VariableProperty::ChangePassword, get_position(&options), self.change_password.len()*2, Some(self.change_password)));
+        options.push((VariableProperty::AttachedDatabaseFile, get_position(&options), self.attached_database.len()*2, Some(self.attached_database.clone())));
+        options.push((VariableProperty::ChangePassword, get_position(&options), self.change_password.len()*2, Some(self.change_password.clone())));
 
         for (ty, position, length, _) in &options {
             match ty {
@@ -524,7 +523,7 @@ impl LoginMessage {
             match property {
                 VariableProperty::Password | VariableProperty::ChangePassword => {
                     let (_, buff) = src.read_and_advance(*length);
-                    for byte in buff.iter_mut() {
+                    for byte in buff.clone().iter_mut() {
                         *byte = *byte ^ 0xA5;
                         *byte = (*byte << 4) & 0xf0 | (*byte >> 4) & 0x0f;
                     }
@@ -662,7 +661,7 @@ mod tests {
     fn specify_aad_token() {
         let mut input = LoginMessage::new();
         let token = "fake-aad-token".to_string();
-        let nonce = [3u8; 32];
+        let nonce = Vec::with_capacity(32);
         input.aad_token(token.clone(), true, Some(nonce.clone()));
 
         assert!(input.option_flags_3.contains(OptionFlag3::ExtensionUsed));
@@ -676,28 +675,21 @@ mod tests {
         )
     }
 
-    #[tokio::test]
-    async fn login_message_with_fed_auth_round_trip() {
+    #[test]
+    fn login_message_with_fed_auth_round_trip() {
         let mut input = LoginMessage::new();
-        let nonce = [1u8; 32];
+        let nonce = Vec::with_capacity(32);
         input.aad_token("fake-aad-token".to_string(), true, Some(nonce));
 
         // arrange
-        let (inner, outer) = tokio::io::duplex(usize::MAX);
-        let mut writer = BufWriter::new(inner);
-        let mut reader = BufReader::new(outer);
+        let mut buff = BytesMut::new();
 
         // encode
-        input
-            .clone()
-            .encode(&mut writer)
-            .await
-            .expect("should be ok");
-        writer.flush().await.expect("should be ok");
+        input.encode(&mut buff).expect("should be ok");
 
         // decode
         //let tokentype = reader.read_u8().await.unwrap();
-        let result = LoginMessage::decode(&mut reader).await.unwrap();
+        let result = LoginMessage::decode(&mut buff).unwrap();
 
         // assert
         assert_eq!(input, result);

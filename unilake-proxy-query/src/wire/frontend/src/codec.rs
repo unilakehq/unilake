@@ -91,15 +91,15 @@ where
     }
 
     fn sql_user_id(&self) -> &str {
-        &self.codec().session_info.sql_user_id()
+        self.codec().session_info.sql_user_id()
     }
 
     fn database(&self) -> &str {
-        &self.codec().session_info.database()
+        self.codec().session_info.database()
     }
 
     fn tds_version(&self) -> &str {
-        &self.codec().session_info.tds_version()
+        self.codec().session_info.tds_version()
     }
 
     fn connection_reset_request_count(&self) -> usize {
@@ -108,6 +108,22 @@ where
 
     fn tds_server_context(&self) -> Arc<crate::tds::server_context::ServerContext> {
         todo!()
+    }
+
+    fn set_server_nonce(&mut self, nonce: [u8; 32]) {
+        self.codec_mut().session_info.set_server_nonce(nonce);
+    }
+
+    fn get_server_nonce(&self) -> Option<[u8; 32]> {
+        self.codec().session_info.get_server_nonce()
+    }
+
+    fn set_client_nonce(&mut self, nonce: [u8; 32]) {
+        self.codec_mut().session_info.set_client_nonce(nonce);
+    }
+
+    fn get_client_nonce(&self) -> Option<[u8; 32]> {
+        self.codec().session_info.get_client_nonce()
     }
 }
 
@@ -181,10 +197,11 @@ where
         while let Some(Ok(msg)) = socket.next().await {
             if let Err(e) = process_message(msg, &mut socket, handler.clone()).await {
                 todo!();
+                // todo(mrhamburg): error handling + close session on error
+                instance.decrement_session_counter().await;
                 // process_error(&mut socket, e).await?;
             }
         }
-        tokio::time::sleep(Duration::from_secs(12)).await;
     }
 
     Ok(())

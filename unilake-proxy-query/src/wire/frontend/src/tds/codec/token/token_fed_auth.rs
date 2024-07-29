@@ -8,6 +8,7 @@ pub enum TokenFedAuthOption {
     StsUrl(String),
 }
 
+#[derive(Debug, PartialEq)]
 #[repr(u8)]
 pub enum TokenPreLoginFedAuthRequiredOption {
     FedAuthNotRequired = 0x00,

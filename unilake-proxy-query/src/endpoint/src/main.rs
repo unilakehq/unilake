@@ -2,14 +2,13 @@ use std::env;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::RwLock;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use unilake_wire_frontend::codec::process_socket;
 use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
-use unilake_wire_frontend::tds::codec::PreloginMessage;
+use unilake_wire_frontend::tds::codec::{PreloginMessage, TokenPreLoginFedAuthRequiredOption};
 use unilake_wire_frontend::tds::server_context::ServerContext;
 
 #[tokio::main]
@@ -34,8 +33,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let factory = Arc::new(DefaultTdsHandlerFactory {});
     // todo(mrhamburg): use bgworker for graceful shutdown
     let (instance, _) = {
-        let instance = Arc::new(ServerInstance::from(ServerContext::default()));
-        let bgworker = instance.start_instance(instance);
+        let instance = ServerInstance::new(ServerContext::default());
+        let (instance, bgworker) = instance.start_instance();
         (instance, bgworker)
     };
 
@@ -62,6 +61,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         unilake_wire_frontend::prot::DefaultSession,
         unilake_wire_frontend::codec::TdsWireError,
     > {
+        tracing::info!("New session for: {}", socket_addr);
         Ok(DefaultSession::new(
             socket_addr.clone(),
             instance_info.ctx.clone(),
@@ -82,9 +82,27 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
             msg.encryption,
         );
 
-        let token = PreloginMessage::new();
+        let mut token = PreloginMessage::new();
+        token.version = session.tds_server_context().server_version as u32;
+        token.encryption = Some(encryption);
+        token.mars = false;
+        if let Some(nonce) = msg.nonce {
+            session.set_client_nonce(nonce);
+        }
 
-        todo!()
+        if session.tds_server_context().fed_auth_options
+            == TokenPreLoginFedAuthRequiredOption::FedAuthRequired
+        {
+            token.fed_auth_required = match msg.fed_auth_required {
+                Some(a) => Some(a),
+                None => None,
+            };
+
+            if msg.nonce.is_some() {
+                token.nonce = Some(unilake_wire_frontend::utils::generate_random_nonce());
+                session.set_server_nonce(token.nonce.unwrap());
+            }
+        }
     }
 
     fn on_login7_request(&self, session: &unilake_wire_frontend::prot::DefaultSession) {

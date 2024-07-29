@@ -1,5 +1,5 @@
 use crate::{codec::TdsWireError, tds::server_context::ServerContext, PreloginMessage};
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{cell::Cell, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
     sync::{RwLock, Semaphore},
     time::sleep,
@@ -62,6 +62,15 @@ pub trait SessionInfo {
 
     /// Counter of connection reset requests for this session
     fn connection_reset_request_count(&self) -> usize;
+
+    fn set_client_nonce(&mut self, nonce: [u8; 32]);
+    fn get_client_nonce(&self) -> Option<[u8; 32]>;
+    fn set_server_nonce(&mut self, nonce: [u8; 32]);
+    fn get_server_nonce(&self) -> Option<[u8; 32]>;
+}
+
+pub enum Dialect {
+    mssql,
 }
 
 pub struct DefaultSession {
@@ -69,9 +78,13 @@ pub struct DefaultSession {
     state: TdsSessionState,
     session_id: usize,
     packet_size: usize,
-    sql_user_id: usize,
+    sql_user_id: Option<String>,
     database: Option<String>,
+    connection_reset_request_count: usize,
+    dialect: Dialect,
     tds_server_context: Arc<ServerContext>,
+    client_nonce: Option<[u8; 32]>,
+    server_nonce: Option<[u8; 32]>,
 }
 
 impl SessionInfo for DefaultSession {
@@ -114,6 +127,22 @@ impl SessionInfo for DefaultSession {
     fn connection_reset_request_count(&self) -> usize {
         todo!()
     }
+
+    fn set_client_nonce(&mut self, nonce: [u8; 32]) {
+        self.client_nonce = Some(nonce);
+    }
+
+    fn get_client_nonce(&self) -> Option<[u8; 32]> {
+        self.client_nonce
+    }
+
+    fn set_server_nonce(&mut self, nonce: [u8; 32]) {
+        self.server_nonce = Some(nonce);
+    }
+
+    fn get_server_nonce(&self) -> Option<[u8; 32]> {
+        self.server_nonce
+    }
 }
 
 pub struct TdsWireMessageServerCodec {
@@ -126,10 +155,14 @@ impl DefaultSession {
             socket_addr,
             packet_size: 1200,
             session_id: 1,
-            sql_user_id: 0,
+            sql_user_id: None,
             state: TdsSessionState::default(),
             database: None,
             tds_server_context: ctx,
+            client_nonce: None,
+            server_nonce: None,
+            connection_reset_request_count: 0,
+            dialect: Dialect::mssql,
         }
     }
 }
@@ -228,7 +261,7 @@ impl ServerInstance {
     /// an open slot to process new messages.
     /// Note: the server instance can only be started once, will panic in case the background process has
     /// already been started
-    pub fn start_instance(&mut self, instance: Arc<Self>) -> tokio::task::JoinHandle<()> {
+    pub fn start_instance(mut self) -> (Arc<Self>, tokio::task::JoinHandle<()>) {
         async fn run(
             instance: Arc<ServerInstance>,
             mut receiver: tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>,
@@ -237,7 +270,7 @@ impl ServerInstance {
                 let instance = instance.clone();
                 let semaphore = instance.inner.semaphore.clone();
                 while semaphore.available_permits() == 0 {
-                    sleep(Duration::from_millis(10));
+                    sleep(Duration::from_millis(10)).await;
                 }
                 tokio::task::spawn(async move {
                     let semaphore = semaphore.acquire().await.unwrap();
@@ -251,7 +284,12 @@ impl ServerInstance {
             panic!("server instance is already started")
         }
         let r = self.inner.receiver.take().unwrap();
-        tokio::spawn(async move { run(instance, r).await })
+        let instance = Arc::new(self);
+        let running_instance = instance.clone();
+        (
+            instance,
+            tokio::spawn(async move { run(running_instance, r).await }),
+        )
     }
 
     pub async fn active_session_count(&self) -> usize {
@@ -259,13 +297,25 @@ impl ServerInstance {
     }
 
     pub async fn increment_session_counter(&self) -> usize {
-        let guard = self.inner.active_sessions.write().await;
-        guard.saturating_add(1)
+        let mut count = self.inner.active_sessions.write().await;
+        *count += 1;
+        tracing::info!(
+            message = "Increased session count",
+            current_count = *count,
+            max_count = self.session_limit()
+        );
+        *count
     }
 
     pub async fn decrement_session_counter(&self) -> usize {
-        let guard = self.inner.active_sessions.write().await;
-        guard.saturating_sub(1)
+        let mut count = self.inner.active_sessions.write().await;
+        *count -= 1;
+        tracing::info!(
+            message = "Decreased session count",
+            current_count = *count,
+            max_count = self.session_limit()
+        );
+        *count
     }
 
     pub fn session_limit(&self) -> usize {
