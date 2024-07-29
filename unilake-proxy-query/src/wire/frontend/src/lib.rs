@@ -1,7 +1,7 @@
 extern crate core;
 
 pub(crate) use crate::tds::{codec::*, collation::*, numeric::*, time::*};
-pub(crate) use error::Error;
+use error::TdsWireError;
 
 #[macro_use]
 mod macros;
@@ -14,7 +14,8 @@ mod to_sql;
 pub mod utils;
 
 /// An alias for a result that holds crate's error type as the error.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, TdsWireError>;
+pub type Error = TdsWireError;
 
 pub(crate) fn get_driver_version() -> u64 {
     env!("CARGO_PKG_VERSION")

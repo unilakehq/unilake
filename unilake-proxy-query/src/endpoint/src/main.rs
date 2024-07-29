@@ -1,14 +1,18 @@
+use async_trait::async_trait;
+use futures::{Sink, SinkExt};
 use std::env;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use unilake_wire_frontend::codec::process_socket;
+use unilake_wire_frontend::codec::{process_socket, TdsWireResult};
 use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
-use unilake_wire_frontend::tds::codec::{PreloginMessage, TokenPreLoginFedAuthRequiredOption};
+use unilake_wire_frontend::tds::codec::{
+    PreloginMessage, TdsBackendResponse, TokenPreLoginFedAuthRequiredOption,
+};
 use unilake_wire_frontend::tds::server_context::ServerContext;
 
 #[tokio::main]
@@ -50,6 +54,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 struct DefaultTdsHandlerFactory {}
 
 #[allow(unused_variables)]
+#[async_trait]
 impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
     for DefaultTdsHandlerFactory
 {
@@ -72,25 +77,28 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         todo!()
     }
 
-    fn on_prelogin_request(
+    async fn on_prelogin_request<C>(
         &self,
-        session: &unilake_wire_frontend::prot::DefaultSession,
+        client: &mut C,
         msg: &PreloginMessage,
-    ) {
+    ) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse>,
+    {
         let encryption = ServerContext::encryption_response(
-            session.tds_server_context().as_ref(),
+            client.tds_server_context().as_ref(),
             msg.encryption,
         );
 
         let mut token = PreloginMessage::new();
-        token.version = session.tds_server_context().server_version as u32;
+        token.version = client.tds_server_context().server_version as u32;
         token.encryption = Some(encryption);
         token.mars = false;
         if let Some(nonce) = msg.nonce {
-            session.set_client_nonce(nonce);
+            client.set_client_nonce(nonce);
         }
 
-        if session.tds_server_context().fed_auth_options
+        if client.tds_server_context().fed_auth_options
             == TokenPreLoginFedAuthRequiredOption::FedAuthRequired
         {
             token.fed_auth_required = match msg.fed_auth_required {
@@ -100,9 +108,13 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
 
             if msg.nonce.is_some() {
                 token.nonce = Some(unilake_wire_frontend::utils::generate_random_nonce());
-                session.set_server_nonce(token.nonce.unwrap());
+                client.set_server_nonce(token.nonce.unwrap());
             }
         }
+
+        let result = TdsBackendResponse::new(client, client);
+        client.send(result);
+        Ok(())
     }
 
     fn on_login7_request(&self, session: &unilake_wire_frontend::prot::DefaultSession) {

@@ -1,5 +1,10 @@
-use crate::{codec::TdsWireError, tds::server_context::ServerContext, PreloginMessage};
-use std::{cell::Cell, net::SocketAddr, sync::Arc, time::Duration};
+use crate::{
+    codec::TdsWireResult, error::TdsWireError, tds::server_context::ServerContext, PreloginMessage,
+    TdsBackendResponse,
+};
+use async_trait::async_trait;
+use futures::Sink;
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
     sync::{RwLock, Semaphore},
     time::sleep,
@@ -32,7 +37,7 @@ pub enum TdsSessionState {
     Final,
 }
 
-pub trait SessionInfo {
+pub trait SessionInfo: Send + Sync {
     /// Currently in use socket
     fn socket_addr(&self) -> SocketAddr;
 
@@ -67,10 +72,13 @@ pub trait SessionInfo {
     fn get_client_nonce(&self) -> Option<[u8; 32]>;
     fn set_server_nonce(&mut self, nonce: [u8; 32]);
     fn get_server_nonce(&self) -> Option<[u8; 32]>;
+
+    fn increment_packet_id(&mut self) -> u8;
+    fn get_packet_id(&self) -> u8;
 }
 
 pub enum Dialect {
-    mssql,
+    Mssql,
 }
 
 pub struct DefaultSession {
@@ -85,6 +93,7 @@ pub struct DefaultSession {
     tds_server_context: Arc<ServerContext>,
     client_nonce: Option<[u8; 32]>,
     server_nonce: Option<[u8; 32]>,
+    packet_id: u8,
 }
 
 impl SessionInfo for DefaultSession {
@@ -143,6 +152,15 @@ impl SessionInfo for DefaultSession {
     fn get_server_nonce(&self) -> Option<[u8; 32]> {
         self.server_nonce
     }
+
+    fn increment_packet_id(&mut self) -> u8 {
+        self.packet_id += 1;
+        self.get_packet_id()
+    }
+
+    fn get_packet_id(&self) -> u8 {
+        self.packet_id
+    }
 }
 
 pub struct TdsWireMessageServerCodec {
@@ -162,14 +180,16 @@ impl DefaultSession {
             client_nonce: None,
             server_nonce: None,
             connection_reset_request_count: 0,
-            dialect: Dialect::mssql,
+            dialect: Dialect::Mssql,
+            packet_id: 0,
         }
     }
 }
 
-pub trait TdsWireHandlerFactory<S>
+#[async_trait]
+pub trait TdsWireHandlerFactory<S>: Send + Sync
 where
-    S: SessionInfo,
+    S: SessionInfo + Send + Sync,
 {
     /// Create a new TDS server session
     fn open_session(
@@ -182,7 +202,13 @@ where
     fn close_session(&self, session: &S);
 
     /// Called when pre-login request arrives
-    fn on_prelogin_request(&self, session: &S, msg: &PreloginMessage);
+    async fn on_prelogin_request<C>(
+        &self,
+        client: &mut C,
+        msg: &PreloginMessage,
+    ) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when login request arrives
     fn on_login7_request(&self, session: &S);

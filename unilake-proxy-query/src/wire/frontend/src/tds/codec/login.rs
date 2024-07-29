@@ -1,4 +1,4 @@
-use crate::{utils::ReadAndAdvance, Error, Result};
+use crate::{codec::TdsWireResult, utils::ReadAndAdvance, Error, TdsMessage, TdsMessageType};
 use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
@@ -250,9 +250,11 @@ impl LoginMessage {
             nonce,
         })
     }
+}
 
+impl TdsMessage for LoginMessage {
     #[rustfmt::skip]
-    pub fn encode(&self, dst: &mut BytesMut) -> Result<()>
+    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>
     {
         let mut total_length = FIXED_LEN + // fixed packet length
             self.hostname.len() +
@@ -412,10 +414,10 @@ impl LoginMessage {
     }
 
     #[rustfmt::skip]
-    pub fn decode(src: &mut BytesMut) -> Result<LoginMessage>
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessageType>
     {
         // For decoding the clientid: https://docs.rs/mac_address/latest/src/mac_address/lib.rs.html#167
-        let mut ret = LoginMessage::new();
+        let mut ret = Self::new();
 
         let length = src.get_u32_le();
         if length > 128 * 1024 {
@@ -566,7 +568,7 @@ impl LoginMessage {
                             let fed_auth_echo = (options & 1) == 1;
                             options = options >> 1;
                             if options != FED_AUTH_LIBRARY_SECURITYTOKEN {
-                                return Err(Error::new(ErrorKind::InvalidData, "Invalid fed_auth_echo"));
+                                return Err(Error::Input(String::from("Invalid fed_auth_echo")));
                             }
 
                             let token_len = src.get_u32_le() as usize;
@@ -623,7 +625,7 @@ impl LoginMessage {
             current_offset += length;
         }
 
-        Ok(ret)
+        Ok(TdsMessageType::Login(ret))
     }
 }
 
@@ -633,6 +635,7 @@ mod tests {
 
     use crate::tds::codec::login::FedAuthExt;
     use crate::{LoginMessage, OptionFlag3};
+    use crate::{TdsMessage, TdsMessageType};
 
     #[test]
     fn login_message_round_trip() {
@@ -654,7 +657,11 @@ mod tests {
         let result = LoginMessage::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(input, result);
+        if let TdsMessageType::Login(result) = result {
+            assert_eq!(input, result);
+        } else {
+            panic!("unexpected message type: {:?}", result);
+        }
     }
 
     #[test]

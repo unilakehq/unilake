@@ -1,17 +1,19 @@
+use crate::codec::TdsWireResult;
 use crate::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::utils::ReadAndAdvance;
-use crate::{Error, Result, TokenError};
+use crate::{Error, TdsMessage, TdsMessageType, TokenError};
 use byteorder::{ByteOrder, LittleEndian};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// SQLBatch Message [2.2.6.7]
+#[derive(Debug)]
 pub struct BatchRequest {
     queries: String,
     transaction_descriptor: Vec<u8>,
 }
 
-impl BatchRequest {
-    pub fn decode(src: &mut BytesMut) -> Result<BatchRequest> {
+impl TdsMessage for BatchRequest {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessageType> {
         let _headers = {
             let mut headers = Vec::with_capacity(2);
             headers.push(src.get_u32_le());
@@ -50,13 +52,13 @@ impl BatchRequest {
 
         let query_text = String::from_utf16_lossy(&qtx[..]);
 
-        Ok(BatchRequest {
+        Ok(TdsMessageType::BatchRequest(BatchRequest {
             queries: query_text,
             transaction_descriptor: tx_descriptor,
-        })
+        }))
     }
 
-    pub fn encode(&mut self, dst: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         dst.put_u32_le(ALL_HEADERS_LEN_TX as u32);
         dst.put_u32_le(ALL_HEADERS_LEN_TX as u32 - 4);
         dst.put_u16_le(AllHeaderTy::TransactionDescriptor as u16);
@@ -76,6 +78,8 @@ impl BatchRequest {
 mod tests {
     use crate::tds::codec::batch_request::BatchRequest;
     use crate::Result;
+    use crate::TdsMessage;
+    use crate::TdsMessageType;
     use tokio_util::bytes::BytesMut;
 
     #[test]
@@ -97,7 +101,11 @@ mod tests {
         let result = BatchRequest::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(result.queries, input.queries);
+        if let TdsMessageType::BatchRequest(result) = result {
+            assert_eq!(result.queries, input.queries);
+        } else {
+            panic!("unexpected message type: {:?}", result);
+        }
 
         Ok(())
     }

@@ -17,6 +17,7 @@ pub enum TokenPreLoginFedAuthRequiredOption {
 }
 
 /// FedAuthInfo Token [2.2.7.12]
+#[derive(Debug)]
 pub struct TokenFedAuth {
     pub options: Vec<TokenFedAuthOption>,
 }

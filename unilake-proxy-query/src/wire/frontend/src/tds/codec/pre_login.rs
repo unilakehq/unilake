@@ -1,6 +1,7 @@
+use crate::codec::TdsWireResult;
 use crate::tds::codec::guid::reorder_bytes;
-use crate::utils::ReadAndAdvance;
-use crate::{tds::EncryptionLevel, Error, Result};
+use crate::{tds::EncryptionLevel, Error};
+use crate::{TdsMessage, TdsMessageType};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use uuid::Uuid;
 
@@ -63,8 +64,10 @@ impl PreloginMessage {
             nonce: None,
         }
     }
+}
 
-    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+impl TdsMessage for PreloginMessage {
+    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         // create headers
         let mut options = Vec::<(u8, u16, u16)>::with_capacity(3);
         options.push((PRELOGIN_VERSION, 6, 0));
@@ -137,7 +140,7 @@ impl PreloginMessage {
         Ok(())
     }
 
-    pub fn decode(src: &mut BytesMut) -> Result<Self> {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessageType> {
         let mut ret = PreloginMessage::new();
         let options = {
             let mut options = Vec::new();
@@ -250,7 +253,7 @@ impl PreloginMessage {
             }
         }
 
-        Ok(ret)
+        Ok(TdsMessageType::PreLogin(ret))
     }
 }
 

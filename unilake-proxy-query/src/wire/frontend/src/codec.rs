@@ -1,19 +1,18 @@
 use std::io::Error as IOError;
 use std::sync::Arc;
-use std::time::Duration;
 
 use derive_new::new;
 use futures::future::poll_fn;
 use futures::StreamExt;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
-use tokio::sync::RwLock;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
+use crate::error::TdsWireError;
 use crate::prot::{ServerInstance, SessionInfo, TdsWireHandlerFactory};
-use crate::TdsFrontendMessage;
+use crate::{TdsBackendResponse, TdsFrontendRequest, TdsMessageType, ALL_HEADERS_LEN_TX};
 
 #[non_exhaustive]
 #[derive(Debug, new)]
@@ -24,44 +23,39 @@ where
     pub session_info: S,
 }
 
-// todo(mrhamburg): give these a nice spot
-#[derive(thiserror::Error, Debug)]
-pub enum TdsWireError {}
-impl From<TdsWireError> for std::io::Error {
-    fn from(e: TdsWireError) -> Self {
-        std::io::Error::new(std::io::ErrorKind::Other, e)
-    }
-}
-impl From<std::io::Error> for TdsWireError {
-    fn from(value: std::io::Error) -> Self {
-        todo!()
-    }
-}
-
 impl<S> Decoder for TdsWireMessageServerCodec<S>
 where
     S: SessionInfo,
 {
-    type Item = TdsFrontendMessage;
+    type Item = TdsFrontendRequest;
     type Error = TdsWireError;
 
     fn decode(
         &mut self,
         src: &mut tokio_util::bytes::BytesMut,
     ) -> Result<Option<Self::Item>, Self::Error> {
-        match self.session_info.state() {
-            _ => TdsFrontendMessage::decode(src),
+        // sanity checks on network level are done here, fully decoding is done afterwards
+        if let Some(_header) = src.get(ALL_HEADERS_LEN_TX) {
+            // todo(mrhamburg): check if header is valid in size (no overflows)
+        } else {
+            // wait for more data
+            return Ok(None);
         }
+
+        // todo(mrhamburg): do other checks (client ip, firewall, etc..)
+
+        // do decoding
+        TdsFrontendRequest::decode(src)
     }
 }
 
-impl<S> Encoder<TdsFrontendMessage> for TdsWireMessageServerCodec<S>
+impl<S> Encoder<TdsBackendResponse> for TdsWireMessageServerCodec<S>
 where
     S: SessionInfo,
 {
     type Error = TdsWireError;
 
-    fn encode(&mut self, item: TdsFrontendMessage, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: TdsBackendResponse, dst: &mut BytesMut) -> Result<(), Self::Error> {
         item.encode(dst).map_err(Into::into)
     }
 }
@@ -69,6 +63,7 @@ where
 impl<T, S> SessionInfo for Framed<T, TdsWireMessageServerCodec<S>>
 where
     S: SessionInfo,
+    T: Send + Sync,
 {
     fn socket_addr(&self) -> std::net::SocketAddr {
         self.codec().session_info.socket_addr()
@@ -125,11 +120,19 @@ where
     fn get_client_nonce(&self) -> Option<[u8; 32]> {
         self.codec().session_info.get_client_nonce()
     }
+
+    fn increment_packet_id(&mut self) -> u8 {
+        self.codec_mut().session_info.increment_packet_id()
+    }
+
+    fn get_packet_id(&self) -> u8 {
+        self.codec().session_info.get_packet_id()
+    }
 }
 
 pub type TdsWireResult<T> = Result<T, TdsWireError>;
-async fn process_message<T, H, S>(
-    message: TdsFrontendMessage,
+async fn process_request<T, H, S>(
+    request: TdsFrontendRequest,
     socket: &mut Framed<T, TdsWireMessageServerCodec<S>>,
     handlers: Arc<H>,
 ) -> TdsWireResult<()>
@@ -139,25 +142,28 @@ where
     H: TdsWireHandlerFactory<S>,
 {
     // todo(mrhamburg): implement state machine
-    match socket.state() {
-        crate::prot::TdsSessionState::PreLoginSent => {
-            if let TdsFrontendMessage::PreLogin(p) = &message {
-                handlers.on_prelogin_request(&socket.codec().session_info, p);
+
+    for (_header, message) in request.messages {
+        match socket.state() {
+            crate::prot::TdsSessionState::PreLoginSent => {
+                if let TdsMessageType::PreLogin(p) = message {
+                    handlers.on_prelogin_request(socket, &p).await?;
+                }
+                todo!()
             }
-            todo!()
+            crate::prot::TdsSessionState::SSLNegotiationSent => todo!(),
+            crate::prot::TdsSessionState::CompleteLogin7Sent => todo!(),
+            crate::prot::TdsSessionState::Login7SPNEGOSent => todo!(),
+            crate::prot::TdsSessionState::Login7FederatedAuthenticationInformationRequestSent => {
+                todo!()
+            }
+            crate::prot::TdsSessionState::LoggedIn => todo!(),
+            crate::prot::TdsSessionState::RequestSent => todo!(),
+            crate::prot::TdsSessionState::AttentionSent => todo!(),
+            crate::prot::TdsSessionState::ReConnect => todo!(),
+            crate::prot::TdsSessionState::LogoutSent => todo!(),
+            crate::prot::TdsSessionState::Final => todo!(),
         }
-        crate::prot::TdsSessionState::SSLNegotiationSent => todo!(),
-        crate::prot::TdsSessionState::CompleteLogin7Sent => todo!(),
-        crate::prot::TdsSessionState::Login7SPNEGOSent => todo!(),
-        crate::prot::TdsSessionState::Login7FederatedAuthenticationInformationRequestSent => {
-            todo!()
-        }
-        crate::prot::TdsSessionState::LoggedIn => todo!(),
-        crate::prot::TdsSessionState::RequestSent => todo!(),
-        crate::prot::TdsSessionState::AttentionSent => todo!(),
-        crate::prot::TdsSessionState::ReConnect => todo!(),
-        crate::prot::TdsSessionState::LogoutSent => todo!(),
-        crate::prot::TdsSessionState::Final => todo!(),
     }
     todo!()
 }
@@ -195,7 +201,7 @@ where
         let mut socket = tcp_socket;
 
         while let Some(Ok(msg)) = socket.next().await {
-            if let Err(e) = process_message(msg, &mut socket, handler.clone()).await {
+            if let Err(e) = process_request(msg, &mut socket, handler.clone()).await {
                 todo!();
                 // todo(mrhamburg): error handling + close session on error
                 instance.decrement_session_counter().await;
