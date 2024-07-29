@@ -77,6 +77,7 @@ pub struct PacketHeader {
     pub window: u8,
 }
 
+// todo(mrhamburg): refactor as we are coordinating the id from the session
 impl PacketHeader {
     pub fn new(length: usize, id: u8) -> PacketHeader {
         assert!(length <= u16::MAX as usize);
@@ -154,12 +155,6 @@ impl PacketHeader {
             .map_err(|_| Error::Protocol("header: invalid packet status".into()))?;
 
         let length = src.get_u16_le();
-
-        tracing::debug!(
-            message = "Receiving packet",
-            message_type = ty.to_string(),
-            message_length = length
-        );
 
         Ok(PacketHeader {
             ty,

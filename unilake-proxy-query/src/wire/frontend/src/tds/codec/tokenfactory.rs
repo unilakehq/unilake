@@ -2,13 +2,13 @@ use std::cell::Cell;
 
 use crate::{
     codec::TdsWireResult, prot::SessionInfo, tds::codec::header, PacketHeader, PacketStatus,
-    TdsMessageType,
+    TdsMessage, TdsToken,
 };
 use tokio_util::bytes::{Buf, BytesMut};
 
 // Complete Frontend Request
 pub struct TdsFrontendRequest {
-    pub messages: Vec<(PacketHeader, TdsMessageType)>,
+    pub messages: Vec<(PacketHeader, TdsMessage)>,
 }
 
 impl TdsFrontendRequest {
@@ -17,8 +17,13 @@ impl TdsFrontendRequest {
         // todo(mrhamburg): add error handling here as well (without unwrap)
         let mut messages = Vec::new();
         while buf.has_remaining() {
-            let header = header::PacketHeader::decode(buf).unwrap();
-            messages.push((header, TdsMessageType::decode(buf, header.ty)?));
+            let header = header::PacketHeader::decode(buf)?;
+            tracing::debug!(
+                message = "Receiving packet",
+                message_type = header.ty.to_string(),
+                message_length = header.length
+            );
+            messages.push((header, TdsMessage::decode(buf, header.ty)?));
             if header.status == PacketStatus::EndOfMessage {
                 break;
             }
@@ -29,7 +34,7 @@ impl TdsFrontendRequest {
 
 pub struct TdsBackendResponse {
     pub header: Cell<Option<header::PacketHeader>>,
-    pub messages: Vec<TdsMessageType>,
+    pub messages: Vec<TdsMessage>,
 }
 
 impl TdsBackendResponse {
@@ -42,9 +47,13 @@ impl TdsBackendResponse {
         }
     }
 
-    pub fn add_message(mut self, message: TdsMessageType) -> Self {
+    pub fn add_message(mut self, message: TdsMessage) -> Self {
         self.messages.push(message);
         self
+    }
+
+    pub fn add_token(mut self, token: TdsToken) -> Self {
+        todo!()
     }
 
     pub fn encode(&self, buf: &mut BytesMut) -> TdsWireResult<()> {

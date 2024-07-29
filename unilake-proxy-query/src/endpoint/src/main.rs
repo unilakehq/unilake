@@ -7,6 +7,7 @@ use tokio::net::TcpListener;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use unilake_wire_frontend::codec::{process_socket, TdsWireResult};
+use unilake_wire_frontend::error::TdsWireError;
 use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
@@ -62,10 +63,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         &self,
         socket_addr: &std::net::SocketAddr,
         instance_info: &ServerInstance,
-    ) -> Result<
-        unilake_wire_frontend::prot::DefaultSession,
-        unilake_wire_frontend::codec::TdsWireError,
-    > {
+    ) -> Result<unilake_wire_frontend::prot::DefaultSession, TdsWireError> {
         tracing::info!("New session for: {}", socket_addr);
         Ok(DefaultSession::new(
             socket_addr.clone(),
@@ -85,22 +83,21 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
     where
         C: SessionInfo + Sink<TdsBackendResponse>,
     {
+        let server_context = client.tds_server_context();
         let encryption = ServerContext::encryption_response(
             client.tds_server_context().as_ref(),
             msg.encryption,
         );
 
         let mut token = PreloginMessage::new();
-        token.version = client.tds_server_context().server_version as u32;
+        token.version = server_context.server_version as u32;
         token.encryption = Some(encryption);
         token.mars = false;
         if let Some(nonce) = msg.nonce {
             client.set_client_nonce(nonce);
         }
 
-        if client.tds_server_context().fed_auth_options
-            == TokenPreLoginFedAuthRequiredOption::FedAuthRequired
-        {
+        if server_context.fed_auth_options == TokenPreLoginFedAuthRequiredOption::FedAuthRequired {
             token.fed_auth_required = match msg.fed_auth_required {
                 Some(a) => Some(a),
                 None => None,
@@ -111,9 +108,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
                 client.set_server_nonce(token.nonce.unwrap());
             }
         }
-
-        let result = TdsBackendResponse::new(client, client);
-        client.send(result);
+        println!("Sending prelogin response: {:?}", token);
         Ok(())
     }
 

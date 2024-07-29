@@ -1,4 +1,6 @@
-use crate::{codec::TdsWireResult, utils::ReadAndAdvance, Error, TdsMessage, TdsMessageType};
+use crate::{
+    codec::TdsWireResult, utils::ReadAndAdvance, Error, TdsMessage, TdsMessageCodec, TdsWireError,
+};
 use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
@@ -252,7 +254,7 @@ impl LoginMessage {
     }
 }
 
-impl TdsMessage for LoginMessage {
+impl TdsMessageCodec for LoginMessage {
     #[rustfmt::skip]
     fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>
     {
@@ -414,14 +416,14 @@ impl TdsMessage for LoginMessage {
     }
 
     #[rustfmt::skip]
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessageType>
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage>
     {
         // For decoding the clientid: https://docs.rs/mac_address/latest/src/mac_address/lib.rs.html#167
         let mut ret = Self::new();
 
         let length = src.get_u32_le();
         if length > 128 * 1024 {
-            return Err(Error::new(ErrorKind::InvalidData, "Login message too long"));
+            return Err(TdsWireError::Protocol("Login message too long".to_string()));
         }
 
         ret.tds_version = FeatureLevel::try_from(src.get_u32_le()).expect("Cannot parse feature level");
@@ -441,34 +443,34 @@ impl TdsMessage for LoginMessage {
         options.push((VariableProperty::HostName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options, 128*2){
             // HostName, too long
-            return Err(Error::new(ErrorKind::InvalidData, "HostName too long"));
+            return Err(TdsWireError::Protocol("HostName too long".to_string()));
         }
         options.push((VariableProperty::UserName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options, 128*2) {
             // UserName, too long
-            return Err(Error::new(ErrorKind::InvalidData, "UserName too long"));
+            return Err(TdsWireError::Protocol("UserName too long".to_string()));
         }
         options.push((VariableProperty::Password, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // Password, too long
-            return Err(Error::new(ErrorKind::InvalidData, "Password too long"));
+            return Err(TdsWireError::Protocol("Password too long".to_string()));
         }
         options.push((VariableProperty::ApplicationName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // ApplicationName, too long
-            return Err(Error::new(ErrorKind::InvalidData, "ApplicationName too long"));
+            return Err(TdsWireError::Protocol("ApplicationName too long".to_string()));
         }
         options.push((VariableProperty::ServerName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // ServerName, too long
-            return Err(Error::new(ErrorKind::InvalidData, "ServerName too long"));
+            return Err(TdsWireError::Protocol("ServerName too long".to_string()));
         }
 
         if ret.option_flags_3.contains(OptionFlag3::ExtensionUsed) {
             options.push((VariableProperty::FeatureExt, src.get_u16_le() as usize, src.get_u16_le() as usize));
             if !validate_length(&options,255) {
                 // FeatureExt, too long
-                return Err(Error::new(ErrorKind::InvalidData, "FeatureExt too long"));
+                return Err(TdsWireError::Protocol("FeatureExt too long".to_string()));
             }
         } else {
             src.get_u16_le();
@@ -477,17 +479,17 @@ impl TdsMessage for LoginMessage {
         options.push((VariableProperty::LibraryName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // LibraryName, too long
-            return Err(Error::new(ErrorKind::InvalidData, "LibraryName too long"));
+            return Err(TdsWireError::Protocol("LibraryName too long".to_string()));
         }
         options.push((VariableProperty::Language, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // Language, too long
-            return Err(Error::new(ErrorKind::InvalidData, "Language too long"));
+            return Err(TdsWireError::Protocol("Language too long".to_string()));
         }
         options.push((VariableProperty::Database, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // Database, too long
-            return Err(Error::new(ErrorKind::InvalidData, "Database too long"));
+            return Err(TdsWireError::Protocol("Database too long".to_string()));
         }
 
         let (_, client_id) =  src.read_and_advance(6);
@@ -496,12 +498,12 @@ impl TdsMessage for LoginMessage {
         options.push((VariableProperty::AttachedDatabaseFile, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,260*2) {
             // AttachedDatabaseFile, too long
-            return Err(Error::new(ErrorKind::InvalidData, "AttachedDatabaseFile too long"));
+            return Err(TdsWireError::Protocol("AttachedDatabaseFile too long".to_string()));
         }
         options.push((VariableProperty::ChangePassword, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options,128*2) {
             // ChangePassword, too long
-            return Err(Error::new(ErrorKind::InvalidData, "ChangePassword too long"));
+            return Err(TdsWireError::Protocol("ChangePassword too long".to_string()));
         }
 
         let sspi_length = src.get_u32_le();
@@ -542,7 +544,7 @@ impl TdsMessage for LoginMessage {
                     if *length == 65535 {
                         if sspi_length > 0 {
                             // We don't know how to handle SSPI packets that exceed TDS packet size
-                            return Err(Error::new(ErrorKind::InvalidData, "Long SSPI blobs are not supported yet"));
+                            return Err(TdsWireError::Protocol("Long SSPI blobs are not supported yet".to_string()));
                         }
                     }
 
@@ -586,7 +588,7 @@ impl TdsMessage for LoginMessage {
                             } else if remaining == 0 {
                                 None
                             } else {
-                                return Err(Error::new(ErrorKind::InvalidData, "Invalid fed_auth_echo"));
+                                return Err(TdsWireError::Protocol("Invalid fed_auth_echo".to_string()));
                             };
 
                             ret.fed_auth_ext = Some(FedAuthExt{
@@ -625,7 +627,7 @@ impl TdsMessage for LoginMessage {
             current_offset += length;
         }
 
-        Ok(TdsMessageType::Login(ret))
+        Ok(TdsMessage::Login(ret))
     }
 }
 
@@ -635,7 +637,7 @@ mod tests {
 
     use crate::tds::codec::login::FedAuthExt;
     use crate::{LoginMessage, OptionFlag3};
-    use crate::{TdsMessage, TdsMessageType};
+    use crate::{TdsMessage, TdsMessageCodec};
 
     #[test]
     fn login_message_round_trip() {
@@ -657,7 +659,7 @@ mod tests {
         let result = LoginMessage::decode(&mut buff).unwrap();
 
         // assert
-        if let TdsMessageType::Login(result) = result {
+        if let TdsMessage::Login(result) = result {
             assert_eq!(input, result);
         } else {
             panic!("unexpected message type: {:?}", result);
@@ -699,6 +701,10 @@ mod tests {
         let result = LoginMessage::decode(&mut buff).unwrap();
 
         // assert
-        assert_eq!(input, result);
+        if let TdsMessage::Login(result) = result {
+            assert_eq!(input, result);
+        } else {
+            panic!("unexpected message type: {:?}", result);
+        }
     }
 }

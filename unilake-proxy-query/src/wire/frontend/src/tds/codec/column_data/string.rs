@@ -20,11 +20,12 @@ pub(crate) fn decode(
             let collation = collation.as_ref().unwrap();
             let encoder = collation.encoding()?;
 
-            let s: String = encoder
-                .decode(buf.as_ref(), DecoderTrap::Strict)
-                .map_err(Error::Encoding)?;
+            todo!("fix this")
+            // let s: String = encoder
+            //     .decode(buf.as_ref(), DecoderTrap::Strict)
+            //     .map_err(Error::Encoding)?;
 
-            Ok(Some(s.into()))
+            // Ok(Some(s.into()))
         }
         // UTF-16
         (Some(buf), _) => {

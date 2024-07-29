@@ -73,7 +73,10 @@ pub trait SessionInfo: Send + Sync {
     fn set_server_nonce(&mut self, nonce: [u8; 32]);
     fn get_server_nonce(&self) -> Option<[u8; 32]>;
 
+    /// Get the next packet ID in the sequence of request and response packets
     fn increment_packet_id(&mut self) -> u8;
+
+    /// Get the current packet ID in the sequence of request and response packets
     fn get_packet_id(&self) -> u8;
 }
 

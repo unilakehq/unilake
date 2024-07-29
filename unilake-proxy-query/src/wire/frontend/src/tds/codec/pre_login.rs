@@ -1,7 +1,7 @@
 use crate::codec::TdsWireResult;
 use crate::tds::codec::guid::reorder_bytes;
 use crate::{tds::EncryptionLevel, Error};
-use crate::{TdsMessage, TdsMessageType};
+use crate::{TdsMessage, TdsMessageCodec};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use uuid::Uuid;
 
@@ -66,7 +66,7 @@ impl PreloginMessage {
     }
 }
 
-impl TdsMessage for PreloginMessage {
+impl TdsMessageCodec for PreloginMessage {
     fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         // create headers
         let mut options = Vec::<(u8, u16, u16)>::with_capacity(3);
@@ -140,7 +140,7 @@ impl TdsMessage for PreloginMessage {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessageType> {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage> {
         let mut ret = PreloginMessage::new();
         let options = {
             let mut options = Vec::new();
@@ -243,7 +243,7 @@ impl TdsMessage for PreloginMessage {
                 }
                 // nonce
                 PRELOGIN_NONCEOPT => {
-                    let mut data = [0u8; 32];
+                    let data = [0u8; 32];
                     src.get(0..data.len());
                     src.advance(data.len());
                     ret.nonce = Some(data);
@@ -253,7 +253,7 @@ impl TdsMessage for PreloginMessage {
             }
         }
 
-        Ok(TdsMessageType::PreLogin(ret))
+        Ok(TdsMessage::PreLogin(ret))
     }
 }
 
@@ -262,7 +262,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn prelogin_roundtrip() -> Result<()> {
+    fn prelogin_roundtrip() -> TdsWireResult<()> {
         let input = PreloginMessage::new();
 
         // arrange
@@ -275,13 +275,16 @@ mod tests {
         let result = PreloginMessage::decode(&mut src).unwrap();
 
         // assert
-        assert_eq!(input.version, result.version);
-        assert_eq!(input.sub_build, result.sub_build);
-        assert_eq!(input.mars, result.mars);
-        assert_eq!(input.thread_id, result.thread_id);
-        assert_eq!(input.fed_auth_required, result.fed_auth_required);
-        assert_eq!(input.encryption, result.encryption);
-
+        if let TdsMessage::PreLogin(result) = result {
+            assert_eq!(input.version, result.version);
+            assert_eq!(input.sub_build, result.sub_build);
+            assert_eq!(input.mars, result.mars);
+            assert_eq!(input.thread_id, result.thread_id);
+            assert_eq!(input.fed_auth_required, result.fed_auth_required);
+            assert_eq!(input.encryption, result.encryption);
+        } else {
+            panic!("unexpected message type: {:?}", result);
+        }
         Ok(())
     }
 }

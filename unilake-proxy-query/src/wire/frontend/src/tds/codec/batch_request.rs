@@ -1,7 +1,7 @@
 use crate::codec::TdsWireResult;
 use crate::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::utils::ReadAndAdvance;
-use crate::{Error, TdsMessage, TdsMessageType, TokenError};
+use crate::{Error, TdsMessage, TdsMessageCodec, TokenError};
 use byteorder::{ByteOrder, LittleEndian};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
@@ -12,8 +12,8 @@ pub struct BatchRequest {
     transaction_descriptor: Vec<u8>,
 }
 
-impl TdsMessage for BatchRequest {
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessageType> {
+impl TdsMessageCodec for BatchRequest {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage> {
         let _headers = {
             let mut headers = Vec::with_capacity(2);
             headers.push(src.get_u32_le());
@@ -52,7 +52,7 @@ impl TdsMessage for BatchRequest {
 
         let query_text = String::from_utf16_lossy(&qtx[..]);
 
-        Ok(TdsMessageType::BatchRequest(BatchRequest {
+        Ok(TdsMessage::BatchRequest(BatchRequest {
             queries: query_text,
             transaction_descriptor: tx_descriptor,
         }))
@@ -79,12 +79,12 @@ mod tests {
     use crate::tds::codec::batch_request::BatchRequest;
     use crate::Result;
     use crate::TdsMessage;
-    use crate::TdsMessageType;
+    use crate::TdsMessageCodec;
     use tokio_util::bytes::BytesMut;
 
     #[test]
     fn encode_decode_batchrequest() -> Result<()> {
-        let mut input = BatchRequest {
+        let input = BatchRequest {
             queries: String::from(
                 "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
             ),
@@ -101,7 +101,7 @@ mod tests {
         let result = BatchRequest::decode(&mut buff).unwrap();
 
         // assert
-        if let TdsMessageType::BatchRequest(result) = result {
+        if let TdsMessage::BatchRequest(result) = result {
             assert_eq!(result.queries, input.queries);
         } else {
             panic!("unexpected message type: {:?}", result);

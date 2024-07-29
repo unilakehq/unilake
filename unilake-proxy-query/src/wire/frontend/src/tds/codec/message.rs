@@ -1,14 +1,13 @@
 use tokio_util::bytes::BytesMut;
 
 use crate::{
-    codec::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TdsTokenCodec, TdsTokenType,
-    TokenFedAuth,
+    codec::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TdsTokenType, TokenFedAuth,
 };
 
-use super::batch_request::BatchRequest;
+use super::{batch_request::BatchRequest, rpc_request};
 
 #[derive(Debug)]
-pub enum TdsMessageType {
+pub enum TdsMessage {
     PreLogin(PreloginMessage),
     Login(LoginMessage),
     Response(Option<Vec<TdsTokenType>>),
@@ -18,13 +17,13 @@ pub enum TdsMessageType {
     RemoteProcedureCall,
 }
 
-impl TdsMessageType {
-    pub fn decode(buf: &mut BytesMut, packet_type: PacketType) -> TdsWireResult<TdsMessageType> {
+impl TdsMessage {
+    pub fn decode(buf: &mut BytesMut, packet_type: PacketType) -> TdsWireResult<TdsMessage> {
         // 2.2.1 Client Messages
         match packet_type {
             PacketType::PreLogin => PreloginMessage::decode(buf),
             PacketType::SQLBatch => BatchRequest::decode(buf),
-            PacketType::PreTDSv7Login => todo!(),
+            PacketType::PreTDSv7Login => PreloginMessage::decode(buf),
             PacketType::TDSv7Login => LoginMessage::decode(buf),
             PacketType::FederatedAuthenticationInfo => todo!(),
             PacketType::BulkLoad => todo!(),
@@ -39,10 +38,10 @@ impl TdsMessageType {
     pub fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         // 2.2.2 Server Messages
         match self {
-            TdsMessageType::PreLogin(p) => p.encode(dst)?,
-            TdsMessageType::Login(l) => l.encode(dst)?,
-            TdsMessageType::Response(r) => todo!(),
-            TdsMessageType::BatchRequest(b) => b.encode(dst)?,
+            TdsMessage::PreLogin(p) => p.encode(dst)?,
+            TdsMessage::Login(l) => l.encode(dst)?,
+            TdsMessage::Response(r) => todo!(),
+            TdsMessage::BatchRequest(b) => b.encode(dst)?,
             // _ => TdsWireError::new("Unknown message type").into(),
             _ => unimplemented!("unknown message type"),
         }
@@ -50,11 +49,8 @@ impl TdsMessageType {
     }
 }
 
-pub trait TdsMessage
-where
-    Self: Sized,
-{
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessageType>
+pub trait TdsMessageCodec {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage>
     where
         Self: Sized;
     fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>;

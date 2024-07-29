@@ -12,7 +12,10 @@ use tokio_util::codec::{Decoder, Encoder, Framed};
 
 use crate::error::TdsWireError;
 use crate::prot::{ServerInstance, SessionInfo, TdsWireHandlerFactory};
-use crate::{TdsBackendResponse, TdsFrontendRequest, TdsMessageType, ALL_HEADERS_LEN_TX};
+use crate::{
+    PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage, ALL_HEADERS_LEN_TX,
+    MAX_PACKET_SIZE,
+};
 
 #[non_exhaustive]
 #[derive(Debug, new)]
@@ -35,14 +38,20 @@ where
         src: &mut tokio_util::bytes::BytesMut,
     ) -> Result<Option<Self::Item>, Self::Error> {
         // sanity checks on network level are done here, fully decoding is done afterwards
-        if let Some(_header) = src.get(ALL_HEADERS_LEN_TX) {
-            // todo(mrhamburg): check if header is valid in size (no overflows)
+        if let Some(header) = src.get(..ALL_HEADERS_LEN_TX) {
+            // check if header is correct and as expected
+            let mut buff = BytesMut::from(header);
+            let header = PacketHeader::decode(&mut buff)?;
+            // check header length compared to a defined maximum
+            if header.length as usize > MAX_PACKET_SIZE || src.len() > MAX_PACKET_SIZE {
+                return Err(TdsWireError::Protocol(
+                    "Invalid packet size, too large".to_string(),
+                ));
+            }
         } else {
             // wait for more data
             return Ok(None);
         }
-
-        // todo(mrhamburg): do other checks (client ip, firewall, etc..)
 
         // do decoding
         TdsFrontendRequest::decode(src)
@@ -102,7 +111,7 @@ where
     }
 
     fn tds_server_context(&self) -> Arc<crate::tds::server_context::ServerContext> {
-        todo!()
+        self.codec().session_info.tds_server_context().clone()
     }
 
     fn set_server_nonce(&mut self, nonce: [u8; 32]) {
@@ -146,7 +155,7 @@ where
     for (_header, message) in request.messages {
         match socket.state() {
             crate::prot::TdsSessionState::PreLoginSent => {
-                if let TdsMessageType::PreLogin(p) = message {
+                if let TdsMessage::PreLogin(p) = message {
                     handlers.on_prelogin_request(socket, &p).await?;
                 }
                 todo!()
