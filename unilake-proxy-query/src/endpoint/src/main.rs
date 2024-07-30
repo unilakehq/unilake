@@ -6,13 +6,14 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use unilake_wire_frontend::codec::{process_socket, TdsWireResult};
-use unilake_wire_frontend::error::TdsWireError;
+use unilake_wire_frontend::codec::process_socket;
+use unilake_wire_frontend::error::{TdsWireError, TdsWireResult};
 use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
 use unilake_wire_frontend::tds::codec::{
-    PreloginMessage, TdsBackendResponse, TokenPreLoginFedAuthRequiredOption,
+    LoginMessage, PacketType, PreloginMessage, TdsBackendResponse,
+    TokenPreLoginFedAuthRequiredOption,
 };
 use unilake_wire_frontend::tds::server_context::ServerContext;
 
@@ -81,7 +82,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         msg: &PreloginMessage,
     ) -> TdsWireResult<()>
     where
-        C: SessionInfo + Sink<TdsBackendResponse>,
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
     {
         let server_context = client.tds_server_context();
         let encryption = ServerContext::encryption_response(
@@ -108,12 +109,22 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
                 client.set_server_nonce(token.nonce.unwrap());
             }
         }
-        println!("Sending prelogin response: {:?}", token);
+        let msg = TdsBackendResponse::new(client).add_message(
+            unilake_wire_frontend::tds::codec::TdsMessage::PreLogin(token),
+        );
+        client.feed(msg).await;
+
         Ok(())
     }
 
-    fn on_login7_request(&self, session: &unilake_wire_frontend::prot::DefaultSession) {
-        todo!()
+    async fn on_login7_request<C>(&self, client: &mut C, msg: &LoginMessage) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        if let Some(ref dbname) = msg.db_name {
+            tracing::info!("Login request for database: {}", dbname);
+        }
+        Ok(())
     }
 
     fn on_federated_authentication_token_message(

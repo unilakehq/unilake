@@ -45,6 +45,9 @@ impl From<TdsWireError> for std::io::Error {
 }
 impl From<std::io::Error> for TdsWireError {
     fn from(value: std::io::Error) -> Self {
+        println!(" Error occurred: {}", value);
         todo!()
     }
 }
+
+pub type TdsWireResult<T> = Result<T, TdsWireError>;

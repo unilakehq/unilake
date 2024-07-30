@@ -1,5 +1,6 @@
-use crate::codec::TdsWireResult;
+use crate::error::TdsWireResult;
 use crate::tds::codec::guid::reorder_bytes;
+use crate::utils::ReadAndAdvance;
 use crate::{tds::EncryptionLevel, Error};
 use crate::{TdsMessage, TdsMessageCodec};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
@@ -225,9 +226,13 @@ impl TdsMessageCodec for PreloginMessage {
                 // activity id
                 PRELOGIN_TRACEID => {
                     // Data is a Guid, 16 bytes and ordered the wrong way around than Uuid.
-                    let mut data = [0u8; 16];
-                    src.get(0..data.len());
-                    src.advance(data.len());
+                    let (length, data) = src.read_and_advance(16);
+                    if length < 16 {
+                        return Err(Error::Protocol(
+                            format!("invalid trace length: {}", length).into(),
+                        ));
+                    }
+                    let mut data: [u8; 16] = data.try_into().unwrap();
                     reorder_bytes(&mut data);
 
                     ret.activity_id = Some(ActivityId {
@@ -243,10 +248,13 @@ impl TdsMessageCodec for PreloginMessage {
                 }
                 // nonce
                 PRELOGIN_NONCEOPT => {
-                    let data = [0u8; 32];
-                    src.get(0..data.len());
-                    src.advance(data.len());
-                    ret.nonce = Some(data);
+                    let (length, data) = src.read_and_advance(32);
+                    if length != 32 {
+                        return Err(Error::Protocol(
+                            format!("invalid nonce length: {}", length).into(),
+                        ));
+                    }
+                    ret.nonce = Some(data.try_into().unwrap());
                     decode_offset_initial += 32;
                 }
                 _ => panic!("unsupported pre-login token: {}", token),

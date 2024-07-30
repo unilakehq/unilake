@@ -77,13 +77,12 @@ pub struct PacketHeader {
     pub window: u8,
 }
 
-// todo(mrhamburg): refactor as we are coordinating the id from the session
 impl PacketHeader {
     pub fn new(length: usize, id: u8) -> PacketHeader {
         assert!(length <= u16::MAX as usize);
         PacketHeader {
-            ty: PacketType::TDSv7Login,
-            status: PacketStatus::ResetConnection,
+            ty: PacketType::TabularResult,
+            status: PacketStatus::EndOfMessage,
             length: length as u16,
             spid: 0,
             id,
@@ -91,35 +90,11 @@ impl PacketHeader {
         }
     }
 
-    pub fn rpc(id: u8) -> Self {
+    pub fn result() -> Self {
         Self {
-            ty: PacketType::Rpc,
-            status: PacketStatus::NormalMessage,
-            ..Self::new(0, id)
-        }
-    }
-
-    pub fn pre_login(id: u8) -> Self {
-        Self {
-            ty: PacketType::PreLogin,
+            ty: PacketType::TabularResult,
             status: PacketStatus::EndOfMessage,
-            ..Self::new(0, id)
-        }
-    }
-
-    pub fn login(id: u8) -> Self {
-        Self {
-            ty: PacketType::TDSv7Login,
-            status: PacketStatus::EndOfMessage,
-            ..Self::new(0, id)
-        }
-    }
-
-    pub fn batch(id: u8) -> Self {
-        Self {
-            ty: PacketType::SQLBatch,
-            status: PacketStatus::NormalMessage,
-            ..Self::new(0, id)
+            ..Self::new(0, 0)
         }
     }
 
@@ -137,8 +112,8 @@ impl PacketHeader {
 
         dst.put_u8(self.ty as u8);
         dst.put_u8(self.status as u8);
-        dst.put_u16_le(self.length);
-        dst.put_u16_le(self.spid);
+        dst.put_u16(self.length);
+        dst.put_u16(self.spid);
         dst.put_u8(self.id);
         dst.put_u8(self.window);
 
@@ -154,15 +129,45 @@ impl PacketHeader {
         let status = PacketStatus::try_from(src.get_u8())
             .map_err(|_| Error::Protocol("header: invalid packet status".into()))?;
 
-        let length = src.get_u16_le();
+        let length = src.get_u16();
 
         Ok(PacketHeader {
             ty,
             status,
             length,
-            spid: src.get_u16_le(),
+            spid: src.get_u16(),
             id: src.get_u8(),
             window: src.get_u8(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tokio_util::bytes::BytesMut;
+
+    use crate::{PacketHeader, PacketStatus, PacketType};
+
+    const RAW_BYTES: [u8; 8] = [0x12, 0x01, 0x00, 0x2f, 0x00, 0x00, 0x01, 0x00];
+
+    #[test]
+    fn header_raw_decode() {
+        let mut bytes = BytesMut::from(&RAW_BYTES[..]);
+        let header = PacketHeader::decode(&mut bytes).unwrap();
+
+        assert_eq!(header.length, 47);
+        assert_eq!(header.id, 1);
+        assert_eq!(header.window, 0);
+        assert_eq!(header.spid, 0);
+        assert_eq!(header.status, PacketStatus::EndOfMessage);
+        assert_eq!(header.ty, PacketType::PreLogin);
+    }
+
+    #[test]
+    fn header_raw_encode() {
+        let mut bytes = BytesMut::from(&RAW_BYTES[..]);
+        let header = PacketHeader::decode(&mut bytes).unwrap();
+        PacketHeader::encode(&header, &mut bytes).unwrap();
+        assert_eq!(RAW_BYTES.to_vec(), bytes.to_vec());
     }
 }

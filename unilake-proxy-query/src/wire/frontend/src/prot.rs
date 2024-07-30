@@ -1,6 +1,7 @@
 use crate::{
-    codec::TdsWireResult, error::TdsWireError, tds::server_context::ServerContext, PreloginMessage,
-    TdsBackendResponse,
+    error::{TdsWireError, TdsWireResult},
+    tds::server_context::ServerContext,
+    LoginMessage, PreloginMessage, TdsBackendResponse,
 };
 use async_trait::async_trait;
 use futures::Sink;
@@ -13,26 +14,28 @@ use tokio::{
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
     #[default]
-    /// Sent Initial PRELOGIN Packet State
-    PreLoginSent,
-    /// Sent TLS/SSL Negotiation Packet State
-    SSLNegotiationSent,
-    /// Sent LOGIN7 Record with Complete Authentication Token state
-    CompleteLogin7Sent,
-    /// Sent LOGIN7 Record with SPNEGO Packet State
-    Login7SPNEGOSent,
-    /// Sent LOGIN7 Record with Authentication information request.
-    Login7FederatedAuthenticationInformationRequestSent,
+    /// Initial State
+    Initial,
+    /// Received Initial PRELOGIN Packet State
+    PreLoginProcessed,
+    /// Received TLS/SSL Negotiation Packet State
+    SSLNegotiationProcessed,
+    /// Received LOGIN7 Record with Complete Authentication Token state
+    CompleteLogin7Processed,
+    /// Received LOGIN7 Record with SPNEGO Packet State
+    Login7SPNEGOProcessed,
+    /// Received LOGIN7 Record with Authentication information request.
+    Login7FederatedAuthenticationInformationRequestProcessed,
     /// Logged In State
     LoggedIn,
-    /// Sent Client Request State
-    RequestSent,
-    /// Sent Attention State
-    AttentionSent,
+    /// Received Client Request State
+    RequestReceived,
+    /// Received Attention State
+    AttentionReceived,
     /// Indicates that a connection was re-routed to a different SQL Server and transport needs to be re-established
     ReConnect,
-    /// Sent a final notification to the TDS Server
-    LogoutSent,
+    /// Received a final notification to the TDS Server
+    LogoutProcessed,
     /// Final State
     Final,
 }
@@ -214,7 +217,9 @@ where
         C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when login request arrives
-    fn on_login7_request(&self, session: &S);
+    async fn on_login7_request<C>(&self, client: &mut C, msg: &LoginMessage) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the

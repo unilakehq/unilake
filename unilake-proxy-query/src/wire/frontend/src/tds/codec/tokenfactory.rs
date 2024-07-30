@@ -1,8 +1,8 @@
 use std::cell::Cell;
 
 use crate::{
-    codec::TdsWireResult, prot::SessionInfo, tds::codec::header, PacketHeader, PacketStatus,
-    TdsMessage, TdsToken,
+    error::TdsWireResult, prot::SessionInfo, tds::codec::header, PacketHeader, PacketStatus,
+    TdsMessage, ALL_HEADERS_LEN_TX,
 };
 use tokio_util::bytes::{Buf, BytesMut};
 
@@ -13,8 +13,6 @@ pub struct TdsFrontendRequest {
 
 impl TdsFrontendRequest {
     pub fn decode(buf: &mut BytesMut) -> TdsWireResult<Option<Self>> {
-        // todo(mrhamburg): improve error handling here! (no unwrap)
-        // todo(mrhamburg): add error handling here as well (without unwrap)
         let mut messages = Vec::new();
         while buf.has_remaining() {
             let header = header::PacketHeader::decode(buf)?;
@@ -23,7 +21,13 @@ impl TdsFrontendRequest {
                 message_type = header.ty.to_string(),
                 message_length = header.length
             );
-            messages.push((header, TdsMessage::decode(buf, header.ty)?));
+
+            // ignore packets with status "IgnoreEvent"
+            if header.status != PacketStatus::IgnoreEvent {
+                messages.push((header, TdsMessage::decode(buf, header.ty)?));
+            }
+
+            // no need to proceed with EOM messages
             if header.status == PacketStatus::EndOfMessage {
                 break;
             }
@@ -32,15 +36,15 @@ impl TdsFrontendRequest {
     }
 }
 
+#[derive(Debug)]
 pub struct TdsBackendResponse {
     pub header: Cell<Option<header::PacketHeader>>,
     pub messages: Vec<TdsMessage>,
 }
 
 impl TdsBackendResponse {
-    pub fn new(mut packet_header: PacketHeader, session: &mut dyn SessionInfo) -> Self {
-        // todo(mrhamburg): implement logic, include incrementing packet_id and setting session_id
-        packet_header.id = session.increment_packet_id();
+    pub fn new(session: &mut dyn SessionInfo) -> Self {
+        let packet_header = PacketHeader::new(0, session.increment_packet_id());
         TdsBackendResponse {
             header: Cell::new(Some(packet_header)),
             messages: Vec::new(),
@@ -50,10 +54,6 @@ impl TdsBackendResponse {
     pub fn add_message(mut self, message: TdsMessage) -> Self {
         self.messages.push(message);
         self
-    }
-
-    pub fn add_token(mut self, token: TdsToken) -> Self {
-        todo!()
     }
 
     pub fn encode(&self, buf: &mut BytesMut) -> TdsWireResult<()> {
@@ -71,6 +71,8 @@ impl TdsBackendResponse {
         }
 
         header.length = result.len() as u16;
+        header.length += ALL_HEADERS_LEN_TX as u16;
+        header.encode(buf)?;
         buf.unsplit(result);
 
         Ok(())

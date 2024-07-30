@@ -3,15 +3,16 @@ use std::sync::Arc;
 
 use derive_new::new;
 use futures::future::poll_fn;
-use futures::StreamExt;
+use futures::{SinkExt, StreamExt};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
+use tracing::{debug, trace};
 
-use crate::error::TdsWireError;
-use crate::prot::{ServerInstance, SessionInfo, TdsWireHandlerFactory};
+use crate::error::{TdsWireError, TdsWireResult};
+use crate::prot::{ServerInstance, SessionInfo, TdsSessionState, TdsWireHandlerFactory};
 use crate::{
     PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage, ALL_HEADERS_LEN_TX,
     MAX_PACKET_SIZE,
@@ -54,7 +55,11 @@ where
         }
 
         // do decoding
-        TdsFrontendRequest::decode(src)
+        let result = TdsFrontendRequest::decode(src);
+        if let Err(ref e) = result {
+            tracing::error!("Error decoding message: {}", e);
+        }
+        result
     }
 }
 
@@ -139,7 +144,6 @@ where
     }
 }
 
-pub type TdsWireResult<T> = Result<T, TdsWireError>;
 async fn process_request<T, H, S>(
     request: TdsFrontendRequest,
     socket: &mut Framed<T, TdsWireMessageServerCodec<S>>,
@@ -151,30 +155,44 @@ where
     H: TdsWireHandlerFactory<S>,
 {
     // todo(mrhamburg): implement state machine
+    let incorrect_state_error = |expected: String| {
+        TdsWireError::Protocol(format!(
+            "Invalid session state, expected {expected} message"
+        ))
+    };
 
     for (_header, message) in request.messages {
         match socket.state() {
-            crate::prot::TdsSessionState::PreLoginSent => {
+            TdsSessionState::Initial => {
                 if let TdsMessage::PreLogin(p) = message {
                     handlers.on_prelogin_request(socket, &p).await?;
+                    socket.set_state(TdsSessionState::PreLoginProcessed);
+                } else {
+                    return Err(incorrect_state_error("PreLogin".to_string()));
                 }
-                todo!()
             }
-            crate::prot::TdsSessionState::SSLNegotiationSent => todo!(),
-            crate::prot::TdsSessionState::CompleteLogin7Sent => todo!(),
-            crate::prot::TdsSessionState::Login7SPNEGOSent => todo!(),
-            crate::prot::TdsSessionState::Login7FederatedAuthenticationInformationRequestSent => {
-                todo!()
+            TdsSessionState::PreLoginProcessed => {
+                if let TdsMessage::Login(l) = message {
+                    handlers.on_login7_request(socket, &l).await?;
+                    socket.set_state(TdsSessionState::CompleteLogin7Processed);
+                } else {
+                    return Err(incorrect_state_error("Login".to_string()));
+                }
             }
-            crate::prot::TdsSessionState::LoggedIn => todo!(),
-            crate::prot::TdsSessionState::RequestSent => todo!(),
-            crate::prot::TdsSessionState::AttentionSent => todo!(),
-            crate::prot::TdsSessionState::ReConnect => todo!(),
-            crate::prot::TdsSessionState::LogoutSent => todo!(),
-            crate::prot::TdsSessionState::Final => todo!(),
+            TdsSessionState::SSLNegotiationProcessed => todo!(),
+            TdsSessionState::CompleteLogin7Processed => todo!(),
+            TdsSessionState::Login7SPNEGOProcessed => todo!(),
+            TdsSessionState::Login7FederatedAuthenticationInformationRequestProcessed => todo!(),
+            TdsSessionState::LoggedIn => todo!(),
+            TdsSessionState::RequestReceived => todo!(),
+            TdsSessionState::AttentionReceived => todo!(),
+            TdsSessionState::ReConnect => todo!(),
+            TdsSessionState::LogoutProcessed => todo!(),
+            TdsSessionState::Final => todo!(),
         }
     }
-    todo!()
+    socket.flush().await;
+    Ok(())
 }
 
 pub async fn process_socket<H, S>(
@@ -211,6 +229,7 @@ where
 
         while let Some(Ok(msg)) = socket.next().await {
             if let Err(e) = process_request(msg, &mut socket, handler.clone()).await {
+                tracing::error!("Error processing request: {}", e);
                 todo!();
                 // todo(mrhamburg): error handling + close session on error
                 instance.decrement_session_counter().await;

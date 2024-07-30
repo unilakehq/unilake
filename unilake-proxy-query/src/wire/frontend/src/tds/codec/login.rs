@@ -1,12 +1,11 @@
 use crate::{
-    codec::TdsWireResult, utils::ReadAndAdvance, Error, TdsMessage, TdsMessageCodec, TdsWireError,
+    error::TdsWireResult, utils::ReadAndAdvance, Error, TdsMessage, TdsMessageCodec, TdsWireError,
 };
 use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
 use std::borrow::BorrowMut;
 use std::fmt::Debug;
-use std::io::ErrorKind;
 use std::ops::Index;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
@@ -143,12 +142,12 @@ pub(crate) const FED_AUTH_LIBRARY_SECURITYTOKEN: u8 = 0x01;
 // pub(crate) const FED_AUTH_LIBRARY_MSAL_USERNAME_PASSWORD: u8 = 0x01;
 // pub(crate) const FED_AUTH_LIBRARY_MSAL_INTEGRATED: u8 = 0x02;
 
-const FIXED_LEN: usize = 90;
+const FIXED_LEN: usize = 94;
 
 /// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/773a62b6-ee89-4c02-9e5e-344882630aac
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-struct FedAuthExt {
+pub struct FedAuthExt {
     fed_auth_echo: bool,
     fed_auth_token: String,
     nonce: Option<Vec<u8>>,
@@ -159,41 +158,41 @@ struct FedAuthExt {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct LoginMessage {
     /// the highest TDS version the client supports
-    tds_version: FeatureLevel,
+    pub tds_version: FeatureLevel,
     /// the requested packet size
-    packet_size: u32,
+    pub packet_size: u32,
     /// the version of the interface library
-    client_prog_ver: u32,
+    pub client_prog_ver: u32,
     /// the process id of the client application
-    client_pid: u32,
+    pub client_pid: u32,
     /// the connection id of the primary server
     /// (used when connecting to an "Always UP" backup server)
-    connection_id: u32,
-    option_flags_1: BitFlags<OptionFlag1>,
-    option_flags_2: BitFlags<OptionFlag2>,
+    pub connection_id: u32,
+    pub option_flags_1: BitFlags<OptionFlag1>,
+    pub option_flags_2: BitFlags<OptionFlag2>,
     /// flag included in option_flags_2
-    integrated_security: Option<Vec<u8>>,
-    type_flags: BitFlags<LoginTypeFlag>,
-    option_flags_3: BitFlags<OptionFlag3>,
-    client_timezone: i32,
-    client_lcid: u32,
-    hostname: String,
-    username: String,
-    password: String,
-    app_name: String,
-    server_name: String,
-    library_name: String,
-    language: String,
-    attached_database: String,
-    change_password: String,
+    pub integrated_security: Option<Vec<u8>>,
+    pub type_flags: BitFlags<LoginTypeFlag>,
+    pub option_flags_3: BitFlags<OptionFlag3>,
+    pub client_timezone: i32,
+    pub client_lcid: u32,
+    pub hostname: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub app_name: Option<String>,
+    pub server_name: Option<String>,
+    pub library_name: Option<String>,
+    pub language: Option<String>,
+    pub attached_database: Option<String>,
+    pub change_password: Option<String>,
     // Note, client_id is not actually being used, is for informational purposes only (no server actions based on it)
-    client_id: String,
+    pub client_id: Option<String>,
     /// the default database to connect to
-    db_name: String,
-    fed_auth_ext: Option<FedAuthExt>,
+    pub db_name: Option<String>,
+    pub fed_auth_ext: Option<FedAuthExt>,
 }
 
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(PartialEq)]
 enum VariableProperty {
     HostName,
     UserName,
@@ -218,29 +217,9 @@ impl LoginMessage {
             option_flags_1: OptionFlag1::UseDbNotify | OptionFlag1::InitDbFatal,
             option_flags_2: OptionFlag2::InitLangFatal | OptionFlag2::OdbcDriver,
             option_flags_3: BitFlags::from_flag(OptionFlag3::UnknownCollationHandling),
-            app_name: "tds_proxy".into(),
+            app_name: Option::from("tds_proxy".to_string()),
             ..Default::default()
         }
-    }
-
-    pub fn app_name(&mut self, name: &str) {
-        self.app_name = name.into();
-    }
-
-    pub fn db_name(&mut self, db_name: &str) {
-        self.db_name = db_name.into();
-    }
-
-    pub fn server_name(&mut self, server_name: &str) {
-        self.server_name = server_name.into();
-    }
-
-    pub fn user_name(&mut self, user_name: &str) {
-        self.username = user_name.into();
-    }
-
-    pub fn password(&mut self, password: &str) {
-        self.password = password.into();
     }
 
     pub fn aad_token(&mut self, token: String, fed_auth_echo: bool, nonce: Option<Vec<u8>>) {
@@ -258,17 +237,18 @@ impl TdsMessageCodec for LoginMessage {
     #[rustfmt::skip]
     fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>
     {
+        let get_length = |opt: &Option<String>| opt.as_ref().map_or(0, |s| s.len());
         let mut total_length = FIXED_LEN + // fixed packet length
-            self.hostname.len() +
-            self.username.len() +
-            self.password.len() +
-            self.app_name.len() +
-            self.server_name.len() +
-            self.library_name.len() +
-            self.language.len() +
-            self.db_name.len() +
-            self.attached_database.len() +
-            self.change_password.len() +
+            get_length(&self.hostname) +
+            get_length(&self.username) +
+            get_length(&self.password) +
+            get_length(&self.app_name) +
+            get_length(&self.server_name) +
+            get_length(&self.library_name) +
+            get_length(&self.language) +
+            get_length(&self.db_name) +
+            get_length(&self.attached_database) +
+            get_length(&self.change_password) +
             0 + // sspi, not needed
             0; // extensions
 
@@ -315,36 +295,36 @@ impl TdsMessageCodec for LoginMessage {
         dst.put_u32_le(self.client_lcid);
 
         // variable length data
-        let mut options = Vec::<(VariableProperty, usize, usize, Option<String>)>::with_capacity(13);
-        let get_position = |v: &Vec<(VariableProperty, usize, usize, Option<String>)>|
+        let mut options = Vec::<(VariableProperty, usize, usize, &Option<String>)>::with_capacity(13);
+        let get_position = |v: &Vec<(VariableProperty, usize, usize, &Option<String>)>|
             v.last().unwrap().1 + v.last().unwrap().2;
 
-        options.push((VariableProperty::HostName, FIXED_LEN, self.hostname.len()*2, Some(self.hostname.clone())));
-        options.push((VariableProperty::UserName, get_position(&options), self.username.len()*2, Some(self.username.clone())));
-        options.push((VariableProperty::Password, get_position(&options), self.password.len()*2, Some(self.password.clone())));
-        options.push((VariableProperty::ApplicationName, get_position(&options), self.app_name.len()*2, Some(self.app_name.clone())));
-        options.push((VariableProperty::ServerName, get_position(&options), self.server_name.len()*2, Some(self.server_name.clone())));
+        options.push((VariableProperty::HostName, FIXED_LEN, get_length(&self.hostname)*2, &self.hostname));
+        options.push((VariableProperty::UserName, get_position(&options), get_length(&self.username)*2, &self.username));
+        options.push((VariableProperty::Password, get_position(&options), get_length(&self.password)*2, &self.password));
+        options.push((VariableProperty::ApplicationName, get_position(&options), get_length(&self.app_name)*2, &self.app_name));
+        options.push((VariableProperty::ServerName, get_position(&options), get_length(&self.server_name)*2, &self.server_name));
 
         // check if we have extensions
         if self.option_flags_3.contains(OptionFlag3::ExtensionUsed) {
-            options.push((VariableProperty::FeatureExt, get_position(&options), 4, None));
+            options.push((VariableProperty::FeatureExt, get_position(&options), 4, &None));
         } else {
-            options.push((VariableProperty::Unused, get_position(&options), 0, None));
+            options.push((VariableProperty::Unused, get_position(&options), 0, &None));
         }
-        options.push((VariableProperty::LibraryName, get_position(&options), self.library_name.len()*2, Some(self.library_name.clone())));
-        options.push((VariableProperty::Language, get_position(&options), self.language.len()*2, Some(self.language.clone())));
-        options.push((VariableProperty::Database, get_position(&options), self.db_name.len()*2, Some(self.db_name.clone())));
+        options.push((VariableProperty::LibraryName, get_position(&options), get_length(&self.library_name)*2, &self.library_name));
+        options.push((VariableProperty::Language, get_position(&options), get_length(&self.language)*2, &self.language));
+        options.push((VariableProperty::Database, get_position(&options), get_length(&self.db_name)*2, &self.db_name));
 
         let last_position = get_position(&options);
-        options.push((VariableProperty::ClientId, 0, 0, None));
+        options.push((VariableProperty::ClientId, 0, 0, &None));
 
         if let Some(is) = &self.integrated_security {
-            options.push((VariableProperty::SSPI, last_position, is.len(), None));
+            options.push((VariableProperty::SSPI, last_position, is.len(), &None));
         } else {
-            options.push((VariableProperty::SSPI, last_position, 0, None));
+            options.push((VariableProperty::SSPI, last_position, 0, &None));
         }
-        options.push((VariableProperty::AttachedDatabaseFile, get_position(&options), self.attached_database.len()*2, Some(self.attached_database.clone())));
-        options.push((VariableProperty::ChangePassword, get_position(&options), self.change_password.len()*2, Some(self.change_password.clone())));
+        options.push((VariableProperty::AttachedDatabaseFile, get_position(&options), get_length(&self.attached_database)*2, &self.attached_database));
+        options.push((VariableProperty::ChangePassword, get_position(&options), get_length(&self.change_password)*2, &self.change_password));
 
         for (ty, position, length, _) in &options {
             match ty {
@@ -421,6 +401,7 @@ impl TdsMessageCodec for LoginMessage {
         // For decoding the clientid: https://docs.rs/mac_address/latest/src/mac_address/lib.rs.html#167
         let mut ret = Self::new();
 
+        // Decode Packet Header
         let length = src.get_u32_le();
         if length > 128 * 1024 {
             return Err(TdsWireError::Protocol("Login message too long".to_string()));
@@ -438,8 +419,9 @@ impl TdsMessageCodec for LoginMessage {
         ret.client_timezone = src.get_u32_le() as i32;
         ret.client_lcid = src.get_u32_le();
 
+        // Decode Lengths and Offsets
         let mut options = Vec::<(VariableProperty, usize, usize)>::with_capacity(13);
-        let validate_length = |v: &Vec<(VariableProperty, usize, usize)>, s: usize| v.last().unwrap().1 < s;
+        let validate_length = |v: &Vec<(VariableProperty, usize, usize)>, s: usize| v.last().unwrap().2 < s;
         options.push((VariableProperty::HostName, src.get_u16_le() as usize, src.get_u16_le() as usize));
         if !validate_length(&options, 128*2){
             // HostName, too long
@@ -492,7 +474,7 @@ impl TdsMessageCodec for LoginMessage {
             return Err(TdsWireError::Protocol("Database too long".to_string()));
         }
 
-        let (_, client_id) =  src.read_and_advance(6);
+        let (_, _client_id) =  src.read_and_advance(6);
 
         options.push((VariableProperty::SSPI, src.get_u16_le() as usize, src.get_u16_le() as usize));
         options.push((VariableProperty::AttachedDatabaseFile, src.get_u16_le() as usize, src.get_u16_le() as usize));
@@ -511,8 +493,12 @@ impl TdsMessageCodec for LoginMessage {
         let mut current_option = 0;
         let mut feature_ext_found = false;
 
+
+        // Decode options
+        // length is actually times 2
+        // which is also the case for the initial offset as they are a couple of bytes short but need to be counted as 2
         while current_option < options.len() {
-            let (property, length, offset) = &options[current_option];
+            let (property, offset, length) = &options[current_option];
 
             if *length == 0 {
                 current_option += 1;
@@ -521,38 +507,42 @@ impl TdsMessageCodec for LoginMessage {
 
             while current_offset < *offset {
                 src.get_u8();
+                src.get_u8();
                 current_offset += 1;
             }
 
+            // real length is x2 since we need 2 bytes for each read
+            let length = *length * 2;
+
             match property {
                 VariableProperty::Password | VariableProperty::ChangePassword => {
-                    let (_, buff) = src.read_and_advance(*length);
-                    for byte in buff.clone().iter_mut() {
+                    let (_, mut buff) = src.read_and_advance(length);
+
+                    for byte in buff.iter_mut() {
                         *byte = *byte ^ 0xA5;
                         *byte = (*byte << 4) & 0xf0 | (*byte >> 4) & 0x0f;
                     }
-                    // let buff = buff.chunks(2).map(LittleEndian::read_u16(&buff[..]) ).collect::<Vec<u16>>();
-                    panic!();
-                    // todo(mrhamburg) fix this
-                    // if *property == VariableProperty::Password {
-                    //     ret.password = Cow::from(String::from_utf16_lossy(&buff[..]));
-                    // }    else {
-                    //     ret.change_password = Cow::from(String::from_utf16_lossy(&buff[..]));
-                    // }
+
+                    let buff = buff.chunks(2).map(|buff| LittleEndian::read_u16(&buff[..]) ).collect::<Vec<_>>();
+                    if *property == VariableProperty::Password {
+                        ret.password = Option::from(String::from_utf16_lossy(&buff[..]));
+                    }    else {
+                        ret.change_password = Option::from(String::from_utf16_lossy(&buff[..]));
+                    }
                 }
                 VariableProperty::SSPI => {
-                    if *length == 65535 {
+                    if length/2 == 65535 {
                         if sspi_length > 0 {
                             // We don't know how to handle SSPI packets that exceed TDS packet size
                             return Err(TdsWireError::Protocol("Long SSPI blobs are not supported yet".to_string()));
                         }
                     }
 
-                    let (_, buff) = src.read_and_advance(*length);
+                    let (_, _) = src.read_and_advance(length);
                 }
                 VariableProperty::FeatureExt => {
                     if !feature_ext_found {
-                        let mut item = options[current_option].borrow_mut();
+                        let item = options[current_option].borrow_mut();
                         item.1 = src.get_u32_le() as usize;
                         feature_ext_found = true;
                         current_offset += 4;
@@ -600,11 +590,10 @@ impl TdsMessageCodec for LoginMessage {
                     }
                 }
                 _ => {
-                    let (_, buff) = src.read_and_advance(*length);
+                    let (_, buff) = src.read_and_advance(length);
 
-                    // todo(mrhamburg): improve on this
                     let buff = buff.chunks(2).map(|x| LittleEndian::read_u16(&x[..])).collect::<Vec<u16>>();
-                    let value = String::from_utf16_lossy(&buff[..]);
+                    let value = Option::from(String::from_utf16_lossy(&buff[..]));
 
                     match property {
                         VariableProperty::HostName => { ret.hostname = value; }
@@ -636,17 +625,36 @@ mod tests {
     use tokio_util::bytes::BytesMut;
 
     use crate::tds::codec::login::FedAuthExt;
-    use crate::{LoginMessage, OptionFlag3};
+    use crate::{LoginMessage, OptionFlag3, PacketHeader};
     use crate::{TdsMessage, TdsMessageCodec};
+
+    const RAW_BYTES: [u8; 234] = [
+        0x10, 0x01, 0x00, 0xea, 0x00, 0x00, 0x01, 0x00, 0xe2, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00,
+        0x74, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0xa0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5e,
+        0x00, 0x0c, 0x00, 0x76, 0x00, 0x08, 0x00, 0x86, 0x00, 0x08, 0x00, 0x96, 0x00, 0x06, 0x00,
+        0xa2, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb4, 0x00, 0x0a, 0x00, 0xc8, 0x00, 0x00,
+        0x00, 0xc8, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe2, 0x00, 0x00, 0x00,
+        0xe2, 0x00, 0x00, 0x00, 0xe2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0x6f,
+        0x00, 0x70, 0x00, 0x2d, 0x00, 0x6f, 0x00, 0x73, 0x00, 0x2d, 0x00, 0x6d, 0x00, 0x65, 0x00,
+        0x6e, 0x00, 0x6e, 0x00, 0x6f, 0x00, 0x75, 0x00, 0x73, 0x00, 0x65, 0x00, 0x72, 0x00, 0x6e,
+        0x00, 0x61, 0x00, 0x6d, 0x00, 0x65, 0x00, 0xa2, 0xa5, 0xb3, 0xa5, 0x92, 0xa5, 0x92, 0xa5,
+        0xd2, 0xa5, 0x53, 0xa5, 0x82, 0xa5, 0xe3, 0xa5, 0x73, 0x00, 0x71, 0x00, 0x6c, 0x00, 0x63,
+        0x00, 0x6d, 0x00, 0x64, 0x00, 0x6c, 0x00, 0x6f, 0x00, 0x63, 0x00, 0x61, 0x00, 0x6c, 0x00,
+        0x68, 0x00, 0x6f, 0x00, 0x73, 0x00, 0x74, 0x00, 0x67, 0x00, 0x6f, 0x00, 0x2d, 0x00, 0x6d,
+        0x00, 0x73, 0x00, 0x73, 0x00, 0x71, 0x00, 0x6c, 0x00, 0x64, 0x00, 0x62, 0x00, 0x64, 0x00,
+        0x61, 0x00, 0x74, 0x00, 0x61, 0x00, 0x62, 0x00, 0x61, 0x00, 0x73, 0x00, 0x65, 0x00, 0x5f,
+        0x00, 0x6e, 0x00, 0x61, 0x00, 0x6d, 0x00, 0x65, 0x00,
+    ];
 
     #[test]
     fn login_message_round_trip() {
         let mut input = LoginMessage::new();
-        input.db_name("fake-database-name");
-        input.app_name("fake-app-name");
-        input.server_name("fake-server-name");
-        input.user_name("fake-user-name");
-        input.password("fake-pw");
+        input.db_name = Option::from("fake-database-name".to_string());
+        input.app_name = Option::from("fake-app-name".to_string());
+        input.server_name = Option::from("fake-server-name".to_string());
+        input.username = Option::from("fake-user-name".to_string());
+        input.password = Option::from("fake-pw".to_string());
 
         // arrange
         let mut buff = BytesMut::new();
@@ -706,5 +714,32 @@ mod tests {
         } else {
             panic!("unexpected message type: {:?}", result);
         }
+    }
+
+    #[test]
+    fn login_message_raw_decode() {
+        let mut bytes = BytesMut::from(&RAW_BYTES[..]);
+        let header = PacketHeader::decode(&mut bytes).unwrap();
+        let message = LoginMessage::decode(&mut bytes).unwrap();
+        if let TdsMessage::Login(message) = message {
+            assert_eq!(header.length, 234);
+            assert_eq!(message.hostname.unwrap(), "pop-os-menno".to_string());
+            assert_eq!(message.username.unwrap(), "username".to_string());
+            assert_eq!(message.password.unwrap(), "password".to_string());
+            assert_eq!(message.app_name.unwrap(), "sqlcmd".to_string());
+            assert_eq!(message.server_name.unwrap(), "localhost".to_string());
+            assert_eq!(message.library_name.unwrap(), "go-mssqldb".to_string());
+            assert_eq!(message.db_name.unwrap(), "database_name".to_string());
+        } else {
+            panic!("unexpected message type: {:?}", message);
+        }
+    }
+
+    #[test]
+    fn login_message_raw_encode() {
+        let mut bytes = BytesMut::from(&RAW_BYTES[8..]);
+        let message = LoginMessage::decode(&mut bytes).unwrap();
+        message.encode(&mut bytes).unwrap();
+        assert_eq!(RAW_BYTES[8..].to_vec(), bytes.to_vec());
     }
 }

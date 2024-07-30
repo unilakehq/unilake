@@ -1,4 +1,4 @@
-use crate::codec::TdsWireResult;
+use crate::error::TdsWireResult;
 use crate::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::utils::ReadAndAdvance;
 use crate::{Error, TdsMessage, TdsMessageCodec, TokenError};

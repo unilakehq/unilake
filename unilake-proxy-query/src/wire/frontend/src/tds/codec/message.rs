@@ -1,10 +1,8 @@
-use tokio_util::bytes::BytesMut;
-
+use super::batch_request::BatchRequest;
 use crate::{
-    codec::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TdsTokenType, TokenFedAuth,
+    error::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TdsTokenType, TokenFedAuth,
 };
-
-use super::{batch_request::BatchRequest, rpc_request};
+use tokio_util::bytes::BytesMut;
 
 #[derive(Debug)]
 pub enum TdsMessage {
@@ -38,14 +36,12 @@ impl TdsMessage {
     pub fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         // 2.2.2 Server Messages
         match self {
-            TdsMessage::PreLogin(p) => p.encode(dst)?,
-            TdsMessage::Login(l) => l.encode(dst)?,
-            TdsMessage::Response(r) => todo!(),
-            TdsMessage::BatchRequest(b) => b.encode(dst)?,
+            TdsMessage::PreLogin(p) => p.encode(dst),
+            TdsMessage::Login(l) => l.encode(dst),
+            TdsMessage::Response(_r) => todo!(),
             // _ => TdsWireError::new("Unknown message type").into(),
             _ => unimplemented!("unknown message type"),
         }
-        todo!()
     }
 }
 
