@@ -1,14 +1,12 @@
-use super::batch_request::BatchRequest;
-use crate::{
-    error::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TdsTokenType, TokenFedAuth,
-};
+use super::{batch_request::BatchRequest, ResponseMessage};
+use crate::{error::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TokenFedAuth};
 use tokio_util::bytes::BytesMut;
 
 #[derive(Debug)]
 pub enum TdsMessage {
     PreLogin(PreloginMessage),
     Login(LoginMessage),
-    Response(Option<Vec<TdsTokenType>>),
+    Response(ResponseMessage),
     BatchRequest(BatchRequest),
     FedAuth(TokenFedAuth),
     Attention,
@@ -38,7 +36,7 @@ impl TdsMessage {
         match self {
             TdsMessage::PreLogin(p) => p.encode(dst),
             TdsMessage::Login(l) => l.encode(dst),
-            TdsMessage::Response(_r) => todo!(),
+            TdsMessage::Response(r) => r.encode(dst),
             // _ => TdsWireError::new("Unknown message type").into(),
             _ => unimplemented!("unknown message type"),
         }
@@ -51,3 +49,19 @@ pub trait TdsMessageCodec {
         Self: Sized;
     fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>;
 }
+
+macro_rules! impl_into_tdsmessage {
+    ($t:ty, $tt:expr) => {
+        impl Into<TdsMessage> for $t {
+            fn into(self) -> TdsMessage {
+                $tt(self)
+            }
+        }
+    };
+}
+
+impl_into_tdsmessage!(PreloginMessage, TdsMessage::PreLogin);
+impl_into_tdsmessage!(LoginMessage, TdsMessage::Login);
+impl_into_tdsmessage!(ResponseMessage, TdsMessage::Response);
+impl_into_tdsmessage!(BatchRequest, TdsMessage::BatchRequest);
+impl_into_tdsmessage!(TokenFedAuth, TdsMessage::FedAuth);

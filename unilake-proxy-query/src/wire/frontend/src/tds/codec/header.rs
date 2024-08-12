@@ -102,11 +102,10 @@ impl PacketHeader {
         self.status = status;
     }
 
-    #[instrument(skip(dst))]
     pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         tracing::debug!(
             message = "Sending packet",
-            message_type = self.ty as u8,
+            message_type = self.ty.to_string(),
             message_length = self.length
         );
 

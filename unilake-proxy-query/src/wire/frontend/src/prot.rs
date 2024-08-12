@@ -5,7 +5,14 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Sink;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    net::SocketAddr,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 use tokio::{
     sync::{RwLock, Semaphore},
     time::sleep,
@@ -57,10 +64,16 @@ pub trait SessionInfo: Send + Sync {
     fn packet_size(&self) -> usize;
 
     /// User name if SQL authentication is used
-    fn sql_user_id(&self) -> &str;
+    fn get_sql_user_id(&self) -> &str;
+
+    /// User name if SQL authentication is used
+    fn set_sql_user_id(&mut self, sql_user_id: String);
 
     /// Database to which connection is established
-    fn database(&self) -> &str;
+    fn get_database(&self) -> &str;
+
+    /// Set database to which connection is established
+    fn set_database(&mut self, db_name: String);
 
     /// TDS version of the communication
     fn tds_version(&self) -> &str;
@@ -71,9 +84,16 @@ pub trait SessionInfo: Send + Sync {
     /// Counter of connection reset requests for this session
     fn connection_reset_request_count(&self) -> usize;
 
+    /// Set client nonce for SQL authentication
     fn set_client_nonce(&mut self, nonce: [u8; 32]);
+
+    /// Get client nonce for SQL authentication
     fn get_client_nonce(&self) -> Option<[u8; 32]>;
+
+    /// Set server nonce for SQL authentication
     fn set_server_nonce(&mut self, nonce: [u8; 32]);
+
+    /// Get server nonce for SQL authentication
     fn get_server_nonce(&self) -> Option<[u8; 32]>;
 
     /// Get the next packet ID in the sequence of request and response packets
@@ -127,11 +147,11 @@ impl SessionInfo for DefaultSession {
         todo!()
     }
 
-    fn sql_user_id(&self) -> &str {
+    fn get_sql_user_id(&self) -> &str {
         todo!()
     }
 
-    fn database(&self) -> &str {
+    fn get_database(&self) -> &str {
         todo!()
     }
 
@@ -166,6 +186,14 @@ impl SessionInfo for DefaultSession {
 
     fn get_packet_id(&self) -> u8 {
         self.packet_id
+    }
+
+    fn set_sql_user_id(&mut self, sql_user_id: String) {
+        self.sql_user_id = Some(sql_user_id);
+    }
+
+    fn set_database(&mut self, db_name: String) {
+        self.database = Some(db_name);
     }
 }
 
@@ -266,7 +294,7 @@ pub struct ServerInstance {
 pub struct InnerServerInstance {
     receiver: Option<tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>>,
     sender: Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>>,
-    active_sessions: RwLock<usize>,
+    active_sessions: AtomicUsize,
     semaphore: Arc<Semaphore>,
 }
 
@@ -279,7 +307,7 @@ impl ServerInstance {
             inner: InnerServerInstance {
                 receiver: Some(receiver),
                 sender: Arc::new(sender),
-                active_sessions: RwLock::new(0),
+                active_sessions: AtomicUsize::new(0),
                 semaphore: Arc::new(Semaphore::new(4)),
             },
         }
@@ -326,30 +354,30 @@ impl ServerInstance {
         )
     }
 
-    pub async fn active_session_count(&self) -> usize {
-        self.inner.active_sessions.read().await.clone()
+    pub fn active_session_count(&self) -> usize {
+        self.inner.active_sessions.load(Ordering::Relaxed)
     }
 
-    pub async fn increment_session_counter(&self) -> usize {
-        let mut count = self.inner.active_sessions.write().await;
-        *count += 1;
+    pub fn increment_session_counter(&self) -> usize {
+        self.inner.active_sessions.fetch_add(1, Ordering::Relaxed);
+        let count = self.active_session_count();
         tracing::info!(
             message = "Increased session count",
-            current_count = *count,
+            current_count = count,
             max_count = self.session_limit()
         );
-        *count
+        count
     }
 
-    pub async fn decrement_session_counter(&self) -> usize {
-        let mut count = self.inner.active_sessions.write().await;
-        *count -= 1;
+    pub fn decrement_session_counter(&self) -> usize {
+        self.inner.active_sessions.fetch_sub(1, Ordering::Relaxed);
+        let count = self.active_session_count();
         tracing::info!(
             message = "Decreased session count",
-            current_count = *count,
+            current_count = count,
             max_count = self.session_limit()
         );
-        *count
+        count
     }
 
     pub fn session_limit(&self) -> usize {

@@ -1,9 +1,9 @@
-use std::cell::Cell;
-
+use super::{ResponseMessage, TdsToken};
 use crate::{
     error::TdsWireResult, prot::SessionInfo, tds::codec::header, PacketHeader, PacketStatus,
     TdsMessage, ALL_HEADERS_LEN_TX,
 };
+use std::cell::Cell;
 use tokio_util::bytes::{Buf, BytesMut};
 
 // Complete Frontend Request
@@ -43,19 +43,41 @@ pub struct TdsBackendResponse {
 }
 
 impl TdsBackendResponse {
+    /// Create a new backend response
     pub fn new(session: &mut dyn SessionInfo) -> Self {
-        let packet_header = PacketHeader::new(0, session.increment_packet_id());
         TdsBackendResponse {
-            header: Cell::new(Some(packet_header)),
+            header: Cell::new(Some(Self::get_next_header(session))),
             messages: Vec::new(),
         }
     }
 
-    pub fn add_message(mut self, message: TdsMessage) -> Self {
-        self.messages.push(message);
-        self
+    fn get_next_header(session: &mut dyn SessionInfo) -> PacketHeader {
+        PacketHeader::new(0, session.increment_packet_id())
     }
 
+    /// Add new message to the response
+    pub fn add_message<T>(&mut self, message: T)
+    where
+        T: Into<TdsMessage>,
+    {
+        self.messages.push(message.into());
+    }
+
+    /// Add new token to the latest response message, if no response message exists a new one is created
+    pub fn add_token<T>(&mut self, token: T)
+    where
+        T: Into<TdsToken>,
+    {
+        if let Some(TdsMessage::Response(r)) = self.messages.last_mut() {
+            r.add_token(token.into());
+        } else {
+            let mut r = ResponseMessage::new();
+            r.add_token(token.into());
+            self.add_message(r);
+        }
+    }
+
+    /// Encode the response into a byte buffer
     pub fn encode(&self, buf: &mut BytesMut) -> TdsWireResult<()> {
         let header = self.header.replace(None);
         if header.is_none() {

@@ -21,7 +21,8 @@ pub fn read_b_varchar(src: &mut BytesMut) -> Result<String> {
         for _ in 0..lines {
             chars.push(src.get_u8());
         }
-        Ok(String::from_utf8(chars).unwrap())
+        let result = String::from_utf8(chars);
+        Ok(result.unwrap())
     } else {
         Ok(String::new())
     };

@@ -12,7 +12,8 @@ use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
 use unilake_wire_frontend::tds::codec::{
-    LoginMessage, PacketType, PreloginMessage, TdsBackendResponse,
+    DoneStatus, EnvChangeType, FeatureAck, LoginMessage, OptionFlag2, PacketType, PreloginMessage,
+    TdsBackendResponse, TdsMessage, TdsToken, TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck,
     TokenPreLoginFedAuthRequiredOption,
 };
 use unilake_wire_frontend::tds::server_context::ServerContext;
@@ -90,28 +91,27 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
             msg.encryption,
         );
 
-        let mut token = PreloginMessage::new();
-        token.version = server_context.server_version as u32;
-        token.encryption = Some(encryption);
-        token.mars = false;
+        let mut prelogin_msg = PreloginMessage::new();
+        prelogin_msg.version = server_context.server_version as u32;
+        prelogin_msg.encryption = Some(encryption);
+        prelogin_msg.mars = false;
         if let Some(nonce) = msg.nonce {
             client.set_client_nonce(nonce);
         }
 
         if server_context.fed_auth_options == TokenPreLoginFedAuthRequiredOption::FedAuthRequired {
-            token.fed_auth_required = match msg.fed_auth_required {
+            prelogin_msg.fed_auth_required = match msg.fed_auth_required {
                 Some(a) => Some(a),
                 None => None,
             };
 
             if msg.nonce.is_some() {
-                token.nonce = Some(unilake_wire_frontend::utils::generate_random_nonce());
-                client.set_server_nonce(token.nonce.unwrap());
+                prelogin_msg.nonce = Some(unilake_wire_frontend::utils::generate_random_nonce());
+                client.set_server_nonce(prelogin_msg.nonce.unwrap());
             }
         }
-        let msg = TdsBackendResponse::new(client).add_message(
-            unilake_wire_frontend::tds::codec::TdsMessage::PreLogin(token),
-        );
+        let mut msg = TdsBackendResponse::new(client);
+        msg.add_message(prelogin_msg);
         client.feed(msg).await;
 
         Ok(())
@@ -124,6 +124,85 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         if let Some(ref dbname) = msg.db_name {
             tracing::info!("Login request for database: {}", dbname);
         }
+
+        // let database = msg.db_name.unwrap_or("main".to_string());
+        let database = "".to_string();
+        client.set_database(database);
+
+        // todo(mrhamburg): check for tds version
+
+        // check for fed auth
+        if let Some(ref fed_auth_ext) = msg.fed_auth_ext {
+            todo!()
+        }
+
+        // check for sspi (which we do not support)
+        if msg.option_flags_2.contains(OptionFlag2::IntegratedSecurity) {
+            return Err(TdsWireError::Protocol(
+                "SSPI authentication is not supported".to_string(),
+            ));
+        }
+
+        // expect this to be basic auth, which will be implemented later
+        // todo(mrhamburg): implement authentication
+        if let Some(ref client_id) = msg.client_id {
+            client.set_sql_user_id(client_id.clone());
+        }
+
+        // Create return message
+        let mut msg = TdsBackendResponse::new(client);
+
+        // set database change
+        msg.add_token(TokenEnvChange::new_database_change(
+            "".to_string(),
+            "".to_string(),
+        ));
+        // msg.add_token(TokenInfo::new(
+        //     5701,
+        //     2,
+        //     0,
+        //     format!("Changed database context to '{}'", database),
+        //     client.tds_server_context().server_name.clone(),
+        // ));
+
+        // set collation change
+        msg.add_token(TokenEnvChange::new_collation_change("".to_string()));
+
+        // set language change
+        // msg.add_token(TokenEnvChange::new_language_change("".to_string()));
+        msg.add_token(TokenInfo::new(
+            5703,
+            1,
+            0,
+            format!("Changed language to '{}'", ""),
+            "".to_string(),
+        ));
+
+        // set packet size change
+        msg.add_token(TokenEnvChange::new_packet_size_change(
+            "".to_string(),
+            "".to_string(),
+        ));
+        msg.add_token(TokenInfo::new(
+            5702,
+            1,
+            0,
+            format!("Changed packet size to {}", ""),
+            "".to_string(),
+        ));
+
+        // create login ack token
+        // msg.add_token(TokenLoginAck::new(client.tds_server_context().server_name));
+
+        // check if session recovery is enabled
+        if client.tds_server_context().session_recovery_enabled {
+            // msg.add_token(FeatureAck::new_session_recovery());
+        }
+
+        // create done token
+        msg.add_token(TokenDone::new_final());
+
+        client.feed(msg).await;
         Ok(())
     }
 

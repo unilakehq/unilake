@@ -15,6 +15,7 @@ pub struct ServerContext {
     pub encryption_certificate: Option<Vec<u8>>,
     pub fed_auth_options: TokenPreLoginFedAuthRequiredOption,
     pub session_limit: usize,
+    pub session_recovery_enabled: bool,
     // todo(mrhamburg): this probably needs to go to session info and context
     // packet_id: u8,
     // transaction_desc: [u8; 8],
@@ -62,6 +63,7 @@ impl ServerContext {
             encryption_certificate: None,
             fed_auth_options: TokenPreLoginFedAuthRequiredOption::FedAuthNotRequired,
             session_limit: 1000,
+            session_recovery_enabled: false,
         }
     }
 

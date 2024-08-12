@@ -9,7 +9,6 @@ use tokio::net::TcpStream;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
-use tracing::{debug, trace};
 
 use crate::error::{TdsWireError, TdsWireResult};
 use crate::prot::{ServerInstance, SessionInfo, TdsSessionState, TdsWireHandlerFactory};
@@ -99,12 +98,12 @@ where
         self.codec().session_info.packet_size()
     }
 
-    fn sql_user_id(&self) -> &str {
-        self.codec().session_info.sql_user_id()
+    fn get_sql_user_id(&self) -> &str {
+        self.codec().session_info.get_sql_user_id()
     }
 
-    fn database(&self) -> &str {
-        self.codec().session_info.database()
+    fn get_database(&self) -> &str {
+        self.codec().session_info.get_database()
     }
 
     fn tds_version(&self) -> &str {
@@ -141,6 +140,14 @@ where
 
     fn get_packet_id(&self) -> u8 {
         self.codec().session_info.get_packet_id()
+    }
+
+    fn set_sql_user_id(&mut self, sql_user_id: String) {
+        self.codec_mut().session_info.set_sql_user_id(sql_user_id)
+    }
+
+    fn set_database(&mut self, db_name: String) {
+        self.codec_mut().session_info.set_database(db_name)
     }
 }
 
@@ -212,10 +219,10 @@ where
 
     let session_info = match session_info {
         Ok(s) => {
-            instance.increment_session_counter().await;
+            instance.increment_session_counter();
             s
         }
-        Err(e) => {
+        Err(_) => {
             // process_error(&mut socket, e).await?;
             return Ok(());
         }
@@ -230,12 +237,14 @@ where
         while let Some(Ok(msg)) = socket.next().await {
             if let Err(e) = process_request(msg, &mut socket, handler.clone()).await {
                 tracing::error!("Error processing request: {}", e);
-                todo!();
                 // todo(mrhamburg): error handling + close session on error
-                instance.decrement_session_counter().await;
                 // process_error(&mut socket, e).await?;
+                todo!()
             }
         }
+
+        // remove session
+        instance.decrement_session_counter();
     }
 
     Ok(())

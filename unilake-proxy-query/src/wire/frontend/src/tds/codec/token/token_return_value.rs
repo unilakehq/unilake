@@ -8,6 +8,7 @@ use tokio_util::bytes::{Buf, BufMut, BytesMut};
 /// the associated parameters might be defined as input or output (or "return") parameters.
 /// This token is used to send a description of the return parameter to the client. This token is
 /// also used to describe the value returned by a UDF when executed as an RPC.
+#[derive(Debug)]
 pub struct TokenReturnValue {
     pub param_ordinal: u16,
     pub param_name: String,

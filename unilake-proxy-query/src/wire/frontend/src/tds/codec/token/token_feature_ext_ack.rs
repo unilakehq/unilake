@@ -26,6 +26,12 @@ pub enum FeatureAck {
     Utf8Support(bool),
 }
 
+impl FeatureAck {
+    pub fn new_session_recovery() -> Self {
+        FeatureAck::SessionRecovery
+    }
+}
+
 impl TdsTokenCodec for TokenFeatureExtAck {
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let mut features = Vec::new();

@@ -20,6 +20,20 @@ pub struct TokenInfo {
     pub line: u32,
 }
 
+impl TokenInfo {
+    pub fn new(number: u32, state: u8, class: u8, message: String, server_name: String) -> Self {
+        TokenInfo {
+            number,
+            state,
+            class,
+            message,
+            server: server_name,
+            procedure: String::new(),
+            line: 0,
+        }
+    }
+}
+
 impl TdsTokenCodec for TokenInfo {
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let _length = src.get_u16_le();

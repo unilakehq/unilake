@@ -38,7 +38,7 @@ pub enum DoneStatus {
 
 impl TokenDone {
     /// DONE_SRVERROR. Used in place of DONE_ERROR when an error occurred on the current SQL statement, which is severe enough to require the result set, if any, to be discarded.
-    pub fn srv_error(cur_cmd: u16) -> Self {
+    pub fn new_srv_error(cur_cmd: u16) -> Self {
         TokenDone {
             status: BitFlags::from_flag(DoneStatus::SrvError),
             cur_cmd,
@@ -47,7 +47,7 @@ impl TokenDone {
     }
 
     /// Unknown
-    pub fn rpc_in_batch(cur_cmd: u16) -> Self {
+    pub fn new_rpc_in_batch(cur_cmd: u16) -> Self {
         TokenDone {
             status: BitFlags::from_flag(DoneStatus::RpcInBatch),
             cur_cmd,
@@ -56,7 +56,7 @@ impl TokenDone {
     }
 
     /// DONE_ATTN. The DONE message is a server acknowledgement of a client ATTENTION message.
-    pub fn attention(cur_cmd: u16) -> Self {
+    pub fn new_attention(cur_cmd: u16) -> Self {
         TokenDone {
             status: BitFlags::from_flag(DoneStatus::Attention),
             cur_cmd,
@@ -65,7 +65,7 @@ impl TokenDone {
     }
 
     /// DONE_COUNT. The DoneRowCount value is valid. This is used to distinguish between a valid value of 0 for DoneRowCount or just an initialized variable.
-    pub fn count(cur_cmd: u16, done_rows: u64) -> Self {
+    pub fn new_count(cur_cmd: u16, done_rows: u64) -> Self {
         TokenDone {
             status: BitFlags::from_flag(DoneStatus::Count),
             cur_cmd,
@@ -74,7 +74,7 @@ impl TokenDone {
     }
 
     /// DONE_INXACT. A transaction is in progress
-    pub fn inexact(cur_cmd: u16) -> Self {
+    pub fn new_inexact(cur_cmd: u16) -> Self {
         TokenDone {
             status: BitFlags::from_flag(DoneStatus::More),
             cur_cmd,
@@ -83,7 +83,7 @@ impl TokenDone {
     }
 
     /// DONE_ERROR. An error occurred on the current SQL statement. A preceding ERROR token SHOULD be sent when this bit is set.
-    pub fn error(cur_cmd: u16) -> Self {
+    pub fn new_error(cur_cmd: u16) -> Self {
         TokenDone {
             status: BitFlags::from_flag(DoneStatus::Error),
             cur_cmd,
@@ -92,7 +92,7 @@ impl TokenDone {
     }
 
     /// DONE_MORE. This DONE message is not the final DONE message in the response. Subsequent data streams to follow.
-    pub fn more(cur_cmd: u16) -> Self {
+    pub fn new_more(cur_cmd: u16) -> Self {
         TokenDone {
             status: BitFlags::from_flag(DoneStatus::More),
             cur_cmd,
@@ -101,12 +101,16 @@ impl TokenDone {
     }
 
     /// DONE_FINAL. This DONE is the final DONE in the request. Also contains the done_rows
-    pub fn done(cur_cmd: u16) -> Self {
+    pub fn new_done(cur_cmd: u16) -> Self {
         TokenDone {
             status: BitFlags::empty(),
             cur_cmd,
             done_rows: 0,
         }
+    }
+
+    pub fn new_final() -> Self {
+        Self::new_done(0)
     }
 
     pub fn is_final(&self) -> bool {
@@ -161,7 +165,7 @@ mod tests {
 
     #[test]
     fn encode_decode_token_done_attention() -> Result<()> {
-        let input = TokenDone::count(1, 127);
+        let input = TokenDone::new_count(1, 127);
 
         // arrange
         let mut buff = BytesMut::new();

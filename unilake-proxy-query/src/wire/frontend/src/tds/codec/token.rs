@@ -31,6 +31,7 @@ pub use token_type::*;
 use crate::Result;
 use tokio_util::bytes::BytesMut;
 
+#[derive(Debug)]
 pub enum TdsToken {
     Done(TokenDone),
     EnvChange(TokenEnvChange),
@@ -51,3 +52,25 @@ pub trait TdsTokenCodec {
     fn encode(&self, dst: &mut BytesMut) -> Result<()>;
     fn decode(src: &mut BytesMut) -> Result<TdsToken>;
 }
+
+macro_rules! impl_into_tdstoken {
+    ($t:ty, $tt:expr) => {
+        impl Into<TdsToken> for $t {
+            fn into(self) -> TdsToken {
+                $tt(self)
+            }
+        }
+    };
+}
+
+impl_into_tdstoken!(TokenInfo, TdsToken::Info);
+impl_into_tdstoken!(TokenDone, TdsToken::Done);
+impl_into_tdstoken!(TokenEnvChange, TdsToken::EnvChange);
+impl_into_tdstoken!(TokenError, TdsToken::Error);
+impl_into_tdstoken!(TokenOrder, TdsToken::Order);
+impl_into_tdstoken!(TokenFeatureExtAck, TdsToken::FeatureExtAck);
+impl_into_tdstoken!(TokenColMetaData, TdsToken::ColMetaData);
+impl_into_tdstoken!(TokenFedAuth, TdsToken::FedAuth);
+impl_into_tdstoken!(TokenLoginAck, TdsToken::LoginAck);
+impl_into_tdstoken!(TokenReturnValue, TdsToken::ReturnValue);
+impl_into_tdstoken!(TokenSspi, TdsToken::Sspi);

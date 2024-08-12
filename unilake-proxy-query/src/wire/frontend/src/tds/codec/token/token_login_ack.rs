@@ -20,6 +20,17 @@ pub struct TokenLoginAck {
     pub version: u32,
 }
 
+impl TokenLoginAck {
+    pub fn new(server_name: String) -> Self {
+        TokenLoginAck {
+            interface: 1, // SQL_TSQL
+            tds_version: FeatureLevel::SqlServerV7,
+            prog_name: server_name,
+            version: 80017100, // 8.0.171.0
+        }
+    }
+}
+
 impl TdsTokenCodec for TokenLoginAck {
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let _length = src.get_u16_le();

@@ -44,6 +44,7 @@ pub enum TokenEnvChange {
     CharacterSet(String, String),
     RealTimeLogShipping(String, String),
     PacketSize(String, String),
+    SqlCollation(String),
     BeginTransaction([u8; 8]),
     CommitTransaction,
     RollbackTransaction,
@@ -51,6 +52,21 @@ pub enum TokenEnvChange {
     Routing { host: String, port: u16 },
     ChangeMirror(String),
     Ignored(EnvChangeType),
+}
+
+impl TokenEnvChange {
+    pub fn new_database_change(from: String, to: String) -> Self {
+        Self::Database(from, to)
+    }
+    pub fn new_language_change(from: String, to: String) -> Self {
+        Self::Language(from, to)
+    }
+    pub fn new_collation_change(to: String) -> Self {
+        Self::SqlCollation(to)
+    }
+    pub fn new_packet_size_change(from: String, to: String) -> Self {
+        Self::PacketSize(from, to)
+    }
 }
 
 impl TdsTokenCodec for TokenEnvChange {
@@ -172,6 +188,7 @@ impl TdsTokenCodec for TokenEnvChange {
                 // TODO: return error
                 todo!()
             }
+            _ => todo!(),
         }
 
         match self {
