@@ -152,7 +152,7 @@ impl SessionInfo for DefaultSession {
     }
 
     fn get_database(&self) -> &str {
-        todo!()
+        self.database.as_deref().unwrap_or("")
     }
 
     fn tds_version(&self) -> &str {

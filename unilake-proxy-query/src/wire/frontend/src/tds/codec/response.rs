@@ -1,4 +1,6 @@
-use tokio_util::bytes::Buf;
+use tokio_util::bytes::{Buf, BytesMut};
+
+use crate::error::TdsWireResult;
 
 use super::{
     TdsMessageCodec, TdsToken, TdsTokenCodec, TdsTokenType, TokenColMetaData, TokenDone,
@@ -18,6 +20,24 @@ impl ResponseMessage {
     pub fn add_token(&mut self, token: TdsToken) {
         self.tokens.push(token);
     }
+
+    fn inner_encode(token: &TdsToken, dst: &mut BytesMut) -> TdsWireResult<()> {
+        match token {
+            TdsToken::Done(token) => token.encode(dst),
+            TdsToken::EnvChange(token) => token.encode(dst),
+            TdsToken::Error(token) => token.encode(dst),
+            TdsToken::Info(token) => token.encode(dst),
+            TdsToken::Order(token) => token.encode(dst),
+            TdsToken::FeatureExtAck(token) => token.encode(dst),
+            TdsToken::ColMetaData(token) => token.encode(dst),
+            TdsToken::FedAuth(token) => token.encode(dst),
+            TdsToken::LoginAck(token) => token.encode(dst),
+            TdsToken::ReturnValue(token) => token.encode(dst),
+            // TdsToken::Sspi(token) => token.encode(dst),
+            // todo(mrhamburg): see where tokenrow needs lifetime operators and best
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl TdsMessageCodec for ResponseMessage {
@@ -30,6 +50,7 @@ impl TdsMessageCodec for ResponseMessage {
         let mut ret = ResponseMessage::new();
         while src.has_remaining() {
             // todo(mrhamburg): remove unwrap
+            // todo(mrhamburg): properly implement missing token types
             let token_type = TdsTokenType::try_from(src.get_u8()).unwrap();
 
             let token = match token_type {
@@ -49,7 +70,8 @@ impl TdsMessageCodec for ResponseMessage {
                 TdsTokenType::FeatureExtAck => todo!(),
                 TdsTokenType::FedAuthInfo => todo!(),
                 TdsTokenType::SessionState => todo!(),
-                _ => panic!("Unknown token type: {:?}", token_type),
+                TdsTokenType::ReturnStatus => todo!(),
+                TdsTokenType::ColInfo => todo!(),
             };
             ret.add_token(token);
         }
@@ -57,8 +79,11 @@ impl TdsMessageCodec for ResponseMessage {
         Ok(super::TdsMessage::Response(ret))
     }
 
-    fn encode(&self, dst: &mut tokio_util::bytes::BytesMut) -> crate::error::TdsWireResult<()> {
-        todo!()
+    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+        self.tokens
+            .iter()
+            .try_for_each(|token| Self::inner_encode(token, dst))?;
+        Ok(())
     }
 }
 
@@ -98,16 +123,29 @@ mod tests {
     ];
 
     #[test]
-    fn raw_encode() -> TdsWireResult<()> {
+    fn raw_decode_test() -> TdsWireResult<()> {
+        raw_decode().unwrap();
+        Ok(())
+    }
+
+    fn raw_decode() -> TdsWireResult<ResponseMessage> {
         let mut bytes = BytesMut::from(&RAW_BYTES[..]);
         let header = PacketHeader::decode(&mut bytes).unwrap();
         let message = ResponseMessage::decode(&mut bytes).unwrap();
         if let TdsMessage::Response(message) = message {
-            assert_eq!(header.length, 234);
-            assert_eq!(message.tokens.len(), 1);
+            assert_eq!(header.length, RAW_BYTES.len() as u16);
+            assert_eq!(message.tokens.len(), 8);
+            Ok(message)
         } else {
             panic!("unexpected message type: {:?}", message);
         }
+    }
+
+    #[test]
+    fn raw_encode_roundtrip() -> TdsWireResult<()> {
+        let sut = raw_decode().unwrap();
+        let mut bytes = BytesMut::new();
+        sut.encode(&mut bytes).unwrap();
         Ok(())
     }
 }

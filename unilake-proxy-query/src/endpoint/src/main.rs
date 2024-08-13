@@ -125,10 +125,6 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
             tracing::info!("Login request for database: {}", dbname);
         }
 
-        // let database = msg.db_name.unwrap_or("main".to_string());
-        let database = "".to_string();
-        client.set_database(database);
-
         // todo(mrhamburg): check for tds version
 
         // check for fed auth
@@ -150,49 +146,60 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         }
 
         // Create return message
-        let mut msg = TdsBackendResponse::new(client);
+        let mut return_msg = TdsBackendResponse::new(client);
 
         // set database change
-        msg.add_token(TokenEnvChange::new_database_change(
-            "".to_string(),
-            "".to_string(),
-        ));
-        // msg.add_token(TokenInfo::new(
+        // let old_database = client.get_database().to_string();
+        // let new_database = msg.db_name.clone().unwrap_or_else(|| "main".to_string());
+        // return_msg.add_token(TokenEnvChange::new_database_change(
+        //     new_database.clone(),
+        //     new_database.to_string(),
+        // ));
+        // return_msg.add_token(TokenInfo::new(
         //     5701,
         //     2,
         //     0,
-        //     format!("Changed database context to '{}'", database),
+        //     format!("Changed database context to '{}'", new_database.clone()),
         //     client.tds_server_context().server_name.clone(),
         // ));
+        // client.set_database(new_database);
 
         // set collation change
-        msg.add_token(TokenEnvChange::new_collation_change("".to_string()));
+        // return_msg.add_token(TokenEnvChange::new_collation_change(
+        //     "".to_string(),
+        //     "".to_string(),
+        // ));
 
         // set language change
-        // msg.add_token(TokenEnvChange::new_language_change("".to_string()));
-        msg.add_token(TokenInfo::new(
-            5703,
-            1,
-            0,
-            format!("Changed language to '{}'", ""),
-            "".to_string(),
-        ));
+        // return_msg.add_token(TokenEnvChange::new_language_change(
+        //     "".to_string(),
+        //     "".to_string(),
+        // ));
+        // return_msg.add_token(TokenInfo::new(
+        //     5703,
+        //     1,
+        //     0,
+        //     format!("Changed language to '{}'", ""),
+        //     "".to_string(),
+        // ));
 
         // set packet size change
-        msg.add_token(TokenEnvChange::new_packet_size_change(
-            "".to_string(),
-            "".to_string(),
-        ));
-        msg.add_token(TokenInfo::new(
-            5702,
-            1,
-            0,
-            format!("Changed packet size to {}", ""),
-            "".to_string(),
-        ));
+        // return_msg.add_token(TokenEnvChange::new_packet_size_change(
+        //     "4096".to_string(),
+        //     "4096".to_string(),
+        // ));
+        // return_msg.add_token(TokenInfo::new(
+        //     5702,
+        //     1,
+        //     0,
+        //     format!("Changed packet size to {}", "4096"),
+        //     "".to_string(),
+        // ));
 
         // create login ack token
-        // msg.add_token(TokenLoginAck::new(client.tds_server_context().server_name));
+        return_msg.add_token(TokenLoginAck::new(
+            client.tds_server_context().server_name.clone(),
+        ));
 
         // check if session recovery is enabled
         if client.tds_server_context().session_recovery_enabled {
@@ -200,9 +207,9 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         }
 
         // create done token
-        msg.add_token(TokenDone::new_final());
+        return_msg.add_token(TokenDone::new_final());
 
-        client.feed(msg).await;
+        client.feed(return_msg).await;
         Ok(())
     }
 

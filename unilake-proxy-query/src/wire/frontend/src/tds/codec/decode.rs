@@ -1,12 +1,13 @@
-use crate::Result;
+use crate::{utils::ReadAndAdvance, Result};
 use tokio_util::bytes::{Buf, BytesMut};
 
 pub fn read_us_varchar(src: &mut BytesMut) -> Result<String> {
-    let lines = src.get_u16_le();
+    let lines = src.get_u16_le() as usize * 2;
     return if lines > 0 {
-        let mut chars = Vec::with_capacity(lines as usize);
-        for _ in 0..lines {
-            chars.push(src.get_u8());
+        let (count, chars) = src.read_and_advance(lines);
+        if count != lines {
+            // todo(mrhamburg): Handle partial read
+            panic!("Expected {} bytes, but only {} were read", lines, count);
         }
         Ok(String::from_utf8(chars).unwrap())
     } else {
@@ -15,11 +16,12 @@ pub fn read_us_varchar(src: &mut BytesMut) -> Result<String> {
 }
 
 pub fn read_b_varchar(src: &mut BytesMut) -> Result<String> {
-    let lines = src.get_u8();
+    let lines = src.get_u8() as usize * 2;
     return if lines > 0 {
-        let mut chars = Vec::with_capacity(lines as usize);
-        for _ in 0..lines {
-            chars.push(src.get_u8());
+        let (count, chars) = src.read_and_advance(lines);
+        if count != lines {
+            // todo(mrhamburg): Handle partial read
+            panic!("Expected {} bytes, but only {} were read", lines, count);
         }
         let result = String::from_utf8(chars);
         Ok(result.unwrap())

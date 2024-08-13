@@ -38,7 +38,7 @@ impl TdsTokenCodec for TokenLoginAck {
         let interface = src.get_u8();
 
         let tds_version = FeatureLevel::try_from(src.get_u32())
-            .map_err(|_| Error::Protocol("Login ACK: Invalid TDS version".into()))?;
+            .map_err(|_| Error::Protocol("Login ACK: Invalid TDS version".to_string()))?;
 
         let prog_name = decode::read_b_varchar(src)?;
         let version = src.get_u32_le();
@@ -73,8 +73,24 @@ impl TdsTokenCodec for TokenLoginAck {
 
 #[cfg(test)]
 mod tests {
-    use crate::{FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenLoginAck};
+    use crate::{
+        error::TdsWireResult, FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType,
+        TokenLoginAck,
+    };
     use tokio_util::bytes::{Buf, BytesMut};
+
+    const RAW_BYTES: &[u8] = &[
+        0x0f, 0x00, 0x01, 0x70, 0x00, 0x00, 0x00, 0x05, 0x6c, 0x00, 0x6f, 0x00, 0x63, 0x00, 0x61,
+        0x00, 0x6c, 0x00, 0xcc, 0xf6, 0xc4, 0x04,
+    ];
+
+    #[test]
+    fn decode_raw() -> TdsWireResult<()> {
+        let mut bytes = BytesMut::from(&RAW_BYTES[..]);
+        let _messsage = TokenLoginAck::decode(&mut bytes)?;
+
+        Ok(())
+    }
 
     #[test]
     fn encode_decode_token_login_ack() -> Result<()> {

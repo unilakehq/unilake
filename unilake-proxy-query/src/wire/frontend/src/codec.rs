@@ -58,6 +58,15 @@ where
         if let Err(ref e) = result {
             tracing::error!("Error decoding message: {}", e);
         }
+
+        // check if all data has been consumed
+        if !src.is_empty() {
+            let msg = format!(
+                "Incomplete packet received or processed ({} remaining), closing connection",
+                src.len()
+            );
+            tracing::error!(msg);
+        }
         result
     }
 }
@@ -187,7 +196,9 @@ where
                 }
             }
             TdsSessionState::SSLNegotiationProcessed => todo!(),
-            TdsSessionState::CompleteLogin7Processed => todo!(),
+            TdsSessionState::CompleteLogin7Processed => {
+                tracing::info!("Processing request in CompleteLogin7Processed state");
+            }
             TdsSessionState::Login7SPNEGOProcessed => todo!(),
             TdsSessionState::Login7FederatedAuthenticationInformationRequestProcessed => todo!(),
             TdsSessionState::LoggedIn => todo!(),
@@ -198,7 +209,11 @@ where
             TdsSessionState::Final => todo!(),
         }
     }
-    socket.flush().await;
+    // todo(mrhamburg): improve this section
+    let result = socket.flush().await;
+    if result.is_err() {
+        panic!("Error flushing socket: {}", result.unwrap_err());
+    }
     Ok(())
 }
 

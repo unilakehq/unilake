@@ -1,8 +1,8 @@
 //TODO: fix unwraps in this file for proper error handling
-use crate::tds::codec::encode;
+use crate::tds::codec::{decode, encode};
 use crate::utils::ReadAndAdvance;
 use crate::{Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 use std::io::{Cursor, Read};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
@@ -35,6 +35,32 @@ uint_enum! {
     }
 }
 
+impl fmt::Display for EnvChangeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match &self {
+            EnvChangeType::Database => "Database",
+            EnvChangeType::Language => "Language",
+            EnvChangeType::CharacterSet => "CharacterSet",
+            EnvChangeType::PacketSize => "PacketSize",
+            EnvChangeType::UnicodeDataSortingLID => "UnicodeDataSortingLID",
+            EnvChangeType::UnicodeDataSortingCFL => "UnicodeDataSortingCFL",
+            EnvChangeType::SqlCollation => "SqlCollation",
+            EnvChangeType::BeginTransaction => "BeginTransaction",
+            EnvChangeType::CommitTransaction => "CommitTransaction",
+            EnvChangeType::RollbackTransaction => "RollbackTransaction",
+            EnvChangeType::EnlistDTCTransaction => "EnlistDTCTransaction",
+            EnvChangeType::DefectTransaction => "DefectTransaction",
+            EnvChangeType::Rtls => "Rtls",
+            EnvChangeType::PromoteTransaction => "PromoteTransaction",
+            EnvChangeType::TransactionManagerAddress => "TransactionManagerAddress",
+            EnvChangeType::TransactionEnded => "TransactionEnded",
+            EnvChangeType::ResetConnection => "ResetConnection",
+            EnvChangeType::UserName => "UserName",
+            EnvChangeType::Routing => "Routing",
+        })
+    }
+}
+
 /// Environment change token [2.2.7.9]
 /// A notification of an environment change (for example, database, language, and so on)
 #[derive(Debug)]
@@ -44,7 +70,7 @@ pub enum TokenEnvChange {
     CharacterSet(String, String),
     RealTimeLogShipping(String, String),
     PacketSize(String, String),
-    SqlCollation(String),
+    SqlCollation(String, String),
     BeginTransaction([u8; 8]),
     CommitTransaction,
     RollbackTransaction,
@@ -61,8 +87,8 @@ impl TokenEnvChange {
     pub fn new_language_change(from: String, to: String) -> Self {
         Self::Language(from, to)
     }
-    pub fn new_collation_change(to: String) -> Self {
-        Self::SqlCollation(to)
+    pub fn new_collation_change(from: String, to: String) -> Self {
+        Self::SqlCollation(from, to)
     }
     pub fn new_packet_size_change(from: String, to: String) -> Self {
         Self::PacketSize(from, to)
@@ -76,45 +102,24 @@ impl TdsTokenCodec for TokenEnvChange {
         // We read all the bytes now, due to whatever environment change tokens
         // we read, they might contain padding zeroes in the end we must
         // discard.
-        let (_, bytes) = src.read_and_advance(len);
-
-        let mut buf = Cursor::new(bytes);
+        let mut buf = src.split_to(len);
         let ty_byte = buf.get_u8();
-
         let ty = EnvChangeType::try_from(ty_byte)
             .map_err(|_| Error::Protocol(format!("invalid envchange type {:x}", ty_byte).into()))?;
 
         let token = match ty {
             EnvChangeType::Database | EnvChangeType::PacketSize => {
-                let len = buf.get_u8() as usize;
-                let mut bytes = vec![0; len];
-
-                for item in bytes.iter_mut().take(len) {
-                    *item = buf.get_u16_le();
-                }
-
-                let new_value = String::from_utf16(&bytes[..]).unwrap();
-
-                let len = buf.get_u8() as usize;
-                let mut bytes = vec![0; len];
-
-                for item in bytes.iter_mut().take(len) {
-                    *item = buf.get_u16_le();
-                }
-
-                let old_value = String::from_utf16(&bytes[..]).unwrap();
+                let new_value = decode::read_b_varchar(&mut buf)?;
+                let old_value = decode::read_b_varchar(&mut buf)?;
 
                 TokenEnvChange::Database(new_value, old_value)
-            }
-            EnvChangeType::SqlCollation => {
-                todo!("Not implemented, utf-8 encoding is supported by default since the backend only knows utf-8");
             }
             EnvChangeType::BeginTransaction | EnvChangeType::EnlistDTCTransaction => {
                 let len = buf.get_u8();
                 assert_eq!(len, 8);
 
                 let mut desc = [0; 8];
-                buf.read_exact(&mut desc);
+                buf.put_and_advance(&mut desc)?;
 
                 TokenEnvChange::BeginTransaction(desc)
             }
@@ -126,28 +131,12 @@ impl TdsTokenCodec for TokenEnvChange {
                 buf.get_u8(); // routing protocol, always 0 (tcp)
 
                 let port = buf.get_u16_le();
-
-                let len = buf.get_u16_le() as usize; // hostname string length
-                let mut bytes = vec![0; len];
-
-                for item in bytes.iter_mut().take(len) {
-                    *item = buf.get_u16_le();
-                }
-
-                let host = String::from_utf16(&bytes[..]).unwrap();
+                let host = decode::read_us_varchar(&mut buf)?;
 
                 TokenEnvChange::Routing { host, port }
             }
             EnvChangeType::Rtls => {
-                let len = buf.get_u8() as usize;
-                let mut bytes = vec![0; len];
-
-                for item in bytes.iter_mut().take(len) {
-                    *item = buf.get_u16_le();
-                }
-
-                let mirror_name = String::from_utf16(&bytes[..]).unwrap();
-
+                let mirror_name = decode::read_b_varchar(&mut buf)?;
                 TokenEnvChange::ChangeMirror(mirror_name)
             }
             ty => TokenEnvChange::Ignored(ty),
@@ -181,29 +170,30 @@ impl TdsTokenCodec for TokenEnvChange {
                 buff.put_u8(EnvChangeType::DefectTransaction as u8)
             }
             TokenEnvChange::Routing { .. } => buff.put_u8(EnvChangeType::Routing as u8),
+            TokenEnvChange::SqlCollation(_, _) => buff.put_u8(EnvChangeType::SqlCollation as u8),
             TokenEnvChange::ChangeMirror(_) => {
                 todo!()
             }
-            TokenEnvChange::Ignored(_) => {
-                // TODO: return error
-                todo!()
+            TokenEnvChange::Ignored(t) => {
+                tracing::warn!(
+                    message = "Encoding ignored env change type",
+                    token_type = t.to_string()
+                );
             }
-            _ => todo!(),
         }
 
+        // write changed data
         match self {
             TokenEnvChange::Database(new, old)
+            | TokenEnvChange::SqlCollation(new, old)
             | TokenEnvChange::PacketSize(new, old)
             | TokenEnvChange::Language(new, old)
             | TokenEnvChange::CharacterSet(new, old)
             | TokenEnvChange::RealTimeLogShipping(new, old) => {
-                buff.put_u8(new.len() as u8);
-                encode::write_b_varchar(&mut buff, new);
-                buff.put_u8(old.len() as u8);
-                encode::write_b_varchar(&mut buff, old);
+                encode::write_b_varchar(&mut buff, new)?;
+                encode::write_b_varchar(&mut buff, old)?;
             }
-            //TokenEnvChange::Routing => {}
-            _ => todo!("Not sure if we need this"),
+            _ => todo!("Not sure what to do with other env change types"),
         };
 
         dest.put_u16_le(buff.len() as u16);

@@ -56,7 +56,8 @@ impl ServerContext {
         ServerContext {
             server_version: FeatureLevel::SqlServerN,
             packet_size: DEFAULT_PACKET_SIZE,
-            server_name: String::from("local"),
+            // server_name: String::from("local"),
+            server_name: String::from(""),
             sts_url: String::from("https://database.windows.net/"),
             server_principal_name: String::from("https://login.windows.net/common"),
             encryption: EncryptionLevel::NotSupported,

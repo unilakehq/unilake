@@ -1,7 +1,4 @@
-use crate::{
-    utils::ReadAndAdvance, Result, TdsToken, TdsTokenCodec, TdsTokenType, FEA_EXT_FEDAUTH,
-    FEA_EXT_TERMINATOR,
-};
+use crate::{utils::ReadAndAdvance, FeatureExt, Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Feature Extension Acknowledgement token [2.2.7.11]
@@ -38,9 +35,9 @@ impl TdsTokenCodec for TokenFeatureExtAck {
         loop {
             let feature_id = src.get_u8();
 
-            if feature_id == FEA_EXT_TERMINATOR {
+            if feature_id == FeatureExt::Terminator as u8 {
                 break;
-            } else if feature_id == FEA_EXT_FEDAUTH {
+            } else if feature_id == FeatureExt::FedAuth as u8 {
                 let data_len = src.get_u32_le();
 
                 let nonce = if data_len == 32 {
@@ -67,7 +64,7 @@ impl TdsTokenCodec for TokenFeatureExtAck {
             match item {
                 FeatureAck::FedAuth(s) => match s {
                     FedAuthAck::SecurityToken { nonce } => {
-                        dest.put_u8(FEA_EXT_FEDAUTH);
+                        dest.put_u8(FeatureExt::FedAuth as u8);
                         let len = nonce.as_ref().unwrap().len();
                         dest.put_u32_le(len as u32);
                         dest.put_slice(nonce.as_ref().unwrap());
@@ -77,7 +74,7 @@ impl TdsTokenCodec for TokenFeatureExtAck {
             }
         }
 
-        dest.put_u8(FEA_EXT_TERMINATOR);
+        dest.put_u8(FeatureExt::Terminator as u8);
         Ok(())
     }
 }

@@ -3,6 +3,7 @@ use crate::tds::codec::guid::reorder_bytes;
 use crate::utils::ReadAndAdvance;
 use crate::{tds::EncryptionLevel, Error};
 use crate::{TdsMessage, TdsMessageCodec};
+use rand::seq;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use uuid::Uuid;
 
@@ -12,7 +13,7 @@ use uuid::Uuid;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ActivityId {
     id: Uuid,
-    sequence: u32,
+    sequence: [u8; 20],
 }
 
 /// The prelogin packet used to initialize a connection [2.2.6.5]
@@ -235,9 +236,12 @@ impl TdsMessageCodec for PreloginMessage {
                     let mut data: [u8; 16] = data.try_into().unwrap();
                     reorder_bytes(&mut data);
 
+                    let mut sequence = [0u8; 20];
+                    src.put_and_advance(&mut sequence)?;
+
                     ret.activity_id = Some(ActivityId {
                         id: Uuid::from_bytes(data),
-                        sequence: src.get_u32_le(),
+                        sequence: sequence,
                     });
                     decode_offset_initial += 36;
                 }
@@ -267,7 +271,28 @@ impl TdsMessageCodec for PreloginMessage {
 
 #[cfg(test)]
 mod tests {
+    use crate::PacketHeader;
+
     use super::*;
+
+    const RAW_BYTES: &[u8] = &[
+        0x12, 0x01, 0x00, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x06, 0x01, 0x00,
+        0x16, 0x00, 0x01, 0x05, 0x00, 0x17, 0x00, 0x24, 0xff, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0xbd, 0xd6, 0xcc, 0x61, 0x0d, 0x5c, 0x73, 0x4a, 0xba, 0x2b, 0xa2, 0x2f, 0xef, 0xdc,
+        0x51, 0x7d, 0x4e, 0xed, 0xc7, 0x19, 0x22, 0x7e, 0x21, 0x47, 0x8a, 0xb3, 0xc3, 0x65, 0x73,
+        0xf1, 0x66, 0xb5, 0x01, 0x00, 0x00, 0x00,
+    ];
+
+    #[test]
+    fn prelogin_decode_raw() -> TdsWireResult<()> {
+        let mut bytes = BytesMut::from(&RAW_BYTES[..]);
+        let _header = PacketHeader::decode(&mut bytes)?;
+        let _message = PreloginMessage::decode(&mut bytes)?;
+
+        assert_eq!(bytes.len(), 0);
+
+        Ok(())
+    }
 
     #[test]
     fn prelogin_roundtrip() -> TdsWireResult<()> {
