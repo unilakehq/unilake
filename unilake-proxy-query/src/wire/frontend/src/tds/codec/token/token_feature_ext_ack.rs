@@ -42,7 +42,7 @@ impl TdsTokenCodec for TokenFeatureExtAck {
 
                 let nonce = if data_len == 32 {
                     let (_, n) = src.read_and_advance(32);
-                    Some(n)
+                    Some(n.to_vec())
                 } else if data_len == 0 {
                     None
                 } else {

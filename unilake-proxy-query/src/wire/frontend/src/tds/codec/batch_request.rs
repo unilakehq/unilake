@@ -8,8 +8,8 @@ use tokio_util::bytes::{Buf, BufMut, BytesMut};
 /// SQLBatch Message [2.2.6.7]
 #[derive(Debug)]
 pub struct BatchRequest {
-    queries: String,
-    transaction_descriptor: Vec<u8>,
+    pub query: String,
+    pub transaction_descriptor: Vec<u8>,
 }
 
 impl TdsMessageCodec for BatchRequest {
@@ -53,8 +53,8 @@ impl TdsMessageCodec for BatchRequest {
         let query_text = String::from_utf16_lossy(&qtx[..]);
 
         Ok(TdsMessage::BatchRequest(BatchRequest {
-            queries: query_text,
-            transaction_descriptor: tx_descriptor,
+            query: query_text,
+            transaction_descriptor: tx_descriptor.to_vec(),
         }))
     }
 
@@ -66,7 +66,7 @@ impl TdsMessageCodec for BatchRequest {
         dst.put(&self.transaction_descriptor[..]);
         dst.put_u32_le(1);
 
-        for c in self.queries.encode_utf16() {
+        for c in self.query.encode_utf16() {
             dst.put_u16_le(c);
         }
 
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn encode_decode_batchrequest() -> Result<()> {
         let input = BatchRequest {
-            queries: String::from(
+            query: String::from(
                 "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
             ),
             transaction_descriptor: vec![0; 8],
@@ -102,7 +102,7 @@ mod tests {
 
         // assert
         if let TdsMessage::BatchRequest(result) = result {
-            assert_eq!(result.queries, input.queries);
+            assert_eq!(result.query, input.query);
         } else {
             panic!("unexpected message type: {:?}", result);
         }

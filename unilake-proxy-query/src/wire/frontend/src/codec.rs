@@ -9,6 +9,7 @@ use tokio::net::TcpStream;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder, Framed};
+use ulid::Ulid;
 
 use crate::error::{TdsWireError, TdsWireResult};
 use crate::prot::{ServerInstance, SessionInfo, TdsSessionState, TdsWireHandlerFactory};
@@ -99,11 +100,11 @@ where
         self.codec_mut().session_info.set_state(new_state)
     }
 
-    fn session_id(&self) -> usize {
+    fn session_id(&self) -> Ulid {
         self.codec().session_info.session_id()
     }
 
-    fn packet_size(&self) -> usize {
+    fn packet_size(&self) -> u32 {
         self.codec().session_info.packet_size()
     }
 
@@ -190,18 +191,21 @@ where
             TdsSessionState::PreLoginProcessed => {
                 if let TdsMessage::Login(l) = message {
                     handlers.on_login7_request(socket, &l).await?;
-                    socket.set_state(TdsSessionState::CompleteLogin7Processed);
+                    socket.set_state(TdsSessionState::LoggedIn);
                 } else {
                     return Err(incorrect_state_error("Login".to_string()));
                 }
             }
             TdsSessionState::SSLNegotiationProcessed => todo!(),
-            TdsSessionState::CompleteLogin7Processed => {
-                tracing::info!("Processing request in CompleteLogin7Processed state");
-            }
+            TdsSessionState::CompleteLogin7Processed => todo!(),
             TdsSessionState::Login7SPNEGOProcessed => todo!(),
             TdsSessionState::Login7FederatedAuthenticationInformationRequestProcessed => todo!(),
-            TdsSessionState::LoggedIn => todo!(),
+            TdsSessionState::LoggedIn => {
+                if let TdsMessage::BatchRequest(b) = message {
+                    handlers.on_sql_batch_request(socket, &b).await?;
+                }
+                // todo(mrhamburg): implement error handling for specific message types which we do not expect here
+            }
             TdsSessionState::RequestReceived => todo!(),
             TdsSessionState::AttentionReceived => todo!(),
             TdsSessionState::ReConnect => todo!(),
@@ -230,7 +234,7 @@ where
     let addr = tcp_socket.peer_addr()?;
     tcp_socket.set_nodelay(true)?;
 
-    let session_info = handler.open_session(&addr, &instance.clone());
+    let session_info = handler.open_session(&addr, instance.clone());
 
     let session_info = match session_info {
         Ok(s) => {
@@ -249,12 +253,22 @@ where
     if !ssl {
         let mut socket = tcp_socket;
 
-        while let Some(Ok(msg)) = socket.next().await {
-            if let Err(e) = process_request(msg, &mut socket, handler.clone()).await {
-                tracing::error!("Error processing request: {}", e);
-                // todo(mrhamburg): error handling + close session on error
-                // process_error(&mut socket, e).await?;
-                todo!()
+        while let Some(packet) = socket.next().await {
+            match packet {
+                Ok(msg) => {
+                    if let Err(e) = process_request(msg, &mut socket, handler.clone()).await {
+                        tracing::error!("Error processing request: {}", e);
+                        // todo(mrhamburg): error handling + close session on error
+                        // process_error(&mut socket, e).await?;
+                        todo!()
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Error reading packet: {}", e);
+                    // todo(mrhamburg): error handling + close session on error
+                    // session_info.close_session().await?;
+                    socket.close().await?;
+                }
             }
         }
 

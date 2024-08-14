@@ -11,7 +11,7 @@ impl TokenSspi {
         let len = src.get_u16_le() as usize;
         let (_, bytes) = src.read_and_advance(len);
 
-        Ok(TdsToken::Sspi(Self(bytes)))
+        Ok(TdsToken::Sspi(Self(bytes.to_vec())))
     }
 
     pub fn encode(&mut self, dest: &mut BytesMut) -> Result<()> {

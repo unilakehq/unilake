@@ -4,14 +4,22 @@ use tokio_util::bytes::{Buf, BytesMut};
 use crate::error::TdsWireResult;
 
 pub(crate) trait ReadAndAdvance {
-    fn read_and_advance(&mut self, max_bytes: usize) -> (usize, Vec<u8>);
+    fn read_and_advance(&mut self, max_bytes: usize) -> (usize, BytesMut);
     fn put_and_advance(&mut self, target: &mut [u8]) -> TdsWireResult<()>;
 }
 
 impl ReadAndAdvance for BytesMut {
-    fn read_and_advance(&mut self, max_bytes: usize) -> (usize, Vec<u8>) {
-        let bytes_to_read = self.len().min(max_bytes);
-        (bytes_to_read, self.split_to(bytes_to_read).to_vec())
+    fn read_and_advance(&mut self, max_bytes: usize) -> (usize, BytesMut) {
+        let bytes_to_read = std::cmp::min(max_bytes, self.remaining());
+        let mut buf = BytesMut::with_capacity(bytes_to_read);
+
+        // Copy the data from the source to the buffer
+        buf.extend_from_slice(&self[..bytes_to_read]);
+
+        // Advance the internal cursor by the number of bytes read
+        self.advance(bytes_to_read);
+
+        (bytes_to_read, buf)
     }
 
     fn put_and_advance(&mut self, target: &mut [u8]) -> TdsWireResult<()> {

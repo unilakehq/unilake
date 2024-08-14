@@ -40,7 +40,7 @@ impl TdsTokenCodec for TokenFedAuth {
         for (ty, info_data_length, _) in items {
             let (_, buff) = src.read_and_advance(info_data_length as usize);
 
-            let content = String::from_utf8(buff)
+            let content = String::from_utf8(buff.to_vec())
                 .map_err(|_| Error::Protocol("Failed to convert UTF-8 to String".to_string()))
                 .unwrap();
 

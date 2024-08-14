@@ -4,7 +4,6 @@ use crate::{
 use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
-use std::borrow::BorrowMut;
 use std::fmt::Debug;
 use std::ops::Index;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
@@ -553,28 +552,30 @@ impl TdsMessageCodec for LoginMessage {
         let sspi_length = src.get_u32_le();
         let mut current_offset = FIXED_LEN;
         let mut current_option = 0;
-        let mut feature_ext_found = false;
         let mut feature_ext_offset = 0;
 
         // Decode options
-        // length is actually times 2
-        // which is also the case for the initial offset as they are a couple of bytes short but need to be counted as 2
         while current_option < options.len() {
             let (property, offset, length) = &options[current_option];
 
+            // skip empty options
             if *length == 0 {
                 current_option += 1;
                 continue;
             }
 
-            while current_offset < *offset {
-                src.get_u8();
-                src.get_u8();
-                current_offset += 1;
+            // skip data between options
+            let diff = *offset - current_offset;
+            if diff > 0 {
+                src.advance(diff);
+                current_offset += diff;
             }
 
-            // real length is x2 since we need 2 bytes for each read
-            let length = *length * 2;
+            // real length is x2 since we need 2 bytes for each read (besides exceptions)
+            let length = match property {
+                VariableProperty::FeatureExt => *length,
+                _ => *length * 2,
+            };
 
             match property {
                 VariableProperty::Password | VariableProperty::ChangePassword => {
@@ -608,11 +609,7 @@ impl TdsMessageCodec for LoginMessage {
                     let (_, _) = src.read_and_advance(length);
                 }
                 VariableProperty::FeatureExt => {
-                    if !feature_ext_found {
-                        feature_ext_offset = src.get_u32_le() as usize;
-                        feature_ext_found = true;
-                        current_offset += 4;
-                    }
+                    feature_ext_offset = src.get_u32_le() as usize;
                 }
                 _ => {
                     let (_, buff) = src.read_and_advance(length);
@@ -666,12 +663,48 @@ impl TdsMessageCodec for LoginMessage {
             current_offset += length;
         }
 
-        // TODO: process feature extensions
-        // 196 + 8 = 204 (should be correct?)
-        if current_offset != (feature_ext_offset + 8) {
-            return Err(TdsWireError::Protocol(
-                "FeatureExt offset does not match expected length".to_string(),
-            ));
+        if feature_ext_offset == 0 || !src.has_remaining() {
+            // we didn't find FeatureExt, return early
+            return Ok(TdsMessage::Login(ret));
+        }
+
+        // fetch feature extensions
+        loop {
+            // get type
+            let feature_type = FeatureExt::try_from(src.get_u8())
+                .map_err(|_| Error::Protocol("Invalid FeatureExt found".into()))?;
+
+            if feature_type == FeatureExt::Terminator {
+                break;
+            }
+
+            let length = src.get_u32_le() as usize;
+            let (_, mut buff) = src.read_and_advance(length);
+
+            match feature_type {
+                FeatureExt::SessionRecovery => continue,
+                FeatureExt::FedAuth => {
+                    let options = buff.get_u8();
+                    let token_len = buff.get_u32_le() as usize;
+
+                    let token = {
+                        let (_, buff) = buff.read_and_advance(token_len);
+                        // todo(mrhamburg): improve this
+                        let buff = buff
+                            .chunks(2)
+                            .map(|x| LittleEndian::read_u16(&x[..]))
+                            .collect::<Vec<u16>>();
+                        String::from_utf16(&buff[..]).expect("Failed to convert token to UTF-16")
+                    };
+                }
+                FeatureExt::ColumnEncryption => continue,
+                FeatureExt::GlobalTransactions => continue,
+                FeatureExt::AzureSqlSupport => continue,
+                FeatureExt::DataClassification => continue,
+                FeatureExt::Utf8Support => continue,
+                FeatureExt::AzureSqlDnsCaching => continue,
+                _ => break,
+            }
         }
 
         //             loop {
@@ -729,8 +762,6 @@ impl TdsMessageCodec for LoginMessage {
         //         }
         //     }
         // }u
-
-        let rest = src.remaining();
 
         Ok(TdsMessage::Login(ret))
     }

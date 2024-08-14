@@ -1,6 +1,5 @@
 use crate::{
     Date, DateTime, DateTime2, DateTimeOffset, Numeric, Result, SmallDateTime, Time, TypeInfo,
-    VarLenType,
 };
 use std::borrow::Cow;
 use tokio_util::bytes::BytesMut;

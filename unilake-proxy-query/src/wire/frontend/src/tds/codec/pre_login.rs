@@ -3,7 +3,6 @@ use crate::tds::codec::guid::reorder_bytes;
 use crate::utils::ReadAndAdvance;
 use crate::{tds::EncryptionLevel, Error};
 use crate::{TdsMessage, TdsMessageCodec};
-use rand::seq;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use uuid::Uuid;
 
@@ -21,12 +20,12 @@ pub struct ActivityId {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct PreloginMessage {
     /// [BE] token=0x00
-    /// Either the driver version or the version of the SQL server
+    /// Either the driver version (client) or the version of the SQL instance (server)
     pub version: u32,
     pub sub_build: u16,
     /// token=0x01
     pub encryption: Option<EncryptionLevel>,
-    /// token=0x02
+    /// token=0x02, also known as InstOpt
     pub instance_name: Option<String>,
     /// [client] threadid for debugging purposes, token=0x03
     pub thread_id: u32,
@@ -56,7 +55,7 @@ impl PreloginMessage {
         let driver_version = crate::get_driver_version();
         PreloginMessage {
             version: driver_version as u32,
-            sub_build: (driver_version >> 32) as u16,
+            sub_build: 0,
             encryption: Some(EncryptionLevel::NotSupported),
             instance_name: None,
             thread_id: 0,
@@ -233,7 +232,7 @@ impl TdsMessageCodec for PreloginMessage {
                             format!("invalid trace length: {}", length).into(),
                         ));
                     }
-                    let mut data: [u8; 16] = data.try_into().unwrap();
+                    let mut data: [u8; 16] = data.to_vec().try_into().unwrap();
                     reorder_bytes(&mut data);
 
                     let mut sequence = [0u8; 20];
@@ -258,7 +257,7 @@ impl TdsMessageCodec for PreloginMessage {
                             format!("invalid nonce length: {}", length).into(),
                         ));
                     }
-                    ret.nonce = Some(data.try_into().unwrap());
+                    ret.nonce = Some(data.to_vec().try_into().unwrap());
                     decode_offset_initial += 32;
                 }
                 _ => panic!("unsupported pre-login token: {}", token),
