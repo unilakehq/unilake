@@ -12,9 +12,9 @@ use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
 use unilake_wire_frontend::tds::codec::{
-    DoneStatus, EnvChangeType, FeatureAck, LoginMessage, OptionFlag2, PacketType, PreloginMessage,
-    TdsBackendResponse, TdsMessage, TdsToken, TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck,
-    TokenPreLoginFedAuthRequiredOption,
+    BatchRequest, DoneStatus, EnvChangeType, FeatureAck, LoginMessage, OptionFlag2, PacketType,
+    PreloginMessage, TdsBackendResponse, TdsMessage, TdsToken, TokenDone, TokenEnvChange,
+    TokenInfo, TokenLoginAck, TokenPreLoginFedAuthRequiredOption,
 };
 use unilake_wire_frontend::tds::server_context::ServerContext;
 
@@ -64,12 +64,12 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
     fn open_session(
         &self,
         socket_addr: &std::net::SocketAddr,
-        instance_info: &ServerInstance,
+        instance_info: Arc<ServerInstance>,
     ) -> Result<unilake_wire_frontend::prot::DefaultSession, TdsWireError> {
         tracing::info!("New session for: {}", socket_addr);
         Ok(DefaultSession::new(
             socket_addr.clone(),
-            instance_info.ctx.clone(),
+            instance_info.clone(),
         ))
     }
 
@@ -92,9 +92,11 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         );
 
         let mut prelogin_msg = PreloginMessage::new();
-        prelogin_msg.version = server_context.server_version as u32;
+        prelogin_msg.version = server_context.get_server_version();
         prelogin_msg.encryption = Some(encryption);
         prelogin_msg.mars = false;
+        prelogin_msg.fed_auth_required = Some(false);
+        prelogin_msg.instance_name = Some("".to_string());
         if let Some(nonce) = msg.nonce {
             client.set_client_nonce(nonce);
         }
@@ -197,9 +199,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         // ));
 
         // create login ack token
-        return_msg.add_token(TokenLoginAck::new(
-            client.tds_server_context().server_name.clone(),
-        ));
+        return_msg.add_token(TokenLoginAck::new(client.tds_server_context()));
 
         // check if session recovery is enabled
         if client.tds_server_context().session_recovery_enabled {
@@ -220,8 +220,12 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         todo!()
     }
 
-    fn on_sql_batch_request(&self, session: &unilake_wire_frontend::prot::DefaultSession) {
-        todo!()
+    async fn on_sql_batch_request<C>(&self, client: &mut C, msg: &BatchRequest) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        tracing::info!("Received SQL batch request: {}", msg.query);
+        Ok(())
     }
 
     fn on_attention(&self, session: &unilake_wire_frontend::prot::DefaultSession) {

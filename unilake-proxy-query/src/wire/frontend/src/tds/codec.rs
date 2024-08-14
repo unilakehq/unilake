@@ -14,6 +14,7 @@ mod token;
 pub mod tokenfactory;
 mod type_info;
 
+pub use batch_request::*;
 pub use column_data::*;
 pub use header::*;
 pub use login::*;

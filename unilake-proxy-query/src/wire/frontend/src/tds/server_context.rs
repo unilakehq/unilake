@@ -9,18 +9,14 @@ pub struct ServerContext {
     pub server_principal_name: String,
     pub sts_url: String,
     pub server_name: String,
-    pub server_version: FeatureLevel,
+    /// The version of the server, as reported by the server. (major, minor, build, sub_build)
+    server_version: (u8, u8, u16, u8),
     pub packet_size: u32,
     pub encryption: EncryptionLevel,
     pub encryption_certificate: Option<Vec<u8>>,
     pub fed_auth_options: TokenPreLoginFedAuthRequiredOption,
     pub session_limit: usize,
     pub session_recovery_enabled: bool,
-    // todo(mrhamburg): this probably needs to go to session info and context
-    // packet_id: u8,
-    // transaction_desc: [u8; 8],
-    // last_meta: Option<Arc<TokenColMetaData>>,
-    // spn: Option<String>,
 }
 
 pub fn optional_env<T>(env: &HashMap<String, String>, key: &str, default: T) -> T
@@ -54,10 +50,11 @@ where
 impl ServerContext {
     pub fn default() -> ServerContext {
         ServerContext {
-            server_version: FeatureLevel::SqlServerN,
+            server_version: (16, 0, 4135, 0),
             packet_size: DEFAULT_PACKET_SIZE,
+            // todo(mrhamburg): this value is not encoded properly, fix this
             // server_name: String::from("local"),
-            server_name: String::from(""),
+            server_name: String::from("Microsoft SQL Server"),
             sts_url: String::from("https://database.windows.net/"),
             server_principal_name: String::from("https://login.windows.net/common"),
             encryption: EncryptionLevel::NotSupported,
@@ -84,9 +81,21 @@ impl ServerContext {
         Self::new().with_packet_size(optional_env(&envs, "packet_size", DEFAULT_PACKET_SIZE))
     }
 
-    pub fn with_server_version(mut self, v: FeatureLevel) -> Self {
-        self.server_version = v;
+    pub fn with_server_version(
+        mut self,
+        major_version: u8,
+        minor_version: u8,
+        build_number: u16,
+        sub_build: u8,
+    ) -> Self {
+        self.server_version = (major_version, minor_version, build_number, sub_build);
         self
+    }
+
+    pub fn get_server_version(&self) -> u32 {
+        ((self.server_version.0 as u32) << 24)
+            | ((self.server_version.1 as u32) << 16)
+            | ((self.server_version.2 as u32) << 0)
     }
 
     pub fn with_packet_size(mut self, ps: u32) -> Self {

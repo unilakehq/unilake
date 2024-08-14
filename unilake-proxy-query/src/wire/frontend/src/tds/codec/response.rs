@@ -1,10 +1,10 @@
 use tokio_util::bytes::{Buf, BytesMut};
 
-use crate::error::TdsWireResult;
+use crate::error::{TdsWireError, TdsWireResult};
 
 use super::{
-    TdsMessageCodec, TdsToken, TdsTokenCodec, TdsTokenType, TokenColMetaData, TokenDone,
-    TokenEnvChange, TokenError, TokenInfo, TokenLoginAck, TokenOrder, TokenReturnValue,
+    TdsMessageCodec, TdsToken, TdsTokenCodec, TdsTokenType, TokenColMetaData, TokenError,
+    TokenInfo, TokenLoginAck, TokenOrder, TokenReturnValue,
 };
 
 #[derive(Debug)]
@@ -49,9 +49,8 @@ impl TdsMessageCodec for ResponseMessage {
     {
         let mut ret = ResponseMessage::new();
         while src.has_remaining() {
-            // todo(mrhamburg): remove unwrap
-            // todo(mrhamburg): properly implement missing token types
-            let token_type = TdsTokenType::try_from(src.get_u8()).unwrap();
+            let token_type = TdsTokenType::try_from(src.get_u8())
+                .map_err(|_| TdsWireError::Protocol("Unknown token type".to_string()))?;
 
             let token = match token_type {
                 TdsTokenType::ColMetaData => TokenColMetaData::decode(src)?,
@@ -60,18 +59,7 @@ impl TdsMessageCodec for ResponseMessage {
                 TdsTokenType::Order => TokenOrder::decode(src)?,
                 TdsTokenType::ReturnValue => TokenReturnValue::decode(src)?,
                 TdsTokenType::LoginAck => TokenLoginAck::decode(src)?,
-                TdsTokenType::Row => todo!(),
-                TdsTokenType::NbcRow => todo!(),
-                TdsTokenType::Sspi => todo!(),
-                TdsTokenType::EnvChange => TokenEnvChange::decode(src)?,
-                TdsTokenType::Done => TokenDone::decode(src)?,
-                TdsTokenType::DoneProc => todo!(),
-                TdsTokenType::DoneInProc => todo!(),
-                TdsTokenType::FeatureExtAck => todo!(),
-                TdsTokenType::FedAuthInfo => todo!(),
-                TdsTokenType::SessionState => todo!(),
-                TdsTokenType::ReturnStatus => todo!(),
-                TdsTokenType::ColInfo => todo!(),
+                _ => todo!(),
             };
             ret.add_token(token);
         }

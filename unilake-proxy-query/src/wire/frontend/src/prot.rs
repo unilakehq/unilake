@@ -1,7 +1,7 @@
 use crate::{
     error::{TdsWireError, TdsWireResult},
     tds::server_context::ServerContext,
-    LoginMessage, PreloginMessage, TdsBackendResponse,
+    BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse,
 };
 use async_trait::async_trait;
 use futures::Sink;
@@ -13,10 +13,8 @@ use std::{
     },
     time::Duration,
 };
-use tokio::{
-    sync::{RwLock, Semaphore},
-    time::sleep,
-};
+use tokio::{sync::Semaphore, time::sleep};
+use ulid::Ulid;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -58,10 +56,10 @@ pub trait SessionInfo: Send + Sync {
     fn set_state(&mut self, new_state: TdsSessionState);
 
     /// Session identifier
-    fn session_id(&self) -> usize;
+    fn session_id(&self) -> Ulid;
 
     /// Size of the TDS packet
-    fn packet_size(&self) -> usize;
+    fn packet_size(&self) -> u32;
 
     /// User name if SQL authentication is used
     fn get_sql_user_id(&self) -> &str;
@@ -110,8 +108,8 @@ pub enum Dialect {
 pub struct DefaultSession {
     socket_addr: SocketAddr,
     state: TdsSessionState,
-    session_id: usize,
-    packet_size: usize,
+    session_id: Ulid,
+    packet_size: u32,
     sql_user_id: Option<String>,
     database: Option<String>,
     connection_reset_request_count: usize,
@@ -139,12 +137,12 @@ impl SessionInfo for DefaultSession {
         self.tds_server_context.clone()
     }
 
-    fn session_id(&self) -> usize {
-        todo!()
+    fn session_id(&self) -> Ulid {
+        self.session_id
     }
 
-    fn packet_size(&self) -> usize {
-        todo!()
+    fn packet_size(&self) -> u32 {
+        self.packet_size
     }
 
     fn get_sql_user_id(&self) -> &str {
@@ -202,15 +200,15 @@ pub struct TdsWireMessageServerCodec {
 }
 
 impl DefaultSession {
-    pub fn new(socket_addr: SocketAddr, ctx: Arc<ServerContext>) -> Self {
+    pub fn new(socket_addr: SocketAddr, instance: Arc<ServerInstance>) -> Self {
         DefaultSession {
             socket_addr,
-            packet_size: 1200,
-            session_id: 1,
+            packet_size: instance.ctx.packet_size,
+            session_id: instance.next_session_id(),
             sql_user_id: None,
             state: TdsSessionState::default(),
             database: None,
-            tds_server_context: ctx,
+            tds_server_context: instance.ctx.clone(),
             client_nonce: None,
             server_nonce: None,
             connection_reset_request_count: 0,
@@ -229,7 +227,7 @@ where
     fn open_session(
         &self,
         socket_addr: &SocketAddr,
-        instance_info: &ServerInstance,
+        instance_info: Arc<ServerInstance>,
     ) -> Result<S, TdsWireError>;
 
     /// Close TDS server session
@@ -255,7 +253,13 @@ where
     fn on_federated_authentication_token_message(&self, session: &S);
 
     /// Called when SQL batch request arrives
-    fn on_sql_batch_request(&self, session: &S);
+    async fn on_sql_batch_request<C>(
+        &self,
+        client: &mut C,
+        msg: &BatchRequest,
+    ) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when attention arrives
     fn on_attention(&self, session: &S);
@@ -295,6 +299,7 @@ pub struct InnerServerInstance {
     receiver: Option<tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>>,
     sender: Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>>,
     active_sessions: AtomicUsize,
+    current_session_id: AtomicUsize,
     semaphore: Arc<Semaphore>,
 }
 
@@ -309,6 +314,7 @@ impl ServerInstance {
                 sender: Arc::new(sender),
                 active_sessions: AtomicUsize::new(0),
                 semaphore: Arc::new(Semaphore::new(4)),
+                current_session_id: AtomicUsize::new(0),
             },
         }
     }
@@ -382,6 +388,12 @@ impl ServerInstance {
 
     pub fn session_limit(&self) -> usize {
         self.ctx.session_limit
+    }
+
+    pub fn next_session_id(&self) -> Ulid {
+        let session_id = Ulid::new();
+        tracing::trace!("Generating new session ID: {}", session_id.to_string());
+        session_id
     }
 
     pub fn process_message(

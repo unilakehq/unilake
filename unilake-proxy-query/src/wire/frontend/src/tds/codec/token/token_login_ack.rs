@@ -1,7 +1,9 @@
 use crate::tds::codec::{decode, encode};
+use crate::tds::server_context::ServerContext;
 use crate::{Error, FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use std::convert::TryFrom;
 use std::mem::size_of;
+use std::sync::Arc;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// LoginAck Token [2.2.7.14]
@@ -21,12 +23,12 @@ pub struct TokenLoginAck {
 }
 
 impl TokenLoginAck {
-    pub fn new(server_name: String) -> Self {
+    pub fn new(server_contex: Arc<ServerContext>) -> Self {
         TokenLoginAck {
             interface: 1, // SQL_TSQL
-            tds_version: FeatureLevel::SqlServerV7,
-            prog_name: server_name,
-            version: 80017100, // 8.0.171.0
+            tds_version: FeatureLevel::SqlServerN,
+            prog_name: server_contex.server_name.clone(),
+            version: server_contex.get_server_version(),
         }
     }
 }
@@ -80,14 +82,22 @@ mod tests {
     use tokio_util::bytes::{Buf, BytesMut};
 
     const RAW_BYTES: &[u8] = &[
-        0x0f, 0x00, 0x01, 0x70, 0x00, 0x00, 0x00, 0x05, 0x6c, 0x00, 0x6f, 0x00, 0x63, 0x00, 0x61,
-        0x00, 0x6c, 0x00, 0xcc, 0xf6, 0xc4, 0x04,
+        0xAD, 0x36, 0x00, 0x01, 0x74, 0x00, 0x00, 0x04, 0x16, 0x4d, 0x00, 0x69, 0x00, 0x63, 0x00,
+        0x72, 0x00, 0x6f, 0x00, 0x73, 0x00, 0x6f, 0x00, 0x66, 0x00, 0x74, 0x00, 0x20, 0x00, 0x53,
+        0x00, 0x51, 0x00, 0x4c, 0x00, 0x20, 0x00, 0x53, 0x00, 0x65, 0x00, 0x72, 0x00, 0x76, 0x00,
+        0x65, 0x00, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x10, 0x27,
     ];
 
     #[test]
-    fn decode_raw() -> TdsWireResult<()> {
-        let mut bytes = BytesMut::from(&RAW_BYTES[..]);
-        let _messsage = TokenLoginAck::decode(&mut bytes)?;
+    fn decode_encode_raw() -> TdsWireResult<()> {
+        let mut bytes = BytesMut::from(&RAW_BYTES[1..]);
+        let messsage = TokenLoginAck::decode(&mut bytes)?;
+
+        let mut buff = BytesMut::new();
+        if let TdsToken::LoginAck(messsage) = messsage {
+            messsage.encode(&mut buff)?;
+        }
+        assert_eq!(RAW_BYTES, buff.to_vec());
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 use crate::{Error, Result};
+use enumflags2::{bitflags, BitFlags};
 use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use tracing::instrument;
 
 uint_enum! {
     /// the type of the packet [2.2.3.1.1]#[repr(u32)]
@@ -43,19 +43,18 @@ impl fmt::Display for PacketType {
     }
 }
 
-uint_enum! {
-    /// the message state [2.2.3.1.2]
-    #[repr(u8)]
-    pub enum PacketStatus {
-        NormalMessage = 0,
-        EndOfMessage = 1,
-        /// [client to server ONLY] (EndOfMessage also required)
-        IgnoreEvent = 3,
-        /// [client to server ONLY] [>= TDSv7.1]
-        ResetConnection = 0x08,
-        /// [client to server ONLY] [>= TDSv7.3]
-        ResetConnectionSkipTran = 0x10,
-    }
+#[bitflags]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PacketStatus {
+    EndOfMessage = 1 << 0,
+    /// [client to server ONLY] (EndOfMessage also required)
+    IgnoreEvent = 1 << 1,
+    Notification = 1 << 2,
+    /// [client to server ONLY] [>= TDSv7.1]
+    ResetConnection = 1 << 3,
+    /// [client to server ONLY] [>= TDSv7.3]
+    ResetConnectionSkipTran = 1 << 4,
 }
 
 /// packet header consisting of 8 bytes [2.2.3.1]
@@ -64,7 +63,11 @@ pub struct PacketHeader {
     /// Packet type
     pub ty: PacketType,
     /// Packet Status
-    pub status: PacketStatus,
+    pub is_end_of_message: bool,
+    pub is_ignore_event: bool,
+    pub is_event_notification: bool,
+    pub is_reset_connection: bool,
+    pub is_reset_connection_skip_tran: bool,
     /// [BE] the length of the packet (including the 8 header bytes)
     /// must match the negotiated size sending from client to server [since TDSv7.3] after login
     /// (only if not EndOfMessage)
@@ -82,24 +85,24 @@ impl PacketHeader {
         assert!(length <= u16::MAX as usize);
         PacketHeader {
             ty: PacketType::TabularResult,
-            status: PacketStatus::EndOfMessage,
+            is_end_of_message: true,
             length: length as u16,
             spid: 0,
             id,
             window: 0,
+            is_event_notification: false,
+            is_ignore_event: false,
+            is_reset_connection: false,
+            is_reset_connection_skip_tran: false,
         }
     }
 
     pub fn result() -> Self {
         Self {
             ty: PacketType::TabularResult,
-            status: PacketStatus::EndOfMessage,
+            is_end_of_message: true,
             ..Self::new(0, 0)
         }
-    }
-
-    pub fn set_status(&mut self, status: PacketStatus) {
-        self.status = status;
     }
 
     pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
@@ -110,7 +113,18 @@ impl PacketHeader {
         );
 
         dst.put_u8(self.ty as u8);
-        dst.put_u8(self.status as u8);
+
+        let mut flags: BitFlags<PacketStatus> = BitFlags::empty();
+        flags.set(PacketStatus::EndOfMessage, self.is_end_of_message);
+        flags.set(PacketStatus::IgnoreEvent, self.is_ignore_event);
+        flags.set(PacketStatus::Notification, self.is_event_notification);
+        flags.set(PacketStatus::ResetConnection, self.is_reset_connection);
+        flags.set(
+            PacketStatus::ResetConnectionSkipTran,
+            self.is_reset_connection_skip_tran,
+        );
+
+        dst.put_u8(flags.bits());
         dst.put_u16(self.length);
         dst.put_u16(self.spid);
         dst.put_u8(self.id);
@@ -125,14 +139,16 @@ impl PacketHeader {
             Error::Protocol(format!("header: invalid packet type: {}", raw_ty).into())
         })?;
 
-        let status = PacketStatus::try_from(src.get_u8())
-            .map_err(|_| Error::Protocol("header: invalid packet status".into()))?;
-
+        let status = BitFlags::from_bits_truncate(src.get_u8());
         let length = src.get_u16();
 
         Ok(PacketHeader {
             ty,
-            status,
+            is_end_of_message: status.contains(PacketStatus::EndOfMessage),
+            is_event_notification: status.contains(PacketStatus::Notification),
+            is_ignore_event: status.contains(PacketStatus::IgnoreEvent),
+            is_reset_connection: status.contains(PacketStatus::ResetConnection),
+            is_reset_connection_skip_tran: status.contains(PacketStatus::ResetConnectionSkipTran),
             length,
             spid: src.get_u16(),
             id: src.get_u8(),
@@ -145,7 +161,7 @@ impl PacketHeader {
 mod tests {
     use tokio_util::bytes::BytesMut;
 
-    use crate::{PacketHeader, PacketStatus, PacketType};
+    use crate::{PacketHeader, PacketType};
 
     const RAW_BYTES: [u8; 8] = [0x12, 0x01, 0x00, 0x2f, 0x00, 0x00, 0x01, 0x00];
 
@@ -158,7 +174,7 @@ mod tests {
         assert_eq!(header.id, 1);
         assert_eq!(header.window, 0);
         assert_eq!(header.spid, 0);
-        assert_eq!(header.status, PacketStatus::EndOfMessage);
+        assert_eq!(header.is_end_of_message, true);
         assert_eq!(header.ty, PacketType::PreLogin);
     }
 

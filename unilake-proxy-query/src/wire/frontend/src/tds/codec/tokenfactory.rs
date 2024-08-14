@@ -1,7 +1,7 @@
 use super::{ResponseMessage, TdsToken};
 use crate::{
-    error::TdsWireResult, prot::SessionInfo, tds::codec::header, PacketHeader, PacketStatus,
-    TdsMessage, ALL_HEADERS_LEN_TX,
+    error::TdsWireResult, prot::SessionInfo, tds::codec::header, PacketHeader, TdsMessage,
+    ALL_HEADERS_LEN_TX,
 };
 use std::cell::Cell;
 use tokio_util::bytes::{Buf, BytesMut};
@@ -22,13 +22,16 @@ impl TdsFrontendRequest {
                 message_length = header.length
             );
 
-            // ignore packets with status "IgnoreEvent"
-            if header.status != PacketStatus::IgnoreEvent {
-                messages.push((header, TdsMessage::decode(buf, header.ty)?));
+            // ignore packets with status "IgnoreEvent" (0x01 must also be set)
+            if header.is_ignore_event && header.is_end_of_message {
+                continue;
             }
 
+            // add message to result
+            messages.push((header, TdsMessage::decode(buf, header.ty)?));
+
             // no need to proceed with EOM messages
-            if header.status == PacketStatus::EndOfMessage {
+            if header.is_end_of_message {
                 break;
             }
         }
@@ -51,8 +54,9 @@ impl TdsBackendResponse {
         }
     }
 
-    fn get_next_header(session: &mut dyn SessionInfo) -> PacketHeader {
-        PacketHeader::new(0, session.increment_packet_id())
+    fn get_next_header(_: &mut dyn SessionInfo) -> PacketHeader {
+        // PacketHeader::new(0, session.increment_packet_id())
+        PacketHeader::new(0, 1)
     }
 
     /// Add new message to the response

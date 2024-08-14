@@ -23,3 +23,4 @@ derive-new = { workspace = true }
 futures = { workspace = true }
 rand = { workspace = true }
 async-trait = { workspace = true }
+ulid = { workspace = true }
