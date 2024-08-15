@@ -1,5 +1,4 @@
 use crate::{utils::ReadAndAdvance, Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
-use std::borrow::Cow;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 #[derive(PartialEq, Debug)]
@@ -98,7 +97,7 @@ impl TdsTokenCodec for TokenFedAuth {
             curr_offset += length;
         }
 
-        dest.put_slice(&buff);
+        dest.extend_from_slice(&buff);
 
         Ok(())
     }

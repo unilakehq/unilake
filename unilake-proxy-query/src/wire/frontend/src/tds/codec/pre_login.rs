@@ -260,6 +260,7 @@ impl TdsMessageCodec for PreloginMessage {
                     ret.nonce = Some(data.to_vec().try_into().unwrap());
                     decode_offset_initial += 32;
                 }
+                // todo(mrhamburg): instead of panicking, we should return an error
                 _ => panic!("unsupported pre-login token: {}", token),
             }
         }

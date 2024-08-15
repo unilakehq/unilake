@@ -2,7 +2,6 @@ use crate::tds::codec::{decode, encode};
 use crate::tds::server_context::ServerContext;
 use crate::{Error, FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use std::convert::TryFrom;
-use std::mem::size_of;
 use std::sync::Arc;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
@@ -54,20 +53,17 @@ impl TdsTokenCodec for TokenLoginAck {
     }
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::LoginAck as u8);
-        let prog_name_len = self.prog_name.len();
-        let len = (
-            size_of::<u8>() // interface
-                + size_of::<u32>() // protocol version
-                + size_of::<u8>() + prog_name_len // prog name
-                + size_of::<u32>()
-            // version
-        ) as u16;
+        let mut buff = BytesMut::new();
 
-        dest.put_u16_le(len);
-        dest.put_u8(self.interface);
-        dest.put_u32(self.tds_version as u32);
-        encode::write_b_varchar(dest, &self.prog_name)?;
-        dest.put_u32_le(self.version);
+        // set content
+        buff.put_u8(self.interface);
+        buff.put_u32(self.tds_version as u32);
+        encode::write_b_varchar(&mut buff, &self.prog_name)?;
+        buff.put_u32_le(self.version);
+
+        // push length and content
+        dest.put_u16_le(buff.len() as u16);
+        dest.extend_from_slice(&buff);
 
         Ok(())
     }

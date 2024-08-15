@@ -61,6 +61,7 @@ where
         }
 
         // check if all data has been consumed
+        // todo(mrhamburg), in case of residual bytes close the connection and check protocol if this is expected behaviour
         if !src.is_empty() {
             let msg = format!(
                 "Incomplete packet received or processed ({} remaining), closing connection",

@@ -2,7 +2,6 @@ use crate::tds::codec::{decode, encode};
 use crate::{Result, TdsTokenCodec};
 use crate::{TdsToken, TdsTokenType};
 use std::fmt;
-use std::mem::size_of;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Error token [2.2.7.10]
@@ -73,30 +72,22 @@ impl TdsTokenCodec for TokenError {
 
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::Error as u8);
+        let mut buff = BytesMut::new();
 
-        let message_length = self.message.len();
-        let server_length = self.server.len();
-        let procedure_length = self.procedure.len();
-        let length: u16 = (
-            size_of::<u32>() // code
-                + (size_of::<u8>() * 2) // state + class
-                + size_of::<u16>() + message_length // message
-                + size_of::<u8>() + server_length // server
-                + size_of::<u8>() + procedure_length // procedure
-                + size_of::<u32>()
-            // Line number
-        ) as u16;
+        // set content
+        buff.put_u32_le(self.code);
+        buff.put_u8(self.state);
+        buff.put_u8(self.class);
 
-        dest.put_u16_le(length);
-        dest.put_u32_le(self.code);
-        dest.put_u8(self.state);
-        dest.put_u8(self.class);
+        encode::write_us_varchar(&mut buff, &self.message)?;
+        encode::write_b_varchar(&mut buff, &self.server)?;
+        encode::write_b_varchar(&mut buff, &self.procedure)?;
 
-        encode::write_us_varchar(dest, &self.message)?;
-        encode::write_b_varchar(dest, &self.server)?;
-        encode::write_b_varchar(dest, &self.procedure)?;
+        buff.put_u32_le(self.line);
 
-        dest.put_u32_le(self.line);
+        // set length and push data
+        dest.put_u16_le(buff.len() as u16);
+        dest.extend_from_slice(&buff);
 
         Ok(())
     }

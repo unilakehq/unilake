@@ -151,20 +151,20 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         let mut return_msg = TdsBackendResponse::new(client);
 
         // set database change
-        // let old_database = client.get_database().to_string();
-        // let new_database = msg.db_name.clone().unwrap_or_else(|| "main".to_string());
-        // return_msg.add_token(TokenEnvChange::new_database_change(
-        //     new_database.clone(),
-        //     new_database.to_string(),
-        // ));
-        // return_msg.add_token(TokenInfo::new(
-        //     5701,
-        //     2,
-        //     0,
-        //     format!("Changed database context to '{}'", new_database.clone()),
-        //     client.tds_server_context().server_name.clone(),
-        // ));
-        // client.set_database(new_database);
+        let old_database = client.get_database().to_string();
+        let new_database = msg.db_name.clone().unwrap_or_else(|| "main".to_string());
+        return_msg.add_token(TokenEnvChange::new_database_change(
+            new_database.clone(),
+            new_database.to_string(),
+        ));
+        return_msg.add_token(TokenInfo::new(
+            &*client.tds_server_context(),
+            5701,
+            2,
+            0,
+            format!("Changed database context to '{}'", new_database.clone()),
+        ));
+        client.set_database(new_database);
 
         // set collation change
         // return_msg.add_token(TokenEnvChange::new_collation_change(
@@ -173,30 +173,30 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         // ));
 
         // set language change
-        // return_msg.add_token(TokenEnvChange::new_language_change(
-        //     "".to_string(),
-        //     "".to_string(),
-        // ));
-        // return_msg.add_token(TokenInfo::new(
-        //     5703,
-        //     1,
-        //     0,
-        //     format!("Changed language to '{}'", ""),
-        //     "".to_string(),
-        // ));
+        return_msg.add_token(TokenEnvChange::new_language_change(
+            "".to_string(),
+            "us_english".to_string(),
+        ));
+        return_msg.add_token(TokenInfo::new(
+            &*client.tds_server_context(),
+            5703,
+            1,
+            0,
+            format!("Changed language to '{}'", "us_english"),
+        ));
 
         // set packet size change
-        // return_msg.add_token(TokenEnvChange::new_packet_size_change(
-        //     "4096".to_string(),
-        //     "4096".to_string(),
-        // ));
-        // return_msg.add_token(TokenInfo::new(
-        //     5702,
-        //     1,
-        //     0,
-        //     format!("Changed packet size to {}", "4096"),
-        //     "".to_string(),
-        // ));
+        return_msg.add_token(TokenEnvChange::new_packet_size_change(
+            "4096".to_string(),
+            "4096".to_string(),
+        ));
+        return_msg.add_token(TokenInfo::new(
+            &*client.tds_server_context(),
+            5702,
+            1,
+            0,
+            format!("Changed packet size to {}", "4096"),
+        ));
 
         // create login ack token
         return_msg.add_token(TokenLoginAck::new(client.tds_server_context()));

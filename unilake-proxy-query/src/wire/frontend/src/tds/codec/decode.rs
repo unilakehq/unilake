@@ -1,30 +1,30 @@
-use crate::{utils::ReadAndAdvance, Result};
+use crate::{
+    error::{TdsWireError, TdsWireResult},
+    Result,
+};
 use tokio_util::bytes::{Buf, BytesMut};
 
 pub fn read_us_varchar(src: &mut BytesMut) -> Result<String> {
-    let lines = src.get_u16_le() as usize * 2;
-    return if lines > 0 {
-        let (count, chars) = src.read_and_advance(lines);
-        if count != lines {
-            // todo(mrhamburg): Handle partial read
-            panic!("Expected {} bytes, but only {} were read", lines, count);
-        }
-        Ok(String::from_utf8(chars.to_vec()).unwrap())
-    } else {
-        Ok(String::new())
-    };
+    let length = src.get_u16_le() as usize;
+    read_string(src, length)
 }
 
-pub fn read_b_varchar(src: &mut BytesMut) -> Result<String> {
-    let lines = src.get_u8() as usize * 2;
-    return if lines > 0 {
-        let (count, chars) = src.read_and_advance(lines);
-        if count != lines {
-            // todo(mrhamburg): Handle partial read
-            panic!("Expected {} bytes, but only {} were read", lines, count);
-        }
-        let result = String::from_utf8(chars.to_vec());
-        Ok(result.unwrap())
+pub fn read_b_varchar(src: &mut BytesMut) -> TdsWireResult<String> {
+    let length = src.get_u8() as usize;
+    read_string(src, length)
+}
+
+fn read_string(src: &mut BytesMut, length: usize) -> TdsWireResult<String> {
+    return if length > 0 {
+        // Read the UTF-16 encoded bytes and decode them into a String
+        let mut utf16_data = Vec::with_capacity(length * 2);
+        (0..length).for_each(|_| utf16_data.push(src.get_u16_le()));
+
+        // Convert the UTF-16 data String
+        let result = String::from_utf16(&utf16_data)
+            .map_err(|err| TdsWireError::Protocol(format!("Failed to decode varchar: {}", err)))?;
+
+        Ok(result)
     } else {
         Ok(String::new())
     };

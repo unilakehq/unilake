@@ -1,6 +1,6 @@
 use crate::tds::codec::{decode, encode};
+use crate::tds::server_context::ServerContext;
 use crate::{Result, TdsToken, TdsTokenCodec, TdsTokenType};
-use std::mem::size_of;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Info Token [2.2.7.13]
@@ -21,13 +21,19 @@ pub struct TokenInfo {
 }
 
 impl TokenInfo {
-    pub fn new(number: u32, state: u8, class: u8, message: String, server_name: String) -> Self {
+    pub fn new(
+        server_context: &ServerContext,
+        number: u32,
+        state: u8,
+        class: u8,
+        message: String,
+    ) -> Self {
         TokenInfo {
             number,
             state,
             class,
             message,
-            server: server_name,
+            server: server_context.server_name.clone(),
             procedure: String::new(),
             line: 0,
         }
@@ -59,28 +65,20 @@ impl TdsTokenCodec for TokenInfo {
 
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::Info as u8);
+        let mut buff = BytesMut::new();
 
-        let message_length = self.message.len();
-        let server_length = self.server.len();
-        let procedure_length = self.procedure.len();
-        let length: u16 = (
-            size_of::<u16>() // Number
-                + (size_of::<u8>() * 2) // State + Class
-                + size_of::<u16>() + message_length // Message
-                + size_of::<u8>() + server_length // Server Name
-                + size_of::<u8>() + procedure_length // Procedure Name
-                + size_of::<u32>()
-            // Line number
-        ) as u16;
+        // set content
+        buff.put_u32_le(self.number);
+        buff.put_u8(self.state);
+        buff.put_u8(self.class);
+        encode::write_us_varchar(&mut buff, &self.message)?;
+        encode::write_b_varchar(&mut buff, &self.server)?;
+        encode::write_b_varchar(&mut buff, &self.procedure)?;
+        buff.put_u32_le(self.line);
 
-        dest.put_u16_le(length);
-        dest.put_u32_le(self.number);
-        dest.put_u8(self.state);
-        dest.put_u8(self.class);
-        encode::write_us_varchar(dest, &self.message);
-        encode::write_b_varchar(dest, &self.server);
-        encode::write_b_varchar(dest, &self.procedure);
-        dest.put_u32_le(self.line);
+        // send length and content
+        dest.put_u16_le(buff.len() as u16);
+        dest.extend_from_slice(&buff);
 
         Ok(())
     }

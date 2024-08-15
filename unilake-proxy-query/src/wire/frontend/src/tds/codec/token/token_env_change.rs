@@ -1,9 +1,7 @@
-//TODO: fix unwraps in this file for proper error handling
 use crate::tds::codec::{decode, encode};
 use crate::utils::ReadAndAdvance;
 use crate::{Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
 use std::fmt::{self, Debug};
-use std::io::{Cursor, Read};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 uint_enum! {
@@ -190,14 +188,14 @@ impl TdsTokenCodec for TokenEnvChange {
             | TokenEnvChange::Language(new, old)
             | TokenEnvChange::CharacterSet(new, old)
             | TokenEnvChange::RealTimeLogShipping(new, old) => {
-                encode::write_b_varchar(&mut buff, new)?;
                 encode::write_b_varchar(&mut buff, old)?;
+                encode::write_b_varchar(&mut buff, new)?;
             }
             _ => todo!("Not sure what to do with other env change types"),
         };
 
         dest.put_u16_le(buff.len() as u16);
-        dest.put(buff);
+        dest.extend_from_slice(&buff);
 
         Ok(())
     }
@@ -219,7 +217,7 @@ mod tests {
         let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut buff);
+        input.encode(&mut buff)?;
 
         // decode
         let token_type = buff.get_u8();
