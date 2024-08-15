@@ -52,9 +52,7 @@ impl ServerContext {
         ServerContext {
             server_version: (16, 0, 4135, 0),
             packet_size: DEFAULT_PACKET_SIZE,
-            // todo(mrhamburg): this value is not encoded properly, fix this
-            // server_name: String::from("local"),
-            server_name: String::from("Microsoft SQL Server"),
+            server_name: String::from("Unilake SQL Proxy"),
             sts_url: String::from("https://database.windows.net/"),
             server_principal_name: String::from("https://login.windows.net/common"),
             encryption: EncryptionLevel::NotSupported,
