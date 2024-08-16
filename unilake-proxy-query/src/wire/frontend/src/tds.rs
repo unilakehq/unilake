@@ -19,5 +19,4 @@ uint_enum! {
         /// None encryption type
         None = 10,
     }
-
 }

@@ -21,6 +21,10 @@ impl ResponseMessage {
         self.tokens.push(token);
     }
 
+    pub fn add_token_at_index(&mut self, token: TdsToken, index: usize) {
+        self.tokens.insert(index, token);
+    }
+
     fn inner_encode(token: &TdsToken, dst: &mut BytesMut) -> TdsWireResult<()> {
         match token {
             TdsToken::Done(token) => token.encode(dst),
@@ -33,8 +37,8 @@ impl ResponseMessage {
             TdsToken::FedAuth(token) => token.encode(dst),
             TdsToken::LoginAck(token) => token.encode(dst),
             TdsToken::ReturnValue(token) => token.encode(dst),
+            TdsToken::Row(token) => token.encode(dst),
             // TdsToken::Sspi(token) => token.encode(dst),
-            // todo(mrhamburg): see where tokenrow needs lifetime operators and best
             _ => unimplemented!(),
         }
     }

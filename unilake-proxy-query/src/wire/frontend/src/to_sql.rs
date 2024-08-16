@@ -1,3 +1,4 @@
+// todo(mrhamburg): determine if this is really needed and y'all
 use crate::tds::codec::ColumnData;
 use std::borrow::Cow;
 
@@ -23,86 +24,86 @@ use std::borrow::Cow;
 pub trait ToSql: Send + Sync {
     /// Convert to a value understood by the SQL Server. Conversion
     /// by-reference.
-    fn to_sql(&self) -> ColumnData<'_>;
+    fn to_sql(&self) -> ColumnData;
 }
 
 /// A by-value conversion trait to a TDS type.
 pub trait IntoSql<'a>: Send + Sync {
     /// Convert to a value understood by the SQL Server. Conversion by-value.
-    fn into_sql(self) -> ColumnData<'a>;
+    fn into_sql(self) -> ColumnData;
 }
 
 impl<'a> IntoSql<'a> for &'a str {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::String(Some(Cow::Borrowed(self)))
+    fn into_sql(self) -> ColumnData {
+        ColumnData::String(Some(self.to_string()))
     }
 }
 
-impl<'a> IntoSql<'a> for Option<&'a str> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::String(self.map(Cow::Borrowed))
-    }
-}
+// impl<'a> IntoSql<'a> for Option<&'a str> {
+//     fn into_sql(self) -> ColumnData {
+//         ColumnData::String(self.map(Cow::Borrowed))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for &'a String {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::String(Some(Cow::Borrowed(self)))
-    }
-}
+// impl<'a> IntoSql<'a> for &'a String {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::String(Some(Cow::Borrowed(self)))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for Option<&'a String> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::String(self.map(Cow::from))
-    }
-}
+// impl<'a> IntoSql<'a> for Option<&'a String> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::String(self.map(Cow::from))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for &'a [u8] {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::Binary(Some(Cow::Borrowed(self)))
-    }
-}
+// impl<'a> IntoSql<'a> for &'a [u8] {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::Binary(Some(Cow::Borrowed(self)))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for Option<&'a [u8]> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::Binary(self.map(Cow::Borrowed))
-    }
-}
+// impl<'a> IntoSql<'a> for Option<&'a [u8]> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::Binary(self.map(Cow::Borrowed))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for &'a Vec<u8> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::Binary(Some(Cow::from(self)))
-    }
-}
+// impl<'a> IntoSql<'a> for &'a Vec<u8> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::Binary(Some(Cow::from(self)))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for Option<&'a Vec<u8>> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::Binary(self.map(Cow::from))
-    }
-}
+// impl<'a> IntoSql<'a> for Option<&'a Vec<u8>> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::Binary(self.map(Cow::from))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for Cow<'a, str> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::String(Some(self))
-    }
-}
+// impl<'a> IntoSql<'a> for Cow<'a, str> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::String(Some(self))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for Option<Cow<'a, str>> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::String(self)
-    }
-}
+// impl<'a> IntoSql<'a> for Option<Cow<'a, str>> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::String(self)
+//     }
+// }
 
-impl<'a> IntoSql<'a> for Cow<'a, [u8]> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::Binary(Some(self))
-    }
-}
+// impl<'a> IntoSql<'a> for Cow<'a, [u8]> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::Binary(Some(self))
+//     }
+// }
 
-impl<'a> IntoSql<'a> for Option<Cow<'a, [u8]>> {
-    fn into_sql(self) -> ColumnData<'a> {
-        ColumnData::Binary(self)
-    }
-}
+// impl<'a> IntoSql<'a> for Option<Cow<'a, [u8]>> {
+//     fn into_sql(self) -> ColumnData<'a> {
+//         ColumnData::Binary(self)
+//     }
+// }
 
 // TODO: fix this
 // into_sql!(self_,

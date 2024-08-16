@@ -97,11 +97,11 @@ impl PacketHeader {
         }
     }
 
-    pub fn result() -> Self {
+    pub fn result(id: u8) -> Self {
         Self {
             ty: PacketType::TabularResult,
             is_end_of_message: true,
-            ..Self::new(0, 0)
+            ..Self::new(0, id)
         }
     }
 

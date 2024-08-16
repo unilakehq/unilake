@@ -1,7 +1,7 @@
 use crate::{
     error::{TdsWireError, TdsWireResult},
     tds::server_context::ServerContext,
-    BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse,
+    BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse, TdsBackendResponseHandler,
 };
 use async_trait::async_trait;
 use futures::Sink;
@@ -13,7 +13,7 @@ use std::{
     },
     time::Duration,
 };
-use tokio::{sync::Semaphore, time::sleep};
+use tokio::{io::AsyncWrite, sync::Semaphore, time::sleep};
 use ulid::Ulid;
 
 #[derive(Debug, Default)]
@@ -219,9 +219,9 @@ impl DefaultSession {
 }
 
 #[async_trait]
-pub trait TdsWireHandlerFactory<S>: Send + Sync
+pub trait TdsWireHandler<S>
 where
-    S: SessionInfo + Send + Sync,
+    S: SessionInfo,
 {
     /// Create a new TDS server session
     fn open_session(
@@ -234,35 +234,45 @@ where
     fn close_session(&self, session: &S);
 
     /// Called when pre-login request arrives
-    async fn on_prelogin_request<C>(
+    async fn on_prelogin_request(
         &self,
-        client: &mut C,
+        session_info: &mut S,
+        response_hanlder: &mut TdsBackendResponseHandler<
+            '_,
+            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin,
+        >,
         msg: &PreloginMessage,
-    ) -> TdsWireResult<()>
-    where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
+    ) -> TdsWireResult<()>;
 
-    /// Called when login request arrives
-    async fn on_login7_request<C>(&self, client: &mut C, msg: &LoginMessage) -> TdsWireResult<()>
-    where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
+    /// Called when login request arrives, returns true if authentication is successful
+    async fn on_login7_request(
+        &self,
+        session_info: &mut S,
+        response_hanlder: &mut TdsBackendResponseHandler<
+            '_,
+            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin,
+        >,
+        msg: &LoginMessage,
+    ) -> TdsWireResult<bool>;
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
     /// token is part of a login request.
-    fn on_federated_authentication_token_message(&self, session: &S);
+    fn on_federated_authentication_token_message(&self, session: &mut S);
 
     /// Called when SQL batch request arrives
-    async fn on_sql_batch_request<C>(
+    async fn on_sql_batch_request(
         &self,
-        client: &mut C,
+        session_info: &mut S,
+        response_hanlder: &mut TdsBackendResponseHandler<
+            '_,
+            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
+        >,
         msg: &BatchRequest,
-    ) -> TdsWireResult<()>
-    where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
+    ) -> TdsWireResult<()>;
 
     /// Called when attention arrives
-    fn on_attention(&self, session: &S);
+    fn on_attention(&self, session: &mut S);
 }
 
 pub enum ServerInstanceMessage {

@@ -43,8 +43,7 @@ pub enum TdsToken {
     FedAuth(TokenFedAuth),
     LoginAck(TokenLoginAck),
     ReturnValue(TokenReturnValue),
-    // todo(mrhamburg): see where tokenrow needs lifetime operators and best way forward
-    // Row(TokenRow),
+    Row(TokenRow),
     Sspi(TokenSspi),
 }
 
@@ -74,3 +73,4 @@ impl_into_tdstoken!(TokenFedAuth, TdsToken::FedAuth);
 impl_into_tdstoken!(TokenLoginAck, TdsToken::LoginAck);
 impl_into_tdstoken!(TokenReturnValue, TdsToken::ReturnValue);
 impl_into_tdstoken!(TokenSspi, TdsToken::Sspi);
+impl_into_tdstoken!(TokenRow, TdsToken::Row);

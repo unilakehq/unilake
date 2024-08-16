@@ -35,6 +35,7 @@ pub enum ColumnFlag {
     /// type.
     CaseSensitive = 1 << 1,
     /// If column is writeable.
+    // todo(mrhamburg): this flag is 2 bytes? messses up the other flags
     Updateable = 1 << 3,
     /// Column modification status unknown.
     UpdateableUnknown = 1 << 4,
@@ -62,11 +63,118 @@ pub enum ColumnFlag {
 }
 
 impl TokenColMetaData {
+    /// Returns an iterator over the columns in this metadata.
     pub fn columns(&self) -> impl Iterator<Item = Column> + '_ {
         self.columns.iter().map(|x| Column {
             name: x.col_name.clone(),
             column_type: ColumnType::from(&x.base.ty),
         })
+    }
+
+    /// Creates a new empty column metadata token.
+    pub fn new() -> Self {
+        TokenColMetaData {
+            columns: Vec::new(),
+        }
+    }
+
+    /// Returns the number of columns in this metadata.
+    pub fn len(&self) -> usize {
+        self.columns.len()
+    }
+
+    /// Adds a new column to the metadata. Returns the index of the added column.
+    pub fn add_column(&mut self, col_name: &str, ty: TypeInfo) -> usize {
+        self.columns.push(MetaDataColumn {
+            base: BaseMetaDataColumn {
+                flags: BitFlags::empty(),
+                ty,
+            },
+            col_name: col_name.to_string(),
+        });
+        self.get_index(col_name).unwrap()
+    }
+
+    /// Returns the index of the column with the given name, or None if not found.
+    pub fn get_index(&self, col_name: &str) -> Option<usize> {
+        self.columns.iter().position(|x| x.col_name == col_name)
+    }
+
+    /// Sets the nullable flag for the column at the given index.
+    pub fn column_set_nullable(&mut self, index: usize, is_nullable: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::Nullable, is_nullable);
+    }
+
+    /// Sets the case sensitive flag for the column at the given index.
+    pub fn column_set_case_sensitive(&mut self, index: usize, is_case_sensitive: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::CaseSensitive, is_case_sensitive);
+    }
+
+    /// Sets the updateable flag for the column at the given index.
+    pub fn column_set_updateable(&mut self, index: usize, is_updateable: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::Updateable, is_updateable);
+    }
+
+    /// Sets the identity flag for the column at the given index.
+    pub fn column_set_identity(&mut self, index: usize, is_identity: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::Identity, is_identity);
+    }
+
+    /// Sets the computed flag for the column at the given index.
+    pub fn column_set_computed(&mut self, index: usize, is_computed: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::Computed, is_computed);
+    }
+
+    /// Sets the fixed length CLR type flag for the column at the given index.
+    pub fn column_set_fixed_len_clr_type(&mut self, index: usize, is_fixed_len_clr_type: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::FixedLenClrType, is_fixed_len_clr_type);
+    }
+
+    /// Sets the encrypted flag for the column at the given index.
+    pub fn column_set_encrypted(&mut self, index: usize, is_encrypted: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::Encrypted, is_encrypted);
+    }
+
+    /// Sets the hidden flag for the column at the given index.
+    pub fn column_set_hidden(&mut self, index: usize, is_hidden: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::Hidden, is_hidden);
+    }
+
+    /// Sets the key flag for the column at the given index.
+    pub fn column_set_key(&mut self, index: usize, is_key: bool) {
+        self.columns[index].base.flags.set(ColumnFlag::Key, is_key);
+    }
+
+    /// Sets the nullable unknown flag for the column at the given index.
+    pub fn column_set_nullable_unknown(&mut self, index: usize, is_nullable_unknown: bool) {
+        self.columns[index]
+            .base
+            .flags
+            .set(ColumnFlag::NullableUnknown, is_nullable_unknown);
     }
 }
 
@@ -97,8 +205,8 @@ impl TdsTokenCodec for TokenColMetaData {
         });
 
         for column in &self.columns {
-            column.base.encode(dest);
-            encode::write_b_varchar(dest, &column.col_name);
+            column.base.encode(dest)?;
+            encode::write_b_varchar(dest, &column.col_name)?;
         }
 
         Ok(())
@@ -106,7 +214,7 @@ impl TdsTokenCodec for TokenColMetaData {
 }
 
 impl BaseMetaDataColumn {
-    fn null_value(&self) -> ColumnData<'static> {
+    fn null_value(&self) -> ColumnData {
         match self.ty {
             TypeInfo::FixedLen(ty) => match ty {
                 FixedLenType::Null => ColumnData::I32(None),

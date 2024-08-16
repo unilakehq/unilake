@@ -1,7 +1,7 @@
 use crate::{ColumnData, Result, Time};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
-pub(crate) fn decode(src: &mut BytesMut, len: usize) -> Result<ColumnData<'static>> {
+pub(crate) fn decode(src: &mut BytesMut, len: usize) -> Result<ColumnData> {
     let rlen = src.get_u8();
 
     let time = match rlen {
@@ -15,7 +15,7 @@ pub(crate) fn decode(src: &mut BytesMut, len: usize) -> Result<ColumnData<'stati
     Ok(time)
 }
 
-pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData<'_>) -> Result<()> {
+pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
     match data {
         ColumnData::Time(Some(val)) => {
             dst.put_u8(val.len()? as u8);

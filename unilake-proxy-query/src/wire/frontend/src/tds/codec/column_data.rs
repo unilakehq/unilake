@@ -1,7 +1,4 @@
-use crate::{
-    Date, DateTime, DateTime2, DateTimeOffset, Numeric, Result, SmallDateTime, Time, TypeInfo,
-};
-use std::borrow::Cow;
+use crate::{Date, DateTime, DateTime2, DateTimeOffset, Numeric, Result, SmallDateTime, Time};
 use tokio_util::bytes::BytesMut;
 
 mod binary;
@@ -23,7 +20,7 @@ const MAX_NVARCHAR_SIZE: usize = 1 << 30;
 /// Token definition [2.2.4.2.1]
 /// A container of a value that can be represented as a TDS value.
 #[derive(Clone, Debug)]
-pub enum ColumnData<'a> {
+pub enum ColumnData {
     /// 8-bit integer, unsigned.
     U8(Option<u8>),
     /// 16-bit integer, signed.
@@ -39,9 +36,9 @@ pub enum ColumnData<'a> {
     /// Boolean.
     Bit(Option<bool>),
     /// A string value.
-    String(Option<Cow<'a, str>>),
+    String(Option<String>),
     /// Binary data.
-    Binary(Option<Cow<'a, [u8]>>),
+    Binary(Option<String>),
     /// Numeric value (a decimal).
     Numeric(Option<Numeric>),
     /// DateTime value.
@@ -58,8 +55,8 @@ pub enum ColumnData<'a> {
     DateTimeOffset(Option<DateTimeOffset>),
 }
 
-impl<'a> ColumnData<'a> {
-    pub fn type_name(&self) -> Cow<'static, str> {
+impl ColumnData {
+    pub fn type_name(&self) -> String {
         match self {
             ColumnData::U8(_) => "tinyint".into(),
             ColumnData::I16(_) => "smallint".into(),
@@ -89,23 +86,8 @@ impl<'a> ColumnData<'a> {
         }
     }
 
-    pub fn decode(src: &mut BytesMut, ctx: &TypeInfo) -> Result<ColumnData<'a>> {
-        todo!();
-        // let res = match ctx {
-        //     TypeInfo::FixedLen(fixed_ty) => fixed_len::decode(src, fixed_ty),
-        //     TypeInfo::VarLenSized(cx) => var_len::decode(src, cx),
-        //     TypeInfo::VarLenSizedPrecision { ty, scale, .. } => match ty {
-        //         VarLenType::Decimaln | VarLenType::Numericn => {
-        //             ColumnData::Numeric(Numeric::decode(src, *scale).await?)
-        //         }
-        //         _ => unreachable!("Unsupported type {:?}", ty),
-        //     },
-        // };
-
-        // Ok(res)
-    }
-
-    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+    /// Encode this value into the given destination buffer.
+    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         match self {
             ColumnData::Bit(_)
             | ColumnData::U8(_)
@@ -113,10 +95,14 @@ impl<'a> ColumnData<'a> {
             | ColumnData::I32(_)
             | ColumnData::I64(_)
             | ColumnData::F32(_)
-            | ColumnData::F64(_) => fixed_len::encode(dst, &self)?,
-            ColumnData::String(_) => string::encode(dst, &self)?,
-            ColumnData::Date(_) => date::encode(dst, &self)?,
-            ColumnData::DateTime2(_) => datetime2::encode(dst, &self)?,
+            | ColumnData::F64(_) => fixed_len::encode(dest, &self)?,
+            ColumnData::String(_) => string::encode(dest, &self)?,
+            ColumnData::Date(_) => date::encode(dest, &self)?,
+            ColumnData::DateTime2(_) => datetime2::encode(dest, &self)?,
+            // todo(mhramburg): implement these items
+            // ColumnData::Numeric(_) => numeric::encode(dest, &self)?,
+            // ColumnData::F32(_) | ColumnData::F64(_) => var_len::encode(dest, &self)?,
+            //todo(mhramburg): json, array, bitmap, HLL
             _ => unreachable!("ColumData of type {:?} is not supported", self),
         }
 

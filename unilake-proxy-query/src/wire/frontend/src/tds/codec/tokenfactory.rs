@@ -1,9 +1,13 @@
 use super::{ResponseMessage, TdsToken};
 use crate::{
-    error::TdsWireResult, prot::SessionInfo, tds::codec::header, PacketHeader, TdsMessage,
-    ALL_HEADERS_LEN_TX,
+    error::{TdsWireError, TdsWireResult},
+    prot::SessionInfo,
+    tds::codec::header,
+    PacketHeader, TdsMessage, ALL_HEADERS_LEN_TX,
 };
+use futures::{Sink, SinkExt};
 use std::cell::Cell;
+use tokio::io::AsyncWrite;
 use tokio_util::bytes::{Buf, BytesMut};
 
 // Complete Frontend Request
@@ -41,22 +45,25 @@ impl TdsFrontendRequest {
 
 #[derive(Debug)]
 pub struct TdsBackendResponse {
-    pub header: Cell<Option<header::PacketHeader>>,
     pub messages: Vec<TdsMessage>,
+    max_packet_size: usize,
+    packet_number: u8,
 }
 
+// todo: improve implementation, packet number is for a continuous sequence, so if you need multiple responses for a request
+// todo: make sure we can send multiple responses for a single request (currently we can only send one), in case the len of the response exceeds the max packet size
 impl TdsBackendResponse {
     /// Create a new backend response
-    pub fn new(session: &mut dyn SessionInfo) -> Self {
+    pub fn new(max_packet_size: u32, packet_number: u8) -> Self {
         TdsBackendResponse {
-            header: Cell::new(Some(Self::get_next_header(session))),
             messages: Vec::new(),
+            max_packet_size: max_packet_size as usize,
+            packet_number,
         }
     }
 
-    fn get_next_header(_: &mut dyn SessionInfo) -> PacketHeader {
-        // PacketHeader::new(0, session.increment_packet_id())
-        PacketHeader::new(0, 1)
+    fn len(&self) -> usize {
+        todo!()
     }
 
     /// Add new message to the response
@@ -79,16 +86,13 @@ impl TdsBackendResponse {
             r.add_token(token.into());
             self.add_message(r);
         }
+
+        if self.len() > self.max_packet_size {}
     }
 
     /// Encode the response into a byte buffer
     pub fn encode(&self, buf: &mut BytesMut) -> TdsWireResult<()> {
-        let header = self.header.replace(None);
-        if header.is_none() {
-            // return Err::new("No header available for encoding");
-            todo!();
-        }
-        let mut header = header.unwrap();
+        let mut header = PacketHeader::result(self.packet_number);
 
         // encode all messages
         let mut result = BytesMut::new();
@@ -102,5 +106,72 @@ impl TdsBackendResponse {
         buf.unsplit(result);
 
         Ok(())
+    }
+}
+
+pub struct TdsBackendResponseHandler<'a, T>
+where
+    T: Sink<TdsBackendResponse, Error = TdsWireError> + Sized + Unpin,
+{
+    pub response: Option<TdsBackendResponse>,
+    pub sink: &'a mut T,
+    max_packet_size: u32,
+    packet_number: u8,
+}
+
+impl<'a, T> TdsBackendResponseHandler<'a, T>
+where
+    T: Sink<TdsBackendResponse, Error = TdsWireError> + Sized + Unpin,
+{
+    pub fn new(sink: &'a mut T, max_packet_size: u32) -> Self {
+        TdsBackendResponseHandler {
+            response: None,
+            sink,
+            max_packet_size,
+            packet_number: 0,
+        }
+    }
+    fn next_response(&mut self) {
+        self.packet_number += 1;
+        self.response = Some(TdsBackendResponse::new(
+            self.max_packet_size,
+            self.packet_number,
+        ))
+    }
+
+    pub async fn flush(&mut self) -> TdsWireResult<()> {
+        if let Some(r) = self.response.take() {
+            self.sink.feed(r).await;
+            self.sink.flush().await;
+            todo!()
+        }
+        self.next_response();
+        Ok(())
+    }
+
+    /// Add new message to the response
+    pub async fn add_message<M>(&mut self, message: M)
+    where
+        M: Into<TdsMessage>,
+    {
+        if self.response.is_none() {
+            self.next_response();
+        }
+        if let Some(r) = self.response.as_mut() {
+            r.add_message(message)
+        }
+    }
+
+    /// Add new token to the latest response message, if no response message exists a new one is created
+    pub async fn add_token<M>(&mut self, token: M)
+    where
+        M: Into<TdsToken>,
+    {
+        if self.response.is_none() {
+            self.next_response();
+        }
+        if let Some(r) = self.response.as_mut() {
+            r.add_token(token)
+        }
     }
 }

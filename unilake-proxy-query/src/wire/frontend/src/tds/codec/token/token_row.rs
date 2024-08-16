@@ -1,14 +1,16 @@
 use crate::{ColumnData, Result, TdsTokenType, TokenColMetaData};
-use std::sync::Arc;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_util::bytes::{BufMut, BytesMut};
+
+use super::{TdsToken, TdsTokenCodec};
 
 /// A row of data.
 #[derive(Debug, Default, Clone)]
-pub struct TokenRow<'a> {
-    data: Vec<ColumnData<'a>>,
+pub struct TokenRow {
+    data: Vec<ColumnData>,
+    nbc_row: bool,
 }
-impl<'a> IntoIterator for TokenRow<'a> {
-    type Item = ColumnData<'a>;
+impl IntoIterator for TokenRow {
+    type Item = ColumnData;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -16,87 +18,23 @@ impl<'a> IntoIterator for TokenRow<'a> {
     }
 }
 
-impl<'a> TokenRow<'a> {
+impl TokenRow {
     /// Creates a new empty row with allocated capacity from an existing token column metadata.
-    pub fn from(col: &TokenColMetaData) -> Self {
+    pub fn new(col_len: usize, nbc_row: bool) -> Self {
         Self {
-            data: Vec::with_capacity(col.columns.len()),
+            data: Vec::with_capacity(col_len),
+            nbc_row: nbc_row,
         }
-    }
-
-    /// Normal row. We'll read the metadata what we've cached and parse columns
-    /// based on that.
-    pub async fn decode<R>(src: &mut R, col_meta: Arc<TokenColMetaData>) -> Result<TokenRow<'a>>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let mut row = Self {
-            data: Vec::with_capacity(col_meta.columns.len()),
-        };
-
-        for column in col_meta.columns.iter() {
-            todo!()
-            // let data = ColumnData::decode(src, &column.base.ty).await?;
-            // row.data.push(data);
-        }
-
-        Ok(row)
-    }
-
-    /// Write/encode a normal row to the client. Server decides whether to send an NBC row or a normal row.
-    /// Since we do not support any variable length types, nbcrow should be used when a row has null values.
-    pub async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TdsTokenType::Row as u8).await?;
-
-        for column in &self.data {
-            todo!()
-            // column.encode(dest).await?;
-        }
-
-        Ok(())
-    }
-
-    /// SQL Server has packed nulls on this row type. We'll read what columns
-    /// are null from the bitmap.
-    pub async fn decode_nbc<R>(src: &mut R, col_meta: Arc<TokenColMetaData>) -> Result<TokenRow<'a>>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let row_bitmap = RowBitmap::decode(src, col_meta.columns.len()).await?;
-
-        let mut row = Self {
-            data: Vec::with_capacity(col_meta.columns.len()),
-        };
-
-        for (i, column) in col_meta.columns.iter().enumerate() {
-            // let data = if row_bitmap.is_null(i) {
-            //     column.base.null_value()
-            // } else {
-            //     ColumnData::decode(src, &column.base.ty).await?
-            // };
-            todo!();
-
-            // row.data.push(data);
-        }
-
-        Ok(row)
     }
 
     /// Write/encode an nbc row to the client. Server decides whether to send an NBC row or a normal row.
-    pub async fn encode_nbc<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_u8(TdsTokenType::NbcRow as u8).await?;
+    pub fn encode_nbc(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::NbcRow as u8);
         let bm = RowBitmap::from(&self.data);
-        bm.encode(dest).await?;
+        bm.encode(dest);
         for (i, d) in self.data.iter().enumerate() {
             if !bm.is_null(i) {
-                // d.encode(dest).await?;
-                todo!()
+                d.encode(dest);
             }
         }
 
@@ -110,18 +48,38 @@ impl<'a> TokenRow<'a> {
 
     /// Gives the columnar data with the given index. `None` if index out of
     /// bounds.
-    pub fn get(&self, index: usize) -> Option<&ColumnData<'a>> {
+    pub fn get(&self, index: usize) -> Option<&ColumnData> {
         self.data.get(index)
     }
 
     /// Adds a new value to the row.
-    pub fn push(&mut self, value: ColumnData<'a>) {
+    pub fn push(&mut self, value: ColumnData) {
         self.data.push(value);
     }
 
     /// True if row has no columns.
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
+    }
+}
+
+impl TdsTokenCodec for TokenRow {
+    /// Decode is not implemented for this token type.
+    fn decode(_: &mut BytesMut) -> Result<TdsToken> {
+        unimplemented!()
+    }
+
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        if self.nbc_row {
+            return self.encode_nbc(dest);
+        }
+
+        dest.put_u8(TdsTokenType::Row as u8);
+        for (_, d) in self.data.iter().enumerate() {
+            d.encode(dest)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -152,7 +110,7 @@ impl RowBitmap {
         }
     }
 
-    fn from(source: &Vec<ColumnData<'_>>) -> Self {
+    fn from(source: &Vec<ColumnData>) -> Self {
         let mut ret = Self::new(std::cmp::min(source.len() / 8, 1));
 
         for (i, d) in source.iter().enumerate() {
@@ -204,26 +162,10 @@ impl RowBitmap {
         self.data[index] |= 1 << bit;
     }
 
-    /// Decode the bitmap data from the beginning of the row. Only doable if the
-    /// type is `NbcRowToken`.
-    async fn decode<R>(src: &mut R, columns: usize) -> Result<Self>
-    where
-        R: AsyncRead + Unpin,
-    {
-        let size = (columns + 8 - 1) / 8;
-        let mut data = vec![0; size];
-        src.read_exact(&mut data[0..size]).await?;
-
-        Ok(Self { data })
-    }
-
     /// Encode the bitmap data from the beginning of the row. Only doable if the
     /// type is `NbcRowToken`.
-    async fn encode<W>(&self, dest: &mut W) -> Result<()>
-    where
-        W: AsyncWrite + Unpin,
-    {
-        dest.write_all(self.data.as_slice()).await?;
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.extend_from_slice(&self.data);
         Ok(())
     }
 }

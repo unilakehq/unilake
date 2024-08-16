@@ -1,7 +1,7 @@
 use crate::{ColumnData, Result};
 use tokio_util::bytes::{Buf, BytesMut};
 
-pub(crate) fn decode(src: &mut BytesMut, type_len: usize) -> Result<ColumnData<'static>> {
+pub(crate) fn decode(src: &mut BytesMut, type_len: usize) -> Result<ColumnData> {
     let recv_len = src.get_u8() as usize;
 
     let res = match (recv_len, type_len) {

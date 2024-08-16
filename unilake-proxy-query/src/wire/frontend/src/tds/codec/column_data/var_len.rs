@@ -2,7 +2,7 @@ use crate::{ColumnData, Result, VarLenContext, VarLenType};
 use tokio_util::bytes::{Buf, BytesMut};
 
 /// Var length token [2.2.4.2.1.3]
-pub(crate) fn decode(src: &mut BytesMut, ctx: &VarLenContext) -> Result<ColumnData<'static>> {
+pub(crate) fn decode(src: &mut BytesMut, ctx: &VarLenContext) -> Result<ColumnData> {
     use VarLenType::*;
 
     let ty = ctx.r#type();

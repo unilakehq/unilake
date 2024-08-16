@@ -1,4 +1,4 @@
-use super::{batch_request::BatchRequest, ResponseMessage};
+use super::{batch_request::BatchRequest, MetaDataColumn, ResponseMessage};
 use crate::{error::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TokenFedAuth};
 use tokio_util::bytes::BytesMut;
 
