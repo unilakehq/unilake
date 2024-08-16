@@ -1,3 +1,4 @@
+use crate::codec::*;
 use crate::{
     error::{TdsWireError, TdsWireResult},
     tds::server_context::ServerContext,
@@ -6,7 +7,7 @@ use crate::{
 use async_trait::async_trait;
 use futures::Sink;
 use std::{
-    net::SocketAddr,
+    net::{SocketAddr, TcpStream},
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -14,6 +15,7 @@ use std::{
     time::Duration,
 };
 use tokio::{io::AsyncWrite, sync::Semaphore, time::sleep};
+use tokio_util::codec::Framed;
 use ulid::Ulid;
 
 #[derive(Debug, Default)]
@@ -239,7 +241,7 @@ where
         session_info: &mut S,
         response_hanlder: &mut TdsBackendResponseHandler<
             '_,
-            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin,
+            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
         >,
         msg: &PreloginMessage,
     ) -> TdsWireResult<()>;
@@ -250,7 +252,7 @@ where
         session_info: &mut S,
         response_hanlder: &mut TdsBackendResponseHandler<
             '_,
-            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin,
+            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
         >,
         msg: &LoginMessage,
     ) -> TdsWireResult<bool>;

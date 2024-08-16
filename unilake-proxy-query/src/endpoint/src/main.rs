@@ -76,7 +76,7 @@ impl TdsWireHandler<DefaultSession> for DefaultTdsWireHandler {
         session_info: &mut DefaultSession,
         response_hanlder: &mut TdsBackendResponseHandler<
             '_,
-            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin,
+            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
         >,
         msg: &PreloginMessage,
     ) -> TdsWireResult<()> {
@@ -89,7 +89,7 @@ impl TdsWireHandler<DefaultSession> for DefaultTdsWireHandler {
         session_info: &mut DefaultSession,
         response_hanlder: &mut TdsBackendResponseHandler<
             '_,
-            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin,
+            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
         >,
         msg: &LoginMessage,
     ) -> TdsWireResult<bool> {

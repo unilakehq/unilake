@@ -72,23 +72,31 @@ impl Encoder<TdsBackendResponse> for TdsWireMessageServerCodec {
     }
 }
 
-fn as_sink<T>(
-    socket: &mut T,
-) -> &mut (dyn Sink<TdsBackendResponse, Error = TdsWireError> + Send + Unpin)
-where
-    T: Sink<TdsBackendResponse, Error = TdsWireError> + Send + Unpin,
-{
-    socket
-}
+// async fn test_method<'a, T, H, S>(
+//     request: TdsFrontendRequest,
+//     session: &mut S,
+//     handlers: Arc<H>,
+//     thingy: TdsBackendResponseHandler<'a, Framed<TcpStream, TdsWireMessageServerCodec>>,
+// ) -> TdsWireResult<()>
+// where
+//     T: Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
+//     S: SessionInfo,
+//     H: TdsWireHandler<S, T>,
+// {
+//     handlers.on_prelogin_request(session, &mut thingy, request.messages.first());
+//     todo!()
+// }
 
-async fn process_request<T, H, S>(
+async fn process_request<'a, H, S>(
     request: TdsFrontendRequest,
-    socket: &mut T,
+    response_handler: &mut TdsBackendResponseHandler<
+        'a,
+        Framed<TcpStream, TdsWireMessageServerCodec>,
+    >,
     session: &mut S,
     handlers: Arc<H>,
 ) -> TdsWireResult<()>
 where
-    T: Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
     S: SessionInfo,
     H: TdsWireHandler<S>,
 {
@@ -101,13 +109,12 @@ where
 
     for (_header, message) in request.messages {
         let packet_size = session.packet_size();
-        let mut response_handler = TdsBackendResponseHandler::new(socket, packet_size);
 
         match session.state() {
             TdsSessionState::Initial => {
                 if let TdsMessage::PreLogin(p) = message {
                     handlers
-                        .on_prelogin_request(session, &mut response_handler, &p)
+                        .on_prelogin_request(session, response_handler, &p)
                         .await?;
                     session.set_state(TdsSessionState::PreLoginProcessed);
                 } else {
@@ -117,7 +124,7 @@ where
             TdsSessionState::PreLoginProcessed => {
                 if let TdsMessage::Login(l) = message {
                     if handlers
-                        .on_login7_request(session, &mut response_handler, &l)
+                        .on_login7_request(session, response_handler, &l)
                         .await?
                     {
                         session.set_state(TdsSessionState::LoggedIn);
@@ -133,7 +140,7 @@ where
             TdsSessionState::LoggedIn => {
                 if let TdsMessage::BatchRequest(b) = message {
                     handlers
-                        .on_sql_batch_request(session, &mut response_handler, &b)
+                        .on_sql_batch_request(session, response_handler, &b)
                         .await?;
                 }
                 // todo(mrhamburg): implement error handling for specific message types which we do not expect here
@@ -146,20 +153,7 @@ where
         }
     }
     // todo(mrhamburg): improve this section
-    let result = socket.flush().await;
-    if result.is_err() {
-        panic!("Error flushing socket:");
-    }
     Ok(())
-}
-
-fn some_testing<T, S, H>(a: &mut T, s: &mut S, something: Arc<H>)
-where
-    T: Sink<TdsBackendResponse> + Unpin + Send,
-    S: SessionInfo,
-    H: TdsWireHandler<S>,
-{
-    a.flush();
 }
 
 pub async fn process_socket<S, H>(
@@ -189,7 +183,6 @@ where
     };
 
     let mut tcp_socket = Framed::new(tcp_socket, TdsWireMessageServerCodec::new());
-    some_testing(&mut tcp_socket, &mut session_info, handler.clone());
 
     // let ssl = peek_for_sslrequest(&mut tcp_socket, tls_acceptor.is_some()).await?;
     let ssl = false;
@@ -198,9 +191,16 @@ where
         while let Some(packet) = tcp_socket.next().await {
             match packet {
                 Ok(msg) => {
-                    if let Err(e) =
-                        process_request(msg, &mut tcp_socket, &mut session_info, handler.clone())
-                            .await
+                    let mut response_handler = TdsBackendResponseHandler::new(&mut tcp_socket, 0);
+                    // test_method(msg, &mut session_info, handler.clone(), response_handler);
+
+                    if let Err(e) = process_request(
+                        msg,
+                        &mut response_handler,
+                        &mut session_info,
+                        handler.clone(),
+                    )
+                    .await
                     {
                         tracing::error!("Error processing request: {}", e);
                         // todo(mrhamburg): error handling + close session on error
