@@ -52,6 +52,37 @@ pub trait TdsTokenCodec {
     fn decode(src: &mut BytesMut) -> Result<TdsToken>;
 }
 
+macro_rules! encode_match {
+    ($self:ident, $dst:ident, $( $variant:ident ),* ) => {
+        match $self {
+            $(
+                TdsToken::$variant(token) => token.encode($dst),
+            )*
+        }
+    };
+}
+
+impl TdsToken {
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+        encode_match!(
+            self,
+            dst,
+            Done,
+            EnvChange,
+            Error,
+            Info,
+            Order,
+            FeatureExtAck,
+            ColMetaData,
+            FedAuth,
+            LoginAck,
+            ReturnValue,
+            Row,
+            Sspi
+        )
+    }
+}
+
 macro_rules! impl_into_tdstoken {
     ($t:ty, $tt:expr) => {
         impl Into<TdsToken> for $t {

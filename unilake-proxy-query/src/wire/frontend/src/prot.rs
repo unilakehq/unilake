@@ -1,21 +1,19 @@
-use crate::codec::*;
 use crate::{
     error::{TdsWireError, TdsWireResult},
     tds::server_context::ServerContext,
-    BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse, TdsBackendResponseHandler,
+    BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse, TdsMessage, TdsToken,
 };
 use async_trait::async_trait;
-use futures::Sink;
+use futures::{Sink, SinkExt};
 use std::{
-    net::{SocketAddr, TcpStream},
+    net::SocketAddr,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
     time::Duration,
 };
-use tokio::{io::AsyncWrite, sync::Semaphore, time::sleep};
-use tokio_util::codec::Framed;
+use tokio::{sync::Semaphore, time::sleep};
 use ulid::Ulid;
 
 #[derive(Debug, Default)]
@@ -61,7 +59,7 @@ pub trait SessionInfo: Send + Sync {
     fn session_id(&self) -> Ulid;
 
     /// Size of the TDS packet
-    fn packet_size(&self) -> u32;
+    fn packet_size(&self) -> u16;
 
     /// User name if SQL authentication is used
     fn get_sql_user_id(&self) -> &str;
@@ -111,7 +109,7 @@ pub struct DefaultSession {
     socket_addr: SocketAddr,
     state: TdsSessionState,
     session_id: Ulid,
-    packet_size: u32,
+    packet_size: u16,
     sql_user_id: Option<String>,
     database: Option<String>,
     connection_reset_request_count: usize,
@@ -143,7 +141,7 @@ impl SessionInfo for DefaultSession {
         self.session_id
     }
 
-    fn packet_size(&self) -> u32 {
+    fn packet_size(&self) -> u16 {
         self.packet_size
     }
 
@@ -221,9 +219,9 @@ impl DefaultSession {
 }
 
 #[async_trait]
-pub trait TdsWireHandler<S>
+pub trait TdsWireHandlerFactory<S>: Send + Sync
 where
-    S: SessionInfo,
+    S: SessionInfo + Send + Sync,
 {
     /// Create a new TDS server session
     fn open_session(
@@ -236,45 +234,70 @@ where
     fn close_session(&self, session: &S);
 
     /// Called when pre-login request arrives
-    async fn on_prelogin_request(
+    async fn on_prelogin_request<C>(
         &self,
-        session_info: &mut S,
-        response_hanlder: &mut TdsBackendResponseHandler<
-            '_,
-            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
-        >,
+        client: &mut C,
         msg: &PreloginMessage,
-    ) -> TdsWireResult<()>;
+    ) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
 
-    /// Called when login request arrives, returns true if authentication is successful
-    async fn on_login7_request(
-        &self,
-        session_info: &mut S,
-        response_hanlder: &mut TdsBackendResponseHandler<
-            '_,
-            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
-        >,
-        msg: &LoginMessage,
-    ) -> TdsWireResult<bool>;
+    /// Called when login request arrives
+    async fn on_login7_request<C>(&self, client: &mut C, msg: &LoginMessage) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
     /// token is part of a login request.
-    fn on_federated_authentication_token_message(&self, session: &mut S);
+    fn on_federated_authentication_token_message(&self, session: &S);
 
     /// Called when SQL batch request arrives
-    async fn on_sql_batch_request(
+    async fn on_sql_batch_request<C>(
         &self,
-        session_info: &mut S,
-        response_hanlder: &mut TdsBackendResponseHandler<
-            '_,
-            impl Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
-        >,
+        client: &mut C,
         msg: &BatchRequest,
-    ) -> TdsWireResult<()>;
+    ) -> TdsWireResult<()>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when attention arrives
-    fn on_attention(&self, session: &mut S);
+    fn on_attention(&self, session: &S);
+
+    /// Send message to the client
+    async fn send_message<C, M>(&self, client: &mut C, msg: M) -> Result<(), TdsWireError>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+        M: Into<TdsMessage> + Send,
+    {
+        client
+            .send(TdsBackendResponse::Message(msg.into()))
+            .await
+            .map_err(|_| TdsWireError::Protocol("Failed to feed message".to_string()))
+    }
+
+    /// Send token to the client
+    async fn send_token<C, T>(&self, client: &mut C, token: T) -> Result<(), TdsWireError>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+        T: Into<TdsToken> + Send,
+    {
+        client
+            .send(TdsBackendResponse::Token(token.into()))
+            .await
+            .map_err(|_| TdsWireError::Protocol("Failed to feed token".to_string()))
+    }
+
+    /// Flush all results
+    async fn flush<C>(&self, client: &mut C) -> Result<(), TdsWireError>
+    where
+        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        client
+            .send(TdsBackendResponse::Done)
+            .await
+            .map_err(|_| TdsWireError::Protocol("Failed to feed completion".to_string()))
+    }
 }
 
 pub enum ServerInstanceMessage {

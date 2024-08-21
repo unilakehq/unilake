@@ -3,25 +3,97 @@ use std::sync::Arc;
 
 use derive_new::new;
 use futures::future::poll_fn;
-use futures::{Sink, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
 use tokio_rustls::TlsAcceptor;
-use tokio_util::bytes::BytesMut;
+use tokio_util::bytes::{Buf, BytesMut};
 use tokio_util::codec::{Decoder, Encoder, Framed};
+use ulid::Ulid;
 
 use crate::error::{TdsWireError, TdsWireResult};
-use crate::prot::{ServerInstance, SessionInfo, TdsSessionState, TdsWireHandler};
+use crate::prot::{ServerInstance, SessionInfo, TdsSessionState, TdsWireHandlerFactory};
 use crate::{
-    PacketHeader, TdsBackendResponse, TdsBackendResponseHandler, TdsFrontendRequest, TdsMessage,
-    ALL_HEADERS_LEN_TX, MAX_PACKET_SIZE,
+    PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage, ALL_HEADERS_LEN_TX,
+    MAX_PACKET_SIZE,
 };
 
 #[non_exhaustive]
-#[derive(Debug, new)]
-pub struct TdsWireMessageServerCodec {}
+#[derive(Debug)]
+pub struct TdsWireMessageServerCodec<S>
+where
+    S: SessionInfo,
+{
+    pub session_info: S,
+    packet_number: u8,
+    current_response: BytesMut,
+}
 
-impl Decoder for TdsWireMessageServerCodec {
+impl<S> TdsWireMessageServerCodec<S>
+where
+    S: SessionInfo,
+{
+    fn new(session_info: S) -> Self {
+        TdsWireMessageServerCodec {
+            session_info,
+            packet_number: 0,
+            current_response: BytesMut::new(),
+        }
+    }
+
+    fn flush_response(&mut self, dst: &mut BytesMut, is_done: bool) -> Result<(), TdsWireError> {
+        while self.current_response.has_remaining() {
+            // get the length (or maximum length of the packet)
+            let len = std::cmp::min(self.max_packet_size(), self.current_response.len());
+
+            // get the slice for given size
+            let slice = &self.current_response.split_to(len);
+
+            // create header
+            let mut header = self.get_next_header();
+            header.length = (len + ALL_HEADERS_LEN_TX) as u16;
+            header.is_end_of_message = header.length != self.session_info.packet_size();
+            header.encode(dst)?;
+
+            // get slice for given size
+            dst.extend_from_slice(slice);
+
+            if header.is_end_of_message && self.current_response.has_remaining() {
+                panic!("Cannot send more data after sending EOM packet");
+            }
+
+            // wait for more data if we are not done yet
+            if !is_done {
+                break;
+            }
+        }
+
+        // only clear if we are done
+        if is_done {
+            self.clear();
+        }
+        Ok(())
+    }
+
+    fn get_next_header(&mut self) -> PacketHeader {
+        self.packet_number += 1;
+        PacketHeader::new(0, self.packet_number)
+    }
+
+    fn clear(&mut self) {
+        self.current_response = BytesMut::new();
+        self.packet_number = 0;
+    }
+
+    fn max_packet_size(&self) -> usize {
+        self.session_info.packet_size() as usize - ALL_HEADERS_LEN_TX
+    }
+}
+
+impl<S> Decoder for TdsWireMessageServerCodec<S>
+where
+    S: SessionInfo,
+{
     type Item = TdsFrontendRequest;
     type Error = TdsWireError;
 
@@ -64,41 +136,123 @@ impl Decoder for TdsWireMessageServerCodec {
     }
 }
 
-impl Encoder<TdsBackendResponse> for TdsWireMessageServerCodec {
+impl<S> Encoder<TdsBackendResponse> for TdsWireMessageServerCodec<S>
+where
+    S: SessionInfo,
+{
     type Error = TdsWireError;
 
     fn encode(&mut self, item: TdsBackendResponse, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        item.encode(dst).map_err(Into::into)
+        match item {
+            TdsBackendResponse::Token(t) => {
+                t.encode(&mut self.current_response)?;
+            }
+            TdsBackendResponse::Message(m) => {
+                m.encode(&mut self.current_response)?;
+            }
+            TdsBackendResponse::Done => {
+                // flush the response immediately upon receiving a Done message
+                self.flush_response(dst, true)?;
+                return Ok(());
+            }
+        }
+
+        // flush when the current response exceeds the session packet size
+        if self.current_response.len() > self.session_info.packet_size() as usize {
+            self.flush_response(dst, false)?;
+        }
+
+        Ok(())
     }
 }
 
-// async fn test_method<'a, T, H, S>(
-//     request: TdsFrontendRequest,
-//     session: &mut S,
-//     handlers: Arc<H>,
-//     thingy: TdsBackendResponseHandler<'a, Framed<TcpStream, TdsWireMessageServerCodec>>,
-// ) -> TdsWireResult<()>
-// where
-//     T: Sink<TdsBackendResponse, Error = TdsWireError> + Unpin + Send,
-//     S: SessionInfo,
-//     H: TdsWireHandler<S, T>,
-// {
-//     handlers.on_prelogin_request(session, &mut thingy, request.messages.first());
-//     todo!()
-// }
+impl<T, S> SessionInfo for Framed<T, TdsWireMessageServerCodec<S>>
+where
+    S: SessionInfo,
+    T: Send + Sync,
+{
+    fn socket_addr(&self) -> std::net::SocketAddr {
+        self.codec().session_info.socket_addr()
+    }
 
-async fn process_request<'a, H, S>(
+    fn state(&self) -> &crate::prot::TdsSessionState {
+        self.codec().session_info.state()
+    }
+
+    fn set_state(&mut self, new_state: crate::prot::TdsSessionState) {
+        self.codec_mut().session_info.set_state(new_state)
+    }
+
+    fn session_id(&self) -> Ulid {
+        self.codec().session_info.session_id()
+    }
+
+    fn packet_size(&self) -> u16 {
+        self.codec().session_info.packet_size()
+    }
+
+    fn get_sql_user_id(&self) -> &str {
+        self.codec().session_info.get_sql_user_id()
+    }
+
+    fn get_database(&self) -> &str {
+        self.codec().session_info.get_database()
+    }
+
+    fn tds_version(&self) -> &str {
+        self.codec().session_info.tds_version()
+    }
+
+    fn connection_reset_request_count(&self) -> usize {
+        self.codec().session_info.connection_reset_request_count()
+    }
+
+    fn tds_server_context(&self) -> Arc<crate::tds::server_context::ServerContext> {
+        self.codec().session_info.tds_server_context().clone()
+    }
+
+    fn set_server_nonce(&mut self, nonce: [u8; 32]) {
+        self.codec_mut().session_info.set_server_nonce(nonce);
+    }
+
+    fn get_server_nonce(&self) -> Option<[u8; 32]> {
+        self.codec().session_info.get_server_nonce()
+    }
+
+    fn set_client_nonce(&mut self, nonce: [u8; 32]) {
+        self.codec_mut().session_info.set_client_nonce(nonce);
+    }
+
+    fn get_client_nonce(&self) -> Option<[u8; 32]> {
+        self.codec().session_info.get_client_nonce()
+    }
+
+    fn increment_packet_id(&mut self) -> u8 {
+        self.codec_mut().session_info.increment_packet_id()
+    }
+
+    fn get_packet_id(&self) -> u8 {
+        self.codec().session_info.get_packet_id()
+    }
+
+    fn set_sql_user_id(&mut self, sql_user_id: String) {
+        self.codec_mut().session_info.set_sql_user_id(sql_user_id)
+    }
+
+    fn set_database(&mut self, db_name: String) {
+        self.codec_mut().session_info.set_database(db_name)
+    }
+}
+
+async fn process_request<T, H, S>(
     request: TdsFrontendRequest,
-    response_handler: &mut TdsBackendResponseHandler<
-        'a,
-        Framed<TcpStream, TdsWireMessageServerCodec>,
-    >,
-    session: &mut S,
+    socket: &mut Framed<T, TdsWireMessageServerCodec<S>>,
     handlers: Arc<H>,
 ) -> TdsWireResult<()>
 where
+    T: AsyncRead + AsyncWrite + Unpin + Send + Sync,
     S: SessionInfo,
-    H: TdsWireHandler<S>,
+    H: TdsWireHandlerFactory<S>,
 {
     // todo(mrhamburg): implement state machine
     let incorrect_state_error = |expected: String| {
@@ -108,27 +262,19 @@ where
     };
 
     for (_header, message) in request.messages {
-        let packet_size = session.packet_size();
-
-        match session.state() {
+        match socket.state() {
             TdsSessionState::Initial => {
                 if let TdsMessage::PreLogin(p) = message {
-                    handlers
-                        .on_prelogin_request(session, response_handler, &p)
-                        .await?;
-                    session.set_state(TdsSessionState::PreLoginProcessed);
+                    handlers.on_prelogin_request(socket, &p).await?;
+                    socket.set_state(TdsSessionState::PreLoginProcessed);
                 } else {
                     return Err(incorrect_state_error("PreLogin".to_string()));
                 }
             }
             TdsSessionState::PreLoginProcessed => {
                 if let TdsMessage::Login(l) = message {
-                    if handlers
-                        .on_login7_request(session, response_handler, &l)
-                        .await?
-                    {
-                        session.set_state(TdsSessionState::LoggedIn);
-                    }
+                    handlers.on_login7_request(socket, &l).await?;
+                    socket.set_state(TdsSessionState::LoggedIn);
                 } else {
                     return Err(incorrect_state_error("Login".to_string()));
                 }
@@ -139,9 +285,7 @@ where
             TdsSessionState::Login7FederatedAuthenticationInformationRequestProcessed => todo!(),
             TdsSessionState::LoggedIn => {
                 if let TdsMessage::BatchRequest(b) = message {
-                    handlers
-                        .on_sql_batch_request(session, response_handler, &b)
-                        .await?;
+                    handlers.on_sql_batch_request(socket, &b).await?;
                 }
                 // todo(mrhamburg): implement error handling for specific message types which we do not expect here
             }
@@ -153,10 +297,15 @@ where
         }
     }
     // todo(mrhamburg): improve this section
+    handlers.flush(socket).await?;
+    let result = socket.flush().await;
+    if result.is_err() {
+        panic!("Error flushing socket: {}", result.unwrap_err());
+    }
     Ok(())
 }
 
-pub async fn process_socket<S, H>(
+pub async fn process_socket<H, S>(
     tcp_socket: TcpStream,
     tls_acceptor: Option<Arc<TlsAcceptor>>,
     handler: Arc<H>,
@@ -164,14 +313,14 @@ pub async fn process_socket<S, H>(
 ) -> Result<(), IOError>
 where
     S: SessionInfo,
-    H: TdsWireHandler<S>,
+    H: TdsWireHandlerFactory<S>,
 {
     let addr = tcp_socket.peer_addr()?;
     tcp_socket.set_nodelay(true)?;
 
     let session_info = handler.open_session(&addr, instance.clone());
 
-    let mut session_info = match session_info {
+    let session_info = match session_info {
         Ok(s) => {
             instance.increment_session_counter();
             s
@@ -182,26 +331,16 @@ where
         }
     };
 
-    let mut tcp_socket = Framed::new(tcp_socket, TdsWireMessageServerCodec::new());
-
-    // let ssl = peek_for_sslrequest(&mut tcp_socket, tls_acceptor.is_some()).await?;
-    let ssl = false;
+    let mut tcp_socket = Framed::new(tcp_socket, TdsWireMessageServerCodec::new(session_info));
+    let ssl = peek_for_sslrequest(&mut tcp_socket, tls_acceptor.is_some()).await?;
 
     if !ssl {
-        while let Some(packet) = tcp_socket.next().await {
+        let mut socket = tcp_socket;
+
+        while let Some(packet) = socket.next().await {
             match packet {
                 Ok(msg) => {
-                    let mut response_handler = TdsBackendResponseHandler::new(&mut tcp_socket, 0);
-                    // test_method(msg, &mut session_info, handler.clone(), response_handler);
-
-                    if let Err(e) = process_request(
-                        msg,
-                        &mut response_handler,
-                        &mut session_info,
-                        handler.clone(),
-                    )
-                    .await
-                    {
+                    if let Err(e) = process_request(msg, &mut socket, handler.clone()).await {
                         tracing::error!("Error processing request: {}", e);
                         // todo(mrhamburg): error handling + close session on error
                         // process_error(&mut socket, e).await?;
@@ -212,7 +351,7 @@ where
                     tracing::error!("Error reading packet: {}", e);
                     // todo(mrhamburg): error handling + close session on error
                     // session_info.close_session().await?;
-                    tcp_socket.close().await;
+                    socket.close().await?;
                 }
             }
         }
@@ -234,7 +373,7 @@ impl SslRequest {
 }
 
 async fn peek_for_sslrequest<S>(
-    socket: &mut Framed<TcpStream, TdsWireMessageServerCodec>,
+    socket: &mut Framed<TcpStream, TdsWireMessageServerCodec<S>>,
     ssl_supported: bool,
 ) -> Result<bool, IOError>
 where

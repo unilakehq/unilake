@@ -112,10 +112,6 @@ impl TokenDone {
     pub fn new_final() -> Self {
         Self::new_done(0)
     }
-
-    pub fn is_final(&self) -> bool {
-        self.status.is_empty()
-    }
 }
 
 impl TdsTokenCodec for TokenDone {
@@ -183,7 +179,6 @@ mod tests {
             assert_eq!(result.cur_cmd, input.cur_cmd);
             assert_eq!(result.done_rows, input.done_rows);
             assert_eq!(result.status, input.status);
-            assert_eq!(result.is_final(), false);
         }
         Ok(())
     }
@@ -212,7 +207,6 @@ mod tests {
             assert_eq!(result.cur_cmd, input.cur_cmd);
             assert_eq!(result.done_rows, input.done_rows);
             assert_eq!(result.status, input.status);
-            assert_eq!(result.is_final(), true);
         }
 
         Ok(())

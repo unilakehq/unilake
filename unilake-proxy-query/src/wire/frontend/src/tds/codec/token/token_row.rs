@@ -1,4 +1,4 @@
-use crate::{ColumnData, Result, TdsTokenType, TokenColMetaData};
+use crate::{ColumnData, Result, TdsTokenType};
 use tokio_util::bytes::{BufMut, BytesMut};
 
 use super::{TdsToken, TdsTokenCodec};
@@ -31,10 +31,10 @@ impl TokenRow {
     pub fn encode_nbc(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::NbcRow as u8);
         let bm = RowBitmap::from(&self.data);
-        bm.encode(dest);
+        bm.encode(dest)?;
         for (i, d) in self.data.iter().enumerate() {
             if !bm.is_null(i) {
-                d.encode(dest);
+                d.encode(dest)?;
             }
         }
 

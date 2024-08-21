@@ -14,7 +14,7 @@ impl TokenSspi {
         Ok(TdsToken::Sspi(Self(bytes.to_vec())))
     }
 
-    pub fn encode(&mut self, dest: &mut BytesMut) -> Result<()> {
+    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::Sspi as u8);
         dest.put_u16_le(self.0.len() as u16);
         dest.put_slice(&self.0);

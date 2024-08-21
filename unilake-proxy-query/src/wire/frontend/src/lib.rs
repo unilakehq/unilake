@@ -1,6 +1,6 @@
 extern crate core;
 
-pub(crate) use crate::tds::{codec::*, collation::*, numeric::*, time::*};
+pub(crate) use crate::tds::{codec::*, collation::*, time::*};
 use error::TdsWireError;
 
 #[macro_use]
@@ -10,7 +10,6 @@ pub mod codec;
 pub mod error;
 pub mod prot;
 pub mod tds;
-mod to_sql;
 pub mod utils;
 
 /// An alias for a result that holds crate's error type as the error.

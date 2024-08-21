@@ -9,41 +9,52 @@ use crate::Error;
 use encoding::{self, Encoding};
 
 #[derive(Debug, Clone, Copy)]
+/// Collation consists of 5 bytes (codepage (2), flags (2), charset_id (1))
 pub struct Collation {
+    pub codepage: u16,
     /// LCID ColFlags Version
-    pub info: u32,
-    /// Sortid
-    pub sort_id: u8,
+    pub flags: u16,
+    /// Charset ID  
+    pub charset_id: u8,
 }
 
 impl Collation {
-    pub fn new(info: u32, sort_id: u8) -> Self {
-        Self { info, sort_id }
+    pub fn new(codepage: u16, flags: u16, charset_id: u8) -> Self {
+        Self {
+            codepage: codepage,
+            flags: flags,
+            charset_id: charset_id,
+        }
+    }
+
+    /// Follows the StarRocks default (Latin1_General_100_CI_AS_SC_UTF8)
+    pub fn default() -> Self {
+        Self::new(0x0904, 0xd024, 0x00)
     }
 
     /// return the locale id part of the LCID (the specification here uses ambiguous terms)
     pub fn lcid(&self) -> u16 {
-        (self.info & 0xffff) as u16
+        (self.flags & 0xffff) as u16
     }
 
-    pub fn sort_id(&self) -> u8 {
-        self.sort_id
+    pub fn charset_id(&self) -> u8 {
+        self.charset_id
     }
 
     /// return an encoding for a given collation
     pub fn encoding(&self) -> crate::Result<&'static (dyn Encoding + Send + Sync)> {
-        let res = if self.sort_id == 0 {
+        let res = if self.codepage == 0 {
             lcid_to_encoding(self.lcid())
         } else {
-            sortid_to_encoding(self.sort_id)
+            sortid_to_encoding(self.charset_id)
         };
 
         res.ok_or_else(|| {
             Error::Encoding(
                 format!(
-                    "encoding: unspported encoding (LCID: {:#02x}, sort ID: {})",
+                    "encoding: unspported encoding (LCID: {:#02x}, charset ID: {})",
                     self.lcid(),
-                    self.sort_id(),
+                    self.charset_id(),
                 )
                 .into(),
             )

@@ -21,27 +21,6 @@ pub struct TokenReturnValue {
 impl TdsTokenCodec for TokenReturnValue {
     /// Decode is not implemented for this token type.
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
-        // let param_ordinal = src.get_u16_le();
-        // let param_name = decode::read_b_varchar(src)?;
-
-        // let udf = match src.get_u8() {
-        //     0x01 => false,
-        //     0x02 => true,
-        //     _ => return Err(Error::Protocol("ReturnValue: invalid status".into())),
-        // };
-
-        // let meta = BaseMetaDataColumn::decode(src)?;
-        // let value = ColumnData::decode(src, &meta.ty)?;
-
-        // let token = TokenReturnValue {
-        //     param_ordinal,
-        //     param_name,
-        //     udf,
-        //     meta,
-        //     value,
-        // };
-
-        // Ok(TdsToken::ReturnValue(token))
         unimplemented!()
     }
 

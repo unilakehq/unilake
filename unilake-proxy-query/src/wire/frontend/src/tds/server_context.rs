@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, str::FromStr};
 
 use super::{codec::*, EncryptionLevel};
 
-const DEFAULT_PACKET_SIZE: u32 = 4096;
+const DEFAULT_PACKET_SIZE: u16 = 4096;
 
 /// Context, that might be required to make sure we understand and are understood by the server
 pub struct ServerContext {
@@ -12,7 +12,7 @@ pub struct ServerContext {
     pub server_name: String,
     /// The version of the server, as reported by the server. (major, minor, build, sub_build)
     server_version: (u8, u8, u16, u8),
-    pub packet_size: u32,
+    pub packet_size: u16,
     pub encryption: EncryptionLevel,
     pub encryption_certificate: Option<Vec<u8>>,
     pub fed_auth_options: TokenPreLoginFedAuthRequiredOption,
@@ -97,7 +97,7 @@ impl ServerContext {
             | ((self.server_version.2 as u32) << 0)
     }
 
-    pub fn with_packet_size(mut self, ps: u32) -> Self {
+    pub fn with_packet_size(mut self, ps: u16) -> Self {
         self.packet_size = ps;
         self
     }

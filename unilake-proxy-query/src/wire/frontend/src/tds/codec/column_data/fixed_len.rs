@@ -25,9 +25,8 @@ pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
         ColumnData::F64(Some(val)) => {
             dst.put_f64_le(*val);
         }
-        _ => {
-            unreachable!("Unsupported column type: {:?}", data);
-        }
+        // send NULL as 0
+        _ => dst.put_u8(0),
     }
 
     Ok(())

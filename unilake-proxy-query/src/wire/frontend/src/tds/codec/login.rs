@@ -452,7 +452,7 @@ impl TdsMessageCodec for LoginMessage {
             src.get_u16_le() as usize,
             src.get_u16_le() as usize,
         ));
-        if !validate_length(&options, 128 * 2) {
+        if !validate_length(&options, 60_000) {
             // Password, too long
             return Err(TdsWireError::Protocol("Password too long".to_string()));
         }

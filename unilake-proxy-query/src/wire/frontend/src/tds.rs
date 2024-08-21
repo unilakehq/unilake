@@ -1,6 +1,5 @@
 pub mod codec;
 pub mod collation;
-pub mod numeric;
 pub mod server_context;
 pub mod time;
 

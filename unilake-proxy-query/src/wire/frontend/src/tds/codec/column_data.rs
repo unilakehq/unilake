@@ -1,21 +1,15 @@
-use crate::{Date, DateTime, DateTime2, DateTimeOffset, Numeric, Result, SmallDateTime, Time};
-use tokio_util::bytes::BytesMut;
+use std::usize;
 
-mod binary;
-mod bit;
+use crate::{Date, DateTime, DateTime2, DateTimeOffset, Result, SmallDateTime, Time};
+use decimal::Decimal;
+use tokio_util::bytes::{BufMut, BytesMut};
+
 mod date;
 mod datetime2;
-mod datetimen;
-mod datetimeoffsetn;
+pub mod decimal;
 mod fixed_len;
-mod float;
-mod int;
 mod plp;
 mod string;
-mod time;
-mod var_len;
-
-const MAX_NVARCHAR_SIZE: usize = 1 << 30;
 
 /// Token definition [2.2.4.2.1]
 /// A container of a value that can be represented as a TDS value.
@@ -40,7 +34,7 @@ pub enum ColumnData {
     /// Binary data.
     Binary(Option<String>),
     /// Numeric value (a decimal).
-    Numeric(Option<Numeric>),
+    Numeric(Option<Decimal>),
     /// DateTime value.
     DateTime(Option<DateTime>),
     /// A small DateTime value.
@@ -65,12 +59,7 @@ impl ColumnData {
             ColumnData::F32(_) => "float(24)".into(),
             ColumnData::F64(_) => "float(53)".into(),
             ColumnData::Bit(_) => "bit".into(),
-            ColumnData::String(None) => "nvarchar(4000)".into(),
-            ColumnData::String(Some(ref s)) if s.len() <= 4000 => "nvarchar(4000)".into(),
-            ColumnData::String(Some(ref s)) if s.len() <= MAX_NVARCHAR_SIZE => {
-                "nvarchar(max)".into()
-            }
-            ColumnData::String(_) => "ntext(max)".into(),
+            ColumnData::String(_) => "nvarchar(max)".into(),
             ColumnData::Binary(Some(ref b)) if b.len() <= 8000 => "varbinary(8000)".into(),
             ColumnData::Binary(_) => "varbinary(max)".into(),
             ColumnData::Numeric(Some(ref n)) => {
@@ -96,12 +85,18 @@ impl ColumnData {
             | ColumnData::I64(_)
             | ColumnData::F32(_)
             | ColumnData::F64(_) => fixed_len::encode(dest, &self)?,
-            ColumnData::String(_) => string::encode(dest, &self)?,
+            // todo(mhramburg): would be better if we have the type length from the actual metadata, might also need it for numeric
+            ColumnData::String(_) => string::encode(dest, &usize::MAX, &self)?,
             ColumnData::Date(_) => date::encode(dest, &self)?,
             ColumnData::DateTime2(_) => datetime2::encode(dest, &self)?,
-            // todo(mhramburg): implement these items
-            // ColumnData::Numeric(_) => numeric::encode(dest, &self)?,
-            // ColumnData::F32(_) | ColumnData::F64(_) => var_len::encode(dest, &self)?,
+            ColumnData::Numeric(n) => {
+                if let Some(n) = n {
+                    n.encode(dest)?
+                } else {
+                    // send null
+                    dest.put_u8(0);
+                }
+            }
             //todo(mhramburg): json, array, bitmap, HLL
             _ => unreachable!("ColumData of type {:?} is not supported", self),
         }

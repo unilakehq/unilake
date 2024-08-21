@@ -283,7 +283,7 @@ impl BaseMetaDataColumn {
     pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u32_le(0x00);
         dest.put_u16_le(self.flags.bits());
-        self.ty.encode(dest);
+        self.ty.encode(dest)?;
         Ok(())
     }
 }
