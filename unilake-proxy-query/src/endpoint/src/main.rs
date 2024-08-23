@@ -1,9 +1,12 @@
 use async_trait::async_trait;
 use futures::Sink;
+use mysql_async::prelude::Queryable;
+use mysql_async::{Opts, OptsBuilder, Pool};
 use std::env;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tokio::time::Instant;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use unilake_wire_frontend::codec::process_socket;
@@ -11,11 +14,12 @@ use unilake_wire_frontend::error::{TdsWireError, TdsWireResult};
 use unilake_wire_frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
-use unilake_wire_frontend::tds;
+use unilake_wire_frontend::tds::codec::decimal::Decimal;
+use unilake_wire_frontend::tds::codec::sqlstring::SqlString;
 use unilake_wire_frontend::tds::codec::{
-    BatchRequest, FixedLenType, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse,
-    TokenColMetaData, TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck,
-    TokenPreLoginFedAuthRequiredOption, TokenRow, TypeInfo, VarLenContext, VarLenType,
+    BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
+    TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck, TokenPreLoginFedAuthRequiredOption,
+    TokenRow, TypeInfo,
 };
 use unilake_wire_frontend::tds::server_context::ServerContext;
 
@@ -231,24 +235,97 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
     {
         tracing::info!("Received SQL batch request: {}", msg.query);
-        // let mut response_handler = TdsBackendResponseHandler::new();
-        let mut column = TokenColMetaData::new();
-        let i = column.add_column("Greeting", TypeInfo::new_decimal(19, 8));
+        let opts = OptsBuilder::default()
+            .ip_or_hostname("10.255.255.17")
+            .tcp_port(9030)
+            .user(Some("root"))
+            .prefer_socket(Some(false));
+        let pool = Pool::new(opts);
+        let mut conn = pool.get_conn().await.unwrap();
+        let start = Instant::now();
+        let mut result = conn.query_iter(msg.query.to_string()).await.unwrap();
 
-        column.column_set_updateable(i, true);
-        let column_len = column.len();
-        self.send_token(client, column).await?;
+        let mut columns = TokenColMetaData::new();
+        for column in result.columns_ref() {
+            let name = String::from_utf8(column.name_ref().to_vec()).unwrap();
+            match column.column_type() {
+                mysql_async::consts::ColumnType::MYSQL_TYPE_DECIMAL => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_TINY => {
+                    columns.add_column(&name, TypeInfo::new_tinyint());
+                }
+                mysql_async::consts::ColumnType::MYSQL_TYPE_SHORT => {
+                    columns.add_column(&name, TypeInfo::new_smallint());
+                }
+                mysql_async::consts::ColumnType::MYSQL_TYPE_LONG => {
+                    columns.add_column(&name, TypeInfo::new_int());
+                }
+                mysql_async::consts::ColumnType::MYSQL_TYPE_FLOAT => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_DOUBLE => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_NULL => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_TIMESTAMP => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_LONGLONG => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_INT24 => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_DATE => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_TIME => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_DATETIME => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_YEAR => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_NEWDATE => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_VARCHAR => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_BIT => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_TIMESTAMP2 => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_DATETIME2 => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_TIME2 => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_TYPED_ARRAY => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_UNKNOWN => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_JSON => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_NEWDECIMAL => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_ENUM => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_SET => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_TINY_BLOB => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_MEDIUM_BLOB => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_LONG_BLOB => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_BLOB => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_VAR_STRING => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_STRING => todo!(),
+                mysql_async::consts::ColumnType::MYSQL_TYPE_GEOMETRY => todo!(),
+            }
 
+            println!("{:?}", column);
+        }
+        let columns_len = columns.len();
+        self.send_token(client, columns).await?;
         let mut count = 0;
-        for _ in 0..1 {
-            let mut row = TokenRow::new(column_len, false);
-            row.push(unilake_wire_frontend::tds::codec::ColumnData::Numeric(
-                Some(Decimal::new_with_scale(12345678912345678, 8)),
-            ));
-
-            self.send_token(client, row).await?;
+        while let Ok(Some(mut row)) = result.next().await {
+            let x: Option<i32> = row.take(0);
+            let mut row = TokenRow::new(columns_len, false);
+            row.push(unilake_wire_frontend::tds::codec::ColumnData::I32(x));
+            // self.send_token(client, row).await?;
             count += 1;
         }
+        let duration = start.elapsed();
+        println!(
+            "Time elapsed in perform_heavy_computation() is: {:?}",
+            duration
+        );
+
+        // // let mut response_handler = TdsBackendResponseHandler::new();
+        // let mut column = TokenColMetaData::new();
+        // let i = column.add_column("Greeting", TypeInfo::new_nvarchar(120));
+
+        // column.column_set_updateable(i, true);
+        // let column_len = column.len();
+        // self.send_token(client, column).await?;
+
+        // let mut count = 0;
+        // for _ in 0..1 {
+        //     let mut row = TokenRow::new(column_len, false);
+        //     row.push(unilake_wire_frontend::tds::codec::ColumnData::String(
+        //         SqlString::from_str("Hello World", 20),
+        //     ));
+
+        //     self.send_token(client, row).await?;
+        //     count += 1;
+        // }
 
         self.send_token(client, TokenDone::new_count(0, count))
             .await

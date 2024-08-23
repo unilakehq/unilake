@@ -23,11 +23,6 @@ impl Date {
         self.0
     }
 
-    pub(crate) fn decode(src: &mut BytesMut) -> Result<Self> {
-        let (_len, bytes) = src.read_and_advance(4);
-        Ok(Self::new(LittleEndian::read_u32(&bytes)))
-    }
-
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         let mut tmp = [0u8; 4];
         LittleEndian::write_u32(&mut tmp, self.days());
@@ -64,16 +59,6 @@ impl DateTime {
         self.seconds_fragments
     }
 
-    pub(crate) fn decode(src: &mut BytesMut) -> Result<Self> {
-        let days = src.get_i32_le();
-        let seconds_fragments = src.get_u32_le();
-
-        Ok(Self {
-            days,
-            seconds_fragments,
-        })
-    }
-
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_i32_le(self.days);
         dest.put_u32_le(self.seconds_fragments);
@@ -105,16 +90,6 @@ impl SmallDateTime {
     /// 1/300 of a second, so a value of 300 equals 1 second (since midnight)
     pub fn seconds_fragments(self) -> u16 {
         self.seconds_fragments
-    }
-
-    pub(crate) fn decode(src: &mut BytesMut) -> crate::Result<Self> {
-        let days = src.get_u16_le();
-        let seconds_fragments = src.get_u16_le();
-
-        Ok(Self {
-            days,
-            seconds_fragments,
-        })
     }
 
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
@@ -175,34 +150,6 @@ impl Time {
         })
     }
 
-    pub(crate) fn decode(src: &mut BytesMut, n: usize, rlen: usize) -> Result<Time> {
-        let val = match (n, rlen) {
-            (0..=2, 3) => {
-                let hi = src.get_u16_le() as u64;
-                let lo = src.get_u8() as u64;
-
-                hi | lo << 16
-            }
-            (3..=4, 4) => src.get_u32_le() as u64,
-            (5..=7, 5) => {
-                let hi = src.get_u32_le() as u64;
-                let lo = src.get_u8() as u64;
-
-                hi | lo << 32
-            }
-            _ => {
-                return Err(crate::Error::Protocol(
-                    format!("time: invalid length {}", n).into(),
-                ))
-            }
-        };
-
-        Ok(Time {
-            increments: val,
-            scale: n as u8,
-        })
-    }
-
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         match self.len()? {
             3 => {
@@ -249,15 +196,6 @@ impl DateTime2 {
         self.time
     }
 
-    pub(crate) fn decode(src: &mut BytesMut, n: usize, rlen: usize) -> Result<Self> {
-        let time = Time::decode(src, n, rlen as usize)?;
-
-        let (_len, bytes) = src.read_and_advance(4);
-        let date = Date::new(LittleEndian::read_u32(&bytes));
-
-        Ok(Self::new(date, time))
-    }
-
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         self.time.encode(dest)?;
 
@@ -293,13 +231,6 @@ impl DateTimeOffset {
     /// Number of minutes from UTC.
     pub fn offset(self) -> i16 {
         self.offset
-    }
-
-    pub(crate) fn decode(src: &mut BytesMut, n: usize, rlen: u8) -> crate::Result<Self> {
-        let datetime2 = DateTime2::decode(src, n, rlen as usize)?;
-        let offset = src.get_i16_le();
-
-        Ok(Self { datetime2, offset })
     }
 
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {

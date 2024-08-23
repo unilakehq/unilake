@@ -4,7 +4,7 @@ use tokio_util::bytes::{BufMut, BytesMut};
 use super::{TdsToken, TdsTokenCodec};
 
 /// A row of data.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct TokenRow {
     data: Vec<ColumnData>,
     nbc_row: bool,
@@ -122,7 +122,6 @@ impl RowBitmap {
                 | ColumnData::F32(None)
                 | ColumnData::F64(None)
                 | ColumnData::Bit(None)
-                | ColumnData::String(None)
                 | ColumnData::Binary(None)
                 | ColumnData::Numeric(None)
                 | ColumnData::DateTime(None)
@@ -132,6 +131,12 @@ impl RowBitmap {
                 | ColumnData::DateTime2(None)
                 | ColumnData::DateTimeOffset(None) => {
                     ret.set_null(i);
+                }
+                ColumnData::String(s) => {
+                    // If the string is empty, we assume it is null
+                    if s.is_empty() {
+                        ret.set_null(i);
+                    }
                 }
                 _ => {}
             }

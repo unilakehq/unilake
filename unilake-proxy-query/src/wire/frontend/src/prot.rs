@@ -112,8 +112,8 @@ pub struct DefaultSession {
     packet_size: u16,
     sql_user_id: Option<String>,
     database: Option<String>,
-    connection_reset_request_count: usize,
-    dialect: Dialect,
+    // connection_reset_request_count: usize,
+    // dialect: Dialect,
     tds_server_context: Arc<ServerContext>,
     client_nonce: Option<[u8; 32]>,
     server_nonce: Option<[u8; 32]>,
@@ -211,8 +211,8 @@ impl DefaultSession {
             tds_server_context: instance.ctx.clone(),
             client_nonce: None,
             server_nonce: None,
-            connection_reset_request_count: 0,
-            dialect: Dialect::Mssql,
+            // connection_reset_request_count: 0,
+            // dialect: Dialect::Mssql,
             packet_id: 0,
         }
     }
@@ -334,7 +334,6 @@ pub struct InnerServerInstance {
     receiver: Option<tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>>,
     sender: Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>>,
     active_sessions: AtomicUsize,
-    current_session_id: AtomicUsize,
     semaphore: Arc<Semaphore>,
 }
 
@@ -349,12 +348,11 @@ impl ServerInstance {
                 sender: Arc::new(sender),
                 active_sessions: AtomicUsize::new(0),
                 semaphore: Arc::new(Semaphore::new(4)),
-                current_session_id: AtomicUsize::new(0),
             },
         }
     }
 
-    async fn inner_process_message(&self, msg: ServerInstanceMessage) {
+    async fn inner_process_message(&self, _msg: ServerInstanceMessage) {
         tracing::error!(message = "Received server instance message, processing has not been implemented, dropping message!");
     }
 

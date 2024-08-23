@@ -1,7 +1,6 @@
-use std::usize;
-
 use crate::{Date, DateTime, DateTime2, DateTimeOffset, Result, SmallDateTime, Time};
 use decimal::Decimal;
+use sqlstring::SqlString;
 use tokio_util::bytes::{BufMut, BytesMut};
 
 mod date;
@@ -9,11 +8,11 @@ mod datetime2;
 pub mod decimal;
 mod fixed_len;
 mod plp;
-mod string;
+pub mod sqlstring;
 
 /// Token definition [2.2.4.2.1]
 /// A container of a value that can be represented as a TDS value.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum ColumnData {
     /// 8-bit integer, unsigned.
     U8(Option<u8>),
@@ -30,7 +29,7 @@ pub enum ColumnData {
     /// Boolean.
     Bit(Option<bool>),
     /// A string value.
-    String(Option<String>),
+    String(SqlString),
     /// Binary data.
     Binary(Option<String>),
     /// Numeric value (a decimal).
@@ -86,7 +85,7 @@ impl ColumnData {
             | ColumnData::F32(_)
             | ColumnData::F64(_) => fixed_len::encode(dest, &self)?,
             // todo(mhramburg): would be better if we have the type length from the actual metadata, might also need it for numeric
-            ColumnData::String(_) => string::encode(dest, &usize::MAX, &self)?,
+            ColumnData::String(s) => s.encode(dest)?,
             ColumnData::Date(_) => date::encode(dest, &self)?,
             ColumnData::DateTime2(_) => datetime2::encode(dest, &self)?,
             ColumnData::Numeric(n) => {

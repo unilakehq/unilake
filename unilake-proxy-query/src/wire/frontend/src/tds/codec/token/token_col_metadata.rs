@@ -1,3 +1,4 @@
+use crate::sqlstring::SqlString;
 use crate::tds::codec::{decode, encode};
 use crate::{
     Column, ColumnData, ColumnType, Error, FixedLenType, Result, TdsToken, TdsTokenCodec,
@@ -229,23 +230,15 @@ impl BaseMetaDataColumn {
                 FixedLenType::Int8 => ColumnData::I64(None),
             },
             TypeInfo::VarLenSized(cx) => match cx.r#type() {
-                VarLenType::Intn => ColumnData::I32(None),
-                VarLenType::Bitn => ColumnData::Bit(None),
-                VarLenType::Decimaln => ColumnData::Numeric(None),
-                VarLenType::Numericn => ColumnData::Numeric(None),
-                VarLenType::Floatn => ColumnData::F32(None),
                 VarLenType::Datetimen => ColumnData::DateTime(None),
                 VarLenType::Daten => ColumnData::Date(None),
-                VarLenType::Timen => ColumnData::Time(None),
                 VarLenType::Datetime2 => ColumnData::DateTime2(None),
                 VarLenType::DatetimeOffsetn => ColumnData::DateTimeOffset(None),
-                VarLenType::BigVarBin => ColumnData::Binary(None),
-                VarLenType::BigVarChar => ColumnData::String(None),
-                VarLenType::BigBinary => ColumnData::Binary(None),
-                VarLenType::BigChar => ColumnData::String(None),
-                VarLenType::NVarchar => ColumnData::String(None),
-                VarLenType::NChar => ColumnData::String(None),
-                VarLenType::SSVariant => todo!(),
+                VarLenType::BigChar
+                | VarLenType::BigVarChar
+                | VarLenType::NChar
+                | VarLenType::NVarchar => ColumnData::String(SqlString::new_empty(&self.ty)),
+                _ => unreachable!(),
             },
             TypeInfo::VarLenSizedPrecision { ty, .. } => match ty {
                 VarLenType::Intn => ColumnData::I32(None),
@@ -259,12 +252,9 @@ impl BaseMetaDataColumn {
                 VarLenType::Datetime2 => ColumnData::DateTime2(None),
                 VarLenType::DatetimeOffsetn => ColumnData::DateTimeOffset(None),
                 VarLenType::BigVarBin => ColumnData::Binary(None),
-                VarLenType::BigVarChar => ColumnData::String(None),
                 VarLenType::BigBinary => ColumnData::Binary(None),
-                VarLenType::BigChar => ColumnData::String(None),
-                VarLenType::NVarchar => ColumnData::String(None),
-                VarLenType::NChar => ColumnData::String(None),
                 VarLenType::SSVariant => todo!(),
+                _ => unreachable!(),
             },
         }
     }

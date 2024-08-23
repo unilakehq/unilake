@@ -76,7 +76,7 @@ where
     }
 
     fn get_next_header(&mut self) -> PacketHeader {
-        self.packet_number += 1;
+        self.packet_number = self.packet_number.saturating_add(1);
         PacketHeader::new(0, self.packet_number)
     }
 

@@ -50,6 +50,13 @@ impl TypeInfo {
     pub fn new_datetime() -> Self {
         Self::VarLenSized(VarLenContext::new(VarLenType::Datetimen, 0, None))
     }
+    pub fn new_nvarchar(max_len: usize) -> Self {
+        Self::VarLenSized(VarLenContext::new(
+            VarLenType::NVarchar,
+            max_len,
+            Some(Collation::default()),
+        ))
+    }
     pub fn new_string() -> Self {
         Self::VarLenSized(VarLenContext::new(
             VarLenType::NVarchar,
