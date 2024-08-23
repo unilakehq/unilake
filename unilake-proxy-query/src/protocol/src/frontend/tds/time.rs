@@ -1,6 +1,6 @@
-use crate::frontend::{utils::ReadAndAdvance, Result};
+use crate::frontend::Result;
 use byteorder::{ByteOrder, LittleEndian};
-use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use tokio_util::bytes::{BufMut, BytesMut};
 
 /// A presentation of `date` type in the server.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

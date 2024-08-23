@@ -371,13 +371,13 @@ async fn peek_for_sslrequest<S>(
 where
     S: SessionInfo,
 {
-    let mut ssl = false;
+    let ssl = false;
     if is_sslrequest_pending(socket.get_ref()).await? {
         // consume request
         socket.next().await;
 
-        let response = if ssl_supported {
-            ssl = true;
+        let _response = if ssl_supported {
+            // ssl = true;
             // TdsWireBackendMessage::SslResponse(SslResponse::Accept)
             todo!()
         } else {
@@ -399,7 +399,7 @@ async fn is_sslrequest_pending(tcp_socket: &TcpStream) -> Result<bool, IOError> 
         }
     }
 
-    let mut buf = BytesMut::from(buf.filled());
+    let _buf = BytesMut::from(buf.filled());
     return Ok(false);
     todo!();
     // if let Ok(Some(_)) = SslRequest::decode(&mut buf) {

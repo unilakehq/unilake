@@ -8,11 +8,8 @@ pub struct SqlString {
 }
 
 impl SqlString {
-    pub fn from_str(value: &str, max_length: usize) -> SqlString {
-        SqlString {
-            max_length,
-            value: Some(value.to_string()),
-        }
+    pub fn from_string(value: Option<String>, max_length: usize) -> SqlString {
+        SqlString { max_length, value }
     }
 
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {

@@ -85,15 +85,11 @@ impl TokenColMetaData {
     }
 
     /// Adds a new column to the metadata. Returns the index of the added column.
-    pub fn add_column(&mut self, col_name: &str, ty: TypeInfo) -> usize {
-        self.columns.push(MetaDataColumn {
-            base: BaseMetaDataColumn {
-                flags: BitFlags::empty(),
-                ty,
-            },
-            col_name: col_name.to_string(),
-        });
-        self.get_index(col_name).unwrap()
+    pub fn add_column<F>(&mut self, item: F)
+    where
+        F: Into<MetaDataColumn>,
+    {
+        self.columns.push(item.into());
     }
 
     /// Returns the index of the column with the given name, or None if not found.

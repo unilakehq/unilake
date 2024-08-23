@@ -1,7 +1,7 @@
 use super::BaseMetaDataColumn;
-use crate::frontend::tds::codec::{decode, encode};
-use crate::frontend::{ColumnData, Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
-use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use crate::frontend::tds::codec::encode;
+use crate::frontend::{ColumnData, Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use tokio_util::bytes::{BufMut, BytesMut};
 
 /// ReturnValue Token [2.2.7.19]
 /// Used to send the return value of an RPC to the client. When an RPC is executed,
@@ -20,7 +20,7 @@ pub struct TokenReturnValue {
 
 impl TdsTokenCodec for TokenReturnValue {
     /// Decode is not implemented for this token type.
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+    fn decode(_src: &mut BytesMut) -> Result<TdsToken> {
         unimplemented!()
     }
 

@@ -27,6 +27,13 @@ impl TokenRow {
         }
     }
 
+    pub fn from<V>(value: V) -> Self
+    where
+        V: Into<Self>,
+    {
+        value.into()
+    }
+
     /// Write/encode an nbc row to the client. Server decides whether to send an NBC row or a normal row.
     pub fn encode_nbc(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::NbcRow as u8);
@@ -53,8 +60,15 @@ impl TokenRow {
     }
 
     /// Adds a new value to the row.
-    pub fn push(&mut self, value: ColumnData) {
-        self.data.push(value);
+    pub fn push<V>(&mut self, value: V)
+    where
+        V: Into<ColumnData>,
+    {
+        self.data.push(value.into());
+    }
+
+    pub fn push_row(&mut self, row: ColumnData) {
+        self.data.push(row);
     }
 
     /// True if row has no columns.

@@ -1,4 +1,4 @@
-use super::{batch_request::BatchRequest, MetaDataColumn, ResponseMessage};
+use super::{batch_request::BatchRequest, ResponseMessage};
 use crate::frontend::{
     error::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TokenFedAuth,
 };

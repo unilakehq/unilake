@@ -1,6 +1,6 @@
 extern crate core;
 
-pub(crate) use crate::frontend::tds::{codec::*, collation::*, time::*};
+pub(crate) use crate::frontend::tds::{codec::*, time::*};
 use error::TdsWireError;
 
 #[macro_use]

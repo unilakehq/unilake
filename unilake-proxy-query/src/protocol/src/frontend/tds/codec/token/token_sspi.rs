@@ -30,7 +30,7 @@ mod tests {
 
     #[test]
     fn encode_decode_token_sspi() -> Result<()> {
-        let mut input = TokenSspi {
+        let input = TokenSspi {
             0: vec![1, 2, 3, 4, 5, 6, 7],
         };
 
@@ -38,7 +38,7 @@ mod tests {
         let mut buff = BytesMut::new();
 
         // encode
-        input.encode(&mut buff);
+        input.encode(&mut buff)?;
 
         // decode
         let tokentype = buff.get_u8();
