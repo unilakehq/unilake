@@ -9,19 +9,20 @@ use tokio::net::TcpListener;
 use tokio::time::Instant;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use unilake_wire_frontend::codec::process_socket;
-use unilake_wire_frontend::error::{TdsWireError, TdsWireResult};
-use unilake_wire_frontend::prot::{
+use unilake_proxy_query_protocol::backend::starrocks::StarRocksTdsHandlerFactory;
+use unilake_proxy_query_protocol::frontend::codec::process_socket;
+use unilake_proxy_query_protocol::frontend::error::{TdsWireError, TdsWireResult};
+use unilake_proxy_query_protocol::frontend::prot::{
     DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory,
 };
-use unilake_wire_frontend::tds::codec::decimal::Decimal;
-use unilake_wire_frontend::tds::codec::sqlstring::SqlString;
-use unilake_wire_frontend::tds::codec::{
+use unilake_proxy_query_protocol::frontend::tds::codec::decimal::Decimal;
+use unilake_proxy_query_protocol::frontend::tds::codec::sqlstring::SqlString;
+use unilake_proxy_query_protocol::frontend::tds::codec::{
     BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
     TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck, TokenPreLoginFedAuthRequiredOption,
     TokenRow, TypeInfo,
 };
-use unilake_wire_frontend::tds::server_context::ServerContext;
+use unilake_proxy_query_protocol::frontend::tds::server_context::ServerContext;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -42,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(&addr).await?;
     println!("Listening on: {}", addr);
 
-    let factory = Arc::new(DefaultTdsHandlerFactory {});
+    let factory = Arc::new(StarRocksTdsHandlerFactory {});
     // todo(mrhamburg): use bgworker for graceful shutdown
     let (instance, _) = {
         let instance = ServerInstance::new(ServerContext::default());
@@ -63,14 +64,14 @@ struct DefaultTdsHandlerFactory {}
 
 #[allow(unused_variables)]
 #[async_trait]
-impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
+impl TdsWireHandlerFactory<unilake_proxy_query_protocol::frontend::prot::DefaultSession>
     for DefaultTdsHandlerFactory
 {
     fn open_session(
         &self,
         socket_addr: &std::net::SocketAddr,
         instance_info: Arc<ServerInstance>,
-    ) -> Result<unilake_wire_frontend::prot::DefaultSession, TdsWireError> {
+    ) -> Result<unilake_proxy_query_protocol::frontend::prot::DefaultSession, TdsWireError> {
         tracing::info!("New session for: {}", socket_addr);
         Ok(DefaultSession::new(
             socket_addr.clone(),
@@ -78,7 +79,10 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         ))
     }
 
-    fn close_session(&self, session: &unilake_wire_frontend::prot::DefaultSession) {
+    fn close_session(
+        &self,
+        session: &unilake_proxy_query_protocol::frontend::prot::DefaultSession,
+    ) {
         todo!()
     }
 
@@ -113,7 +117,8 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
             };
 
             if msg.nonce.is_some() {
-                prelogin_msg.nonce = Some(unilake_wire_frontend::utils::generate_random_nonce());
+                prelogin_msg.nonce =
+                    Some(unilake_proxy_query_protocol::frontend::utils::generate_random_nonce());
                 client.set_server_nonce(prelogin_msg.nonce.unwrap());
             }
         }
@@ -226,7 +231,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
 
     fn on_federated_authentication_token_message(
         &self,
-        session: &unilake_wire_frontend::prot::DefaultSession,
+        session: &unilake_proxy_query_protocol::frontend::prot::DefaultSession,
     ) {
         todo!()
     }
@@ -298,7 +303,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
         while let Ok(Some(mut row)) = result.next().await {
             let x: Option<i32> = row.take(0);
             let mut row = TokenRow::new(columns_len, false);
-            row.push(unilake_wire_frontend::tds::codec::ColumnData::I32(x));
+            row.push(unilake_proxy_query_protocol::frontend::tds::codec::ColumnData::I32(x));
             // self.send_token(client, row).await?;
             count += 1;
         }
@@ -331,7 +336,7 @@ impl TdsWireHandlerFactory<unilake_wire_frontend::prot::DefaultSession>
             .await
     }
 
-    fn on_attention(&self, session: &unilake_wire_frontend::prot::DefaultSession) {
+    fn on_attention(&self, session: &unilake_proxy_query_protocol::frontend::prot::DefaultSession) {
         todo!()
     }
 }

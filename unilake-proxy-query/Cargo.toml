@@ -10,8 +10,7 @@ publish = false
 [workspace]
 resolver = "2"
 members = [
-    "src/wire/frontend",
-    "src/wire/backend",
+    "src/protocol",
     "src/common/policyengine",
     "src/sql/parser",
     "src/sql/security",
@@ -21,8 +20,7 @@ members = [
 
 [workspace.dependencies]
 # Workspace dependencies
-unilake-wire-frontend = { path = "src/wire/frontend" }
-unilake-wire-backend = { path = "src/wire/backend" }
+unilake-proxy-query-protocol = { path = "src/protocol" }
 unilake-common-policyengine = { path = "src/common/policyengine" }
 unilake-sql-parser = { path = "src/sql/parser" }
 unilake-sql-security = { path = "src/security" }

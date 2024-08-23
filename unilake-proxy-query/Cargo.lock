@@ -1479,6 +1479,28 @@ name = "unilake-common-policyengine"
 version = "0.1.0"
 
 [[package]]
+name = "unilake-proxy-query-protocol"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "byteorder",
+ "derive-new",
+ "encoding",
+ "enumflags2",
+ "futures",
+ "mysql_async",
+ "rand",
+ "string_enum",
+ "thiserror",
+ "tokio",
+ "tokio-rustls",
+ "tokio-util",
+ "tracing",
+ "ulid",
+ "uuid",
+]
+
+[[package]]
 name = "unilake-sql-endpoint"
 version = "0.1.0"
 dependencies = [
@@ -1488,7 +1510,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "unilake-wire-frontend",
+ "unilake-proxy-query-protocol",
 ]
 
 [[package]]
@@ -1502,31 +1524,6 @@ version = "0.1.0"
 [[package]]
 name = "unilake-sql-transpiler"
 version = "0.1.0"
-
-[[package]]
-name = "unilake-wire-backend"
-version = "0.1.0"
-
-[[package]]
-name = "unilake-wire-frontend"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "byteorder",
- "derive-new",
- "encoding",
- "enumflags2",
- "futures",
- "rand",
- "string_enum",
- "thiserror",
- "tokio",
- "tokio-rustls",
- "tokio-util",
- "tracing",
- "ulid",
- "uuid",
-]
 
 [[package]]
 name = "untrusted"
