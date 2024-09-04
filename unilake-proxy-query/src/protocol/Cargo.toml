@@ -25,3 +25,5 @@ rand = { workspace = true }
 async-trait = { workspace = true }
 ulid = { workspace = true }
 mysql_async = { workspace = true }
+chrono = { workspace = true }
+bigdecimal = { workspace = true }

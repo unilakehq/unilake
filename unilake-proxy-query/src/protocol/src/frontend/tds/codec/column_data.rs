@@ -1,7 +1,11 @@
 use crate::frontend::{Date, DateTime, DateTime2, DateTimeOffset, Result, SmallDateTime, Time};
+use bigdecimal::BigDecimal;
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use decimal::Decimal;
 use sqlstring::SqlString;
 use tokio_util::bytes::{BufMut, BytesMut};
+
+use super::TdsTokenCodec;
 
 mod date;
 mod datetime2;
@@ -33,19 +37,19 @@ pub enum ColumnData {
     /// Binary data.
     Binary(Option<String>),
     /// Numeric value (a decimal).
-    Numeric(Option<Decimal>),
+    Numeric(Option<BigDecimal>),
     /// DateTime value.
-    DateTime(Option<DateTime>),
+    DateTime(Option<NaiveDateTime>),
     /// A small DateTime value.
-    SmallDateTime(Option<SmallDateTime>),
+    SmallDateTime(Option<NaiveDateTime>),
     /// Time value.
-    Time(Option<Time>),
+    Time(Option<NaiveTime>),
     /// Date value.
-    Date(Option<Date>),
+    Date(Option<NaiveDate>),
     /// DateTime2 value.
-    DateTime2(Option<DateTime2>),
+    DateTime2(Option<NaiveDateTime>),
     /// DateTime2 value with an offset.
-    DateTimeOffset(Option<DateTimeOffset>),
+    DateTimeOffset(Option<NaiveDateTime>),
 }
 
 impl ColumnData {
@@ -62,7 +66,7 @@ impl ColumnData {
             ColumnData::Binary(Some(ref b)) if b.len() <= 8000 => "varbinary(8000)".into(),
             ColumnData::Binary(_) => "varbinary(max)".into(),
             ColumnData::Numeric(Some(ref n)) => {
-                format!("numeric({},{})", n.precision(), n.scale()).into()
+                format!("numeric({},{})", n.digits(), n.fractional_digit_count()).into()
             }
             ColumnData::Numeric(None) => "numeric".into(),
             ColumnData::DateTime(_) => "datetime".into(),

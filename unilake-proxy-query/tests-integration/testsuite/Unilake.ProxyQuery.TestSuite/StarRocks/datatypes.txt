@@ -1,0 +1,100 @@
+# https://docs.starrocks.io/docs/category/numeric/
+=====
+select cast(1 as tinyint)
+=====
+1
+=====
+select cast(1 as smallint)
+=====
+1
+=====
+select cast(1 as int)
+=====
+1
+=====
+select cast(1 as largeint)
+=====
+1
+=====
+select cast(1 as bigint)
+=====
+1
+=====
+select cast(1 as boolean)
+=====
+1
+=====
+select cast("12345678910.123456789" as decimal(21,8))
+=====
+12345678910.12345679
+=====
+select cast("12345678910.1234567" as double)
+=====
+12345678910.123457
+=====
+select cast("123456.11" as float)
+=====
+123456.11
+
+# https://docs.starrocks.io/docs/category/string/
+=====
+SELECT TO_BINARY('Hello World!', 'utf8')
+=====
+Hello World!
+=====
+select CAST('A' AS CHAR(1))
+=====
+A
+=====
+select CAST(CONCAT('Hello', ' ', 'World') as STRING)
+=====
+Hello World
+=====
+select CAST(CONCAT('Hello', ' ', 'World') as varchar)
+=====
+Hello World
+
+# https://docs.starrocks.io/docs/category/date-and-time/
+=====
+SELECT DATE('2003-12-31 01:02:03');
+=====
+2003-12-31
+=====
+SELECT CAST('2003-12-31 01:02:03' as DATETIME);
+=====
+2003-12-31 01:02:03
+
+# https://docs.starrocks.io/docs/category/semi-structured/
+=====
+select ARRAY<float>[1, 2];
+=====
+[1,2]
+=====
+SELECT 
+    JSON_OBJECT(
+        'id', 1,
+        'name', 'John',
+        'age', 38,
+        'email', 'john@somewhere.com',
+        'address', JSON_OBJECT(
+            'street', 'some_street',
+            'city', 'Hamburg',
+            'country', 'Germany'
+        )
+    ) AS user_info
+=====
+{"address": {"city": "Hamburg", "country": "Germany", "street": "some_street"}, "age": 38, "email": "john@somewhere.com", "id": 1, "name": "John"}
+=====
+select map{1:"apple", 2:"orange", 3:"pear"} as fruit;
+=====
+{1:"apple",2:"orange",3:"pear"}
+=====
+select named_struct('a', 1, 'b', 2, 'c', 3, 'd', 4) as numbers;
+=====
+{"a":1,"b":2,"c":3,"d":4}
+
+# https://docs.starrocks.io/docs/category/other/
+=====
+select bitmap_to_string(bitmap_from_string("0, 1, 2"));
+=====
+0,1,2

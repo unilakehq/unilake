@@ -1,4 +1,5 @@
-use crate::frontend::Result;
+use crate::frontend::{Result, TdsTokenCodec};
+use bigdecimal::{num_bigint::Sign, BigDecimal, ToPrimitive};
 use tokio_util::bytes::{BufMut, BytesMut};
 
 /// Represent a sql Decimal type. It is stored in a i128 and has a
@@ -9,6 +10,7 @@ pub struct Decimal {
     scale: u8,
 }
 
+// todo(mrhamburg): implement serialization for mysql_async, instead of making use of BigDecimal.
 impl Decimal {
     /// Creates a new Decimal value.
     ///
@@ -97,5 +99,45 @@ impl Decimal {
         }
 
         Ok(())
+    }
+}
+
+impl TdsTokenCodec for BigDecimal {
+    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+        let value = self.abs() * 10i128.pow(self.fractional_digit_count() as u32);
+        let value = value.to_i128().unwrap();
+
+        fn len(item: &BigDecimal) -> u8 {
+            match item.digits() {
+                1..=9 => 5,
+                10..=19 => 9,
+                20..=28 => 13,
+                _ => 17,
+            }
+        }
+
+        dst.put_u8(len(self));
+
+        if self.sign() == Sign::Minus {
+            dst.put_u8(0);
+        } else {
+            dst.put_u8(1);
+        }
+
+        match len(self) {
+            5 => dst.put_u32_le(value as u32),
+            9 => dst.put_u64_le(value as u64),
+            13 => {
+                dst.put_u64_le(value as u64);
+                dst.put_u32_le((value >> 64) as u32)
+            }
+            _ => dst.put_u128_le(value as u128),
+        }
+
+        Ok(())
+    }
+
+    fn decode(_: &mut BytesMut) -> Result<crate::frontend::TdsToken> {
+        unimplemented!()
     }
 }

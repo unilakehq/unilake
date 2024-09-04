@@ -29,7 +29,7 @@ impl Collation {
 
     /// Follows the StarRocks default (Latin1_General_100_CI_AS_SC_UTF8)
     pub fn default() -> Self {
-        Self::new(0x0904, 0xd024, 0x00)
+        Self::new(0x0439, 0x0000, 0x00)
     }
 
     /// return the locale id part of the LCID (the specification here uses ambiguous terms)

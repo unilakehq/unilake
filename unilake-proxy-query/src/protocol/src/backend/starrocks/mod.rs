@@ -1,10 +1,11 @@
 mod extensions;
 
 use async_trait::async_trait;
+use chrono::{DateTime, TimeDelta, Utc};
 use futures::Sink;
-use mysql_async::{prelude::Queryable, OptsBuilder, Pool};
-use std::{net::SocketAddr, sync::Arc};
-use tokio::sync::RwLock;
+use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 
 use crate::frontend::{
@@ -18,8 +19,57 @@ use crate::frontend::{
 
 type StarRocksSession = DefaultSession;
 
+/// Acts like a wrapper around a mysql connection pool for StarRocks.
+struct StarRocksPool {
+    /// Connection pool for StarRocks
+    /// todo(mrhamburg): we actually need multiple pools, for multiple FE nodes (so 3 FE nodes, is 3 pools and load-balance connections)
+    pool: Pool,
+    last_connection_request: Mutex<Option<DateTime<Utc>>>,
+    connection_timeout_in_minutes: u16,
+}
+
+impl StarRocksPool {
+    async fn update_last_connection_request(&self) {
+        let mut current = self.last_connection_request.lock().await;
+        *current = Some(Utc::now());
+    }
+
+    /// Checks if the current connection pool has not been used and has timed out. If so, the connection pool can be removed and the backend instance can be shutdown.
+    pub async fn is_timed_out(&self) -> bool {
+        let last_request = self.last_connection_request.lock().await;
+        match last_request.as_ref() {
+            Some(last) => {
+                Utc::now().signed_duration_since(*last)
+                    > TimeDelta::minutes(self.connection_timeout_in_minutes as i64)
+            }
+            None => false,
+        }
+    }
+
+    pub async fn get_conn(&self) -> Conn {
+        let conn = self.pool.get_conn().await;
+        self.update_last_connection_request().await;
+
+        if let Err(err) = conn {
+            match err {
+                Error::Io(io_err) => {
+                    eprintln!("Failed to get connection from pool: {}", io_err);
+                    eprintln!("This is a connection-related error.");
+                }
+                _ => {
+                    eprintln!("Failed to get connection from pool: {}", err);
+                    eprintln!("This is not a connection-related error.");
+                }
+            }
+        } else {
+            return conn.unwrap();
+        }
+        todo!()
+    }
+}
+
 struct StarRocksTdsHandlerFactoryInnnerState {
-    pool: RwLock<Option<Arc<Pool>>>,
+    pools: RwLock<HashMap<String, Arc<StarRocksPool>>>,
     // Pool is needed, functions to handle pool (add, get, disconnect and remove)
     // Backend actions are needed, handle a down cluster, spin up etc...
     // Probably also best to implement our own sessioninfo for starrocks for policy caching and things like that?
@@ -28,17 +78,47 @@ struct StarRocksTdsHandlerFactoryInnnerState {
 impl StarRocksTdsHandlerFactoryInnnerState {
     pub fn new() -> Self {
         Self {
-            pool: RwLock::new(None),
+            pools: RwLock::new(HashMap::new()),
         }
     }
-    pub async fn set_pool(&self, pool: Pool) {
-        let mut current_pool = self.pool.write().await;
-        current_pool.replace(Arc::new(pool));
+
+    pub async fn get_or_add_pool<F>(&self, cluster_name: &str, f: F) -> Arc<StarRocksPool>
+    where
+        F: FnOnce() -> OptsBuilder,
+    {
+        {
+            let pools = self.pools.read().await;
+            let found = pools.get(cluster_name);
+            if let Some(pool) = found {
+                return pool.clone();
+            }
+        }
+        {
+            let mut pools = self.pools.write().await;
+            let opts = f();
+            let pool = Pool::new(opts);
+            // todo(mrhamburg): also requires pooloptions and constraints (min max pool size for example)
+            pools.insert(
+                cluster_name.to_string(),
+                Arc::new(StarRocksPool {
+                    pool,
+                    last_connection_request: Mutex::new(None),
+                    connection_timeout_in_minutes: 60, // Default to 60 minutes
+                }),
+            );
+        }
+
+        self.get_pool(cluster_name).await.unwrap()
     }
-    pub async fn get_pool(&self) -> Arc<Pool> {
-        self.pool.read().await.clone().unwrap()
+
+    pub async fn get_pool(&self, cluster_name: &str) -> Option<Arc<StarRocksPool>> {
+        self.pools.read().await.get(cluster_name).map(|x| x.clone())
     }
+
+    async fn background_worker(instance: Arc<Self>) {}
+    async fn start_background_worker(&self) {}
 }
+
 pub struct StarRocksTdsHandlerFactory {
     inner: StarRocksTdsHandlerFactoryInnnerState,
 }
@@ -220,19 +300,20 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
     {
         tracing::info!("Received SQL batch request: {}", &msg.query);
-        if self.inner.pool.read().await.is_none() {
-            tracing::info!("Setting backend pool");
-            let opts = OptsBuilder::default()
-                .ip_or_hostname("10.255.255.17")
-                .tcp_port(9030)
-                .user(Some("root"))
-                .prefer_socket(Some(false));
-            self.inner.set_pool(Pool::new(opts)).await;
-        }
 
-        let pool = self.inner.get_pool().await;
+        let pool = self
+            .inner
+            .get_or_add_pool("testing", || {
+                tracing::info!("Setting backend pool");
+                OptsBuilder::default()
+                    .ip_or_hostname("10.255.255.17")
+                    .tcp_port(9030)
+                    .user(Some("root"))
+                    .prefer_socket(Some(false))
+            })
+            .await;
 
-        let mut conn = pool.get_conn().await.unwrap();
+        let mut conn = pool.get_conn().await;
         tracing::info!("Connection pool id: {}", conn.id());
 
         let cancellation_token = CancellationToken::new();
