@@ -1,8 +1,6 @@
-use crate::frontend::sqlstring::SqlString;
 use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::{
-    Column, ColumnData, ColumnType, Error, FixedLenType, Result, TdsToken, TdsTokenCodec,
-    TdsTokenType, TypeInfo, VarLenType,
+    Column, ColumnType, Error, Result, TdsToken, TdsTokenCodec, TdsTokenType, TypeInfo,
 };
 use enumflags2::{bitflags, BitFlags};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
@@ -176,22 +174,6 @@ impl TokenColMetaData {
 }
 
 impl TdsTokenCodec for TokenColMetaData {
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
-        let column_count = src.get_u16_le();
-        let mut columns = Vec::with_capacity(column_count as usize);
-
-        if column_count > 0 && column_count < 0xffff {
-            for _ in 0..column_count {
-                let base = BaseMetaDataColumn::decode(src)?;
-                let col_name = decode::read_b_varchar(src)?;
-
-                columns.push(MetaDataColumn { base, col_name });
-            }
-        }
-
-        Ok(TdsToken::ColMetaData(TokenColMetaData { columns }))
-    }
-
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::ColMetaData as u8);
 
@@ -212,53 +194,25 @@ impl TdsTokenCodec for TokenColMetaData {
 
         Ok(())
     }
+
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let column_count = src.get_u16_le();
+        let mut columns = Vec::with_capacity(column_count as usize);
+
+        if column_count > 0 && column_count < 0xffff {
+            for _ in 0..column_count {
+                let base = BaseMetaDataColumn::decode(src)?;
+                let col_name = decode::read_b_varchar(src)?;
+
+                columns.push(MetaDataColumn { base, col_name });
+            }
+        }
+
+        Ok(TdsToken::ColMetaData(TokenColMetaData { columns }))
+    }
 }
 
 impl BaseMetaDataColumn {
-    fn null_value(&self) -> ColumnData {
-        match self.ty {
-            TypeInfo::FixedLen(ty) => match ty {
-                FixedLenType::Null => ColumnData::I32(None),
-                FixedLenType::Int1 => ColumnData::U8(None),
-                FixedLenType::Bit => ColumnData::Bit(None),
-                FixedLenType::Int2 => ColumnData::I16(None),
-                FixedLenType::Int4 => ColumnData::I32(None),
-                FixedLenType::Datetime4 => ColumnData::SmallDateTime(None),
-                FixedLenType::Float4 => ColumnData::F32(None),
-                FixedLenType::Datetime => ColumnData::DateTime(None),
-                FixedLenType::Float8 => ColumnData::F64(None),
-                FixedLenType::Int8 => ColumnData::I64(None),
-            },
-            TypeInfo::VarLenSized(cx) => match cx.r#type() {
-                VarLenType::Datetimen => ColumnData::DateTime(None),
-                VarLenType::Daten => ColumnData::Date(None),
-                VarLenType::Datetime2 => ColumnData::DateTime2(None),
-                VarLenType::DatetimeOffsetn => ColumnData::DateTimeOffset(None),
-                VarLenType::BigChar
-                | VarLenType::BigVarChar
-                | VarLenType::NChar
-                | VarLenType::NVarchar => ColumnData::String(SqlString::new_empty(&self.ty)),
-                _ => unreachable!(),
-            },
-            TypeInfo::VarLenSizedPrecision { ty, .. } => match ty {
-                VarLenType::Intn => ColumnData::I32(None),
-                VarLenType::Bitn => ColumnData::Bit(None),
-                VarLenType::Decimaln => ColumnData::Numeric(None),
-                VarLenType::Numericn => ColumnData::Numeric(None),
-                VarLenType::Floatn => ColumnData::F32(None),
-                VarLenType::Datetimen => ColumnData::DateTime(None),
-                VarLenType::Daten => ColumnData::Date(None),
-                VarLenType::Timen => ColumnData::Time(None),
-                VarLenType::Datetime2 => ColumnData::DateTime2(None),
-                VarLenType::DatetimeOffsetn => ColumnData::DateTimeOffset(None),
-                VarLenType::BigVarBin => ColumnData::Binary(None),
-                VarLenType::BigBinary => ColumnData::Binary(None),
-                VarLenType::SSVariant => todo!(),
-                _ => unreachable!(),
-            },
-        }
-    }
-
     pub fn decode(src: &mut BytesMut) -> Result<Self> {
         let _user_ty = src.get_u32_le();
 

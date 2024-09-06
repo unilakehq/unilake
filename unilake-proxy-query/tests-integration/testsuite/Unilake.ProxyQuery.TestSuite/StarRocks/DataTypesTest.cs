@@ -17,6 +17,7 @@ public class DataTypesTest
             {
                 var result_set = new Runner().RunQuery(line.Query);
                 result_set.Should().NotBeNull();
+                result_set[0].Should().BeEquivalentTo(line.ExpectedResult);
             }
             catch (Exception e)
             {
@@ -25,13 +26,4 @@ public class DataTypesTest
             }
         }
     }
-
-    [TestMethod]
-    public void AdHocTest()
-    {
-        // var result_set = new Runner().RunQuery("select cast(1 as largeint)");
-        var result_set = new Runner().RunQuery("select cast(1 as string)");
-        result_set.Should().NotBeNull();
-    }
-
 }

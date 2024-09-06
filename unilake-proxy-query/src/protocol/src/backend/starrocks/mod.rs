@@ -1,7 +1,7 @@
 mod extensions;
 
 use async_trait::async_trait;
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Duration, TimeDelta, Utc};
 use futures::Sink;
 use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
@@ -72,6 +72,7 @@ impl StarRocksPool {
 struct StarRocksTdsHandlerFactoryInnnerState {
     pools: RwLock<HashMap<String, Arc<StarRocksPool>>>,
     server_instance: Arc<ServerInstance>,
+    last_activity_reported: Mutex<Option<DateTime<Utc>>>,
     // Pool is needed, functions to handle pool (add, get, disconnect and remove)
     // Backend actions are needed, handle a down cluster, spin up etc...
     // Probably also best to implement our own sessioninfo for starrocks for policy caching and things like that?
@@ -82,6 +83,7 @@ impl StarRocksTdsHandlerFactoryInnnerState {
         Self {
             pools: RwLock::new(HashMap::new()),
             server_instance,
+            last_activity_reported: Mutex::new(None),
         }
     }
 
@@ -120,21 +122,31 @@ impl StarRocksTdsHandlerFactoryInnnerState {
         register_activity: bool,
     ) -> Option<Arc<StarRocksPool>> {
         if register_activity {
-            self.pool_register_connection_activity(cluster_name);
+            self.pool_register_connection_activity(cluster_name).await;
         }
         self.pools.read().await.get(cluster_name).map(|x| x.clone())
     }
 
-    pub fn pool_register_connection_activity(&self, cluster_name: &str) {
+    async fn pool_register_connection_activity(&self, pool_name: &str) {
+        // only every 5 seconds
+        // todo(mrhamburg): make sure this 5 seconds interval is configurable
+        if let Some(last_request) = *self.last_activity_reported.lock().await {
+            let elapsed = Utc::now().signed_duration_since(last_request);
+            if elapsed < TimeDelta::seconds(5) {
+                return;
+            }
+        }
+
         let result =
             self.server_instance
                 .process_message(ServerInstanceMessage::ActivityConnection(
-                    cluster_name.to_string(),
+                    pool_name.to_string(),
                 ));
 
         if let Err(err) = result {
             tracing::error!("Failed to register connection activity: {}", err);
         }
+        *self.last_activity_reported.lock().await = Some(Utc::now());
     }
 }
 
@@ -335,6 +347,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         let mut conn = pool.get_conn().await;
         tracing::info!("Connection pool id: {}", conn.id());
 
+        // todo(mrhamburg): handle query cancellation
         let cancellation_token = CancellationToken::new();
 
         let query_result = tokio::select! {

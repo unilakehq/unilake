@@ -18,16 +18,28 @@ impl TypeInfo {
     pub fn new_bit() -> Self {
         Self::FixedLen(FixedLenType::Bit)
     }
-    pub fn new_tinyint() -> Self {
+    pub fn new_tinyint(is_nullable: bool) -> Self {
+        if is_nullable {
+            return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 1, None));
+        }
         Self::FixedLen(FixedLenType::Int1)
     }
-    pub fn new_smallint() -> Self {
+    pub fn new_smallint(is_nullable: bool) -> Self {
+        if is_nullable {
+            return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 2, None));
+        }
         Self::FixedLen(FixedLenType::Int2)
     }
-    pub fn new_int() -> Self {
+    pub fn new_int(is_nullable: bool) -> Self {
+        if is_nullable {
+            return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 4, None));
+        }
         Self::FixedLen(FixedLenType::Int4)
     }
-    pub fn new_bigint() -> Self {
+    pub fn new_bigint(is_nullable: bool) -> Self {
+        if is_nullable {
+            return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 8, None));
+        }
         Self::FixedLen(FixedLenType::Int8)
     }
     pub fn new_decimal(precision: u8, scale: u8) -> Self {
@@ -38,10 +50,16 @@ impl TypeInfo {
             scale: scale,
         }
     }
-    pub fn new_float_32() -> Self {
+    pub fn new_float_32(is_nullable: bool) -> Self {
+        if is_nullable {
+            return Self::VarLenSized(VarLenContext::new(VarLenType::Floatn, 4, None));
+        }
         Self::FixedLen(FixedLenType::Float4)
     }
-    pub fn new_float_64() -> Self {
+    pub fn new_float_64(is_nullable: bool) -> Self {
+        if is_nullable {
+            return Self::VarLenSized(VarLenContext::new(VarLenType::Floatn, 8, None));
+        }
         Self::FixedLen(FixedLenType::Float8)
     }
     pub fn new_date() -> Self {

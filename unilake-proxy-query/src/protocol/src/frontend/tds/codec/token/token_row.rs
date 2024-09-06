@@ -7,7 +7,7 @@ use super::{TdsToken, TdsTokenCodec};
 #[derive(Debug, Default)]
 pub struct TokenRow {
     data: Vec<ColumnData>,
-    nbc_row: bool,
+    pub nbc_row: bool,
 }
 impl IntoIterator for TokenRow {
     type Item = ColumnData;
@@ -23,7 +23,7 @@ impl TokenRow {
     pub fn new(col_len: usize, nbc_row: bool) -> Self {
         Self {
             data: Vec::with_capacity(col_len),
-            nbc_row: nbc_row,
+            nbc_row,
         }
     }
 
@@ -78,11 +78,6 @@ impl TokenRow {
 }
 
 impl TdsTokenCodec for TokenRow {
-    /// Decode is not implemented for this token type.
-    fn decode(_: &mut BytesMut) -> Result<TdsToken> {
-        unimplemented!()
-    }
-
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         if self.nbc_row {
             return self.encode_nbc(dest);
@@ -94,6 +89,11 @@ impl TdsTokenCodec for TokenRow {
         }
 
         Ok(())
+    }
+
+    /// Decode is not implemented for this token type.
+    fn decode(_: &mut BytesMut) -> Result<TdsToken> {
+        unimplemented!()
     }
 }
 
@@ -119,23 +119,27 @@ struct RowBitmap {
 
 impl RowBitmap {
     fn new(size: usize) -> Self {
-        Self {
-            data: Vec::with_capacity(size),
-        }
+        let mut data = Vec::with_capacity(size);
+        data.resize(size, 0);
+        Self { data }
     }
 
     fn from(source: &Vec<ColumnData>) -> Self {
-        let mut ret = Self::new(std::cmp::min(source.len() / 8, 1));
+        let len = source.len() as i32;
+        let len = len / 8 + (len % 8).signum();
+        let mut ret = Self::new(len as usize);
 
         for (i, d) in source.iter().enumerate() {
             match d {
-                ColumnData::U8(None)
-                | ColumnData::I16(None)
-                | ColumnData::I32(None)
-                | ColumnData::I64(None)
-                | ColumnData::F32(None)
-                | ColumnData::F64(None)
-                | ColumnData::Bit(None)
+                // todo(mrhamburg): check if these are correct
+                // todo(mrhamburg): determine when nbc is used and also check its implementation
+                ColumnData::U8N(None)
+                | ColumnData::BitN(None)
+                | ColumnData::I16N(None)
+                | ColumnData::I32N(None)
+                | ColumnData::I64N(None)
+                | ColumnData::F32N(None)
+                | ColumnData::F64N(None)
                 | ColumnData::Binary(None)
                 | ColumnData::Numeric(None)
                 | ColumnData::DateTime(None)
@@ -174,8 +178,8 @@ impl RowBitmap {
         let index = i / 8;
         let bit = i % 8;
 
-        if (index + 1) > self.data.len() {
-            self.data.resize(self.data.len() + 1, 0);
+        if index >= self.data.len() {
+            self.data.resize(index + 1, 0);
         }
 
         self.data[index] |= 1 << bit;

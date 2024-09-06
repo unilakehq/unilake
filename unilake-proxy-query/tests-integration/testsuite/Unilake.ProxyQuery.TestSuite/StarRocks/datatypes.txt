@@ -1,4 +1,9 @@
 # https://docs.starrocks.io/docs/category/numeric/
+# TODO: for each select cast, also add a NULL variant
+=====
+select cast(NULL as tinyint)
+=====
+NULL
 =====
 select cast(1 as tinyint)
 =====
@@ -98,3 +103,10 @@ select named_struct('a', 1, 'b', 2, 'c', 3, 'd', 4) as numbers;
 select bitmap_to_string(bitmap_from_string("0, 1, 2"));
 =====
 0,1,2
+
+# edge cases
+# ====
+# select null
+# ====
+# NULL
+# ====
