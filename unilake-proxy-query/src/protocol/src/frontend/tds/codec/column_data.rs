@@ -88,7 +88,6 @@ impl ColumnData {
             | ColumnData::I64(_)
             | ColumnData::F32(_)
             | ColumnData::F64(_) => fixed_len::encode(dest, &self)?,
-            // todo(mhramburg): would be better if we have the type length from the actual metadata, might also need it for numeric
             ColumnData::String(s) => s.encode(dest)?,
             ColumnData::Date(_) => date::encode(dest, &self)?,
             ColumnData::DateTime2(_) => datetime2::encode(dest, &self)?,
@@ -100,7 +99,6 @@ impl ColumnData {
                     dest.put_u8(0);
                 }
             }
-            //todo(mhramburg): json, array, bitmap, HLL
             _ => unreachable!("ColumData of type {:?} is not supported", self),
         }
 

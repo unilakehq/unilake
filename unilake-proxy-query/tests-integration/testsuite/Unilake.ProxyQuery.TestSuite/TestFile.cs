@@ -11,9 +11,7 @@ public static class TestFile
     public static List<TestFileEntry> GetTestFileEntries(string filePath)
     {
         if (!File.Exists(filePath))
-        {
             throw new FileNotFoundException($"Test file {filePath} not found.");
-        }
 
         var file = File.ReadAllLines(filePath);
         var toreturn = new List<TestFileEntry>();
@@ -49,7 +47,6 @@ public static class TestFile
         }
 
         toreturn.Add(new TestFileEntry(currentQuery.ToString(), currentQueryResult.ToString()));
-
         return toreturn;
     }
 }

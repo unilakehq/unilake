@@ -8,6 +8,7 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 
+use crate::frontend::prot::ServerInstanceMessage;
 use crate::frontend::{
     error::{TdsWireError, TdsWireResult},
     prot::{DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory},
@@ -25,7 +26,7 @@ struct StarRocksPool {
     /// todo(mrhamburg): we actually need multiple pools, for multiple FE nodes (so 3 FE nodes, is 3 pools and load-balance connections)
     pool: Pool,
     last_connection_request: Mutex<Option<DateTime<Utc>>>,
-    connection_timeout_in_minutes: u16,
+    activity_timeout_in_minutes: u16,
 }
 
 impl StarRocksPool {
@@ -40,7 +41,7 @@ impl StarRocksPool {
         match last_request.as_ref() {
             Some(last) => {
                 Utc::now().signed_duration_since(*last)
-                    > TimeDelta::minutes(self.connection_timeout_in_minutes as i64)
+                    > TimeDelta::minutes(self.activity_timeout_in_minutes as i64)
             }
             None => false,
         }
@@ -70,15 +71,17 @@ impl StarRocksPool {
 
 struct StarRocksTdsHandlerFactoryInnnerState {
     pools: RwLock<HashMap<String, Arc<StarRocksPool>>>,
+    server_instance: Arc<ServerInstance>,
     // Pool is needed, functions to handle pool (add, get, disconnect and remove)
     // Backend actions are needed, handle a down cluster, spin up etc...
     // Probably also best to implement our own sessioninfo for starrocks for policy caching and things like that?
 }
 
 impl StarRocksTdsHandlerFactoryInnnerState {
-    pub fn new() -> Self {
+    pub fn new(server_instance: Arc<ServerInstance>) -> Self {
         Self {
             pools: RwLock::new(HashMap::new()),
+            server_instance,
         }
     }
 
@@ -87,8 +90,7 @@ impl StarRocksTdsHandlerFactoryInnnerState {
         F: FnOnce() -> OptsBuilder,
     {
         {
-            let pools = self.pools.read().await;
-            let found = pools.get(cluster_name);
+            let found = self.get_pool(cluster_name, true).await;
             if let Some(pool) = found {
                 return pool.clone();
             }
@@ -97,26 +99,43 @@ impl StarRocksTdsHandlerFactoryInnnerState {
             let mut pools = self.pools.write().await;
             let opts = f();
             let pool = Pool::new(opts);
+
             // todo(mrhamburg): also requires pooloptions and constraints (min max pool size for example)
             pools.insert(
                 cluster_name.to_string(),
                 Arc::new(StarRocksPool {
                     pool,
                     last_connection_request: Mutex::new(None),
-                    connection_timeout_in_minutes: 60, // Default to 60 minutes
+                    activity_timeout_in_minutes: 60, // Default to 60 minutes
                 }),
             );
         }
 
-        self.get_pool(cluster_name).await.unwrap()
+        self.get_pool(cluster_name, false).await.unwrap()
     }
 
-    pub async fn get_pool(&self, cluster_name: &str) -> Option<Arc<StarRocksPool>> {
+    pub async fn get_pool(
+        &self,
+        cluster_name: &str,
+        register_activity: bool,
+    ) -> Option<Arc<StarRocksPool>> {
+        if register_activity {
+            self.pool_register_connection_activity(cluster_name);
+        }
         self.pools.read().await.get(cluster_name).map(|x| x.clone())
     }
 
-    async fn background_worker(instance: Arc<Self>) {}
-    async fn start_background_worker(&self) {}
+    pub fn pool_register_connection_activity(&self, cluster_name: &str) {
+        let result =
+            self.server_instance
+                .process_message(ServerInstanceMessage::ActivityConnection(
+                    cluster_name.to_string(),
+                ));
+
+        if let Err(err) = result {
+            tracing::error!("Failed to register connection activity: {}", err);
+        }
+    }
 }
 
 pub struct StarRocksTdsHandlerFactory {
@@ -124,9 +143,9 @@ pub struct StarRocksTdsHandlerFactory {
 }
 
 impl StarRocksTdsHandlerFactory {
-    pub fn new() -> Self {
+    pub fn new(server_instance: Arc<ServerInstance>) -> Self {
         StarRocksTdsHandlerFactory {
-            inner: StarRocksTdsHandlerFactoryInnnerState::new(),
+            inner: StarRocksTdsHandlerFactoryInnnerState::new(server_instance),
         }
     }
 }

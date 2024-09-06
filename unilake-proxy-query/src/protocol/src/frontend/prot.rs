@@ -283,15 +283,19 @@ where
     }
 }
 
+#[derive(Debug)]
 pub enum ServerInstanceMessage {
     /// Used to send an audit message for a connected session
     Audit(SessionAuditMessage),
     /// Used to send telemetry data
     Telemetry,
+    /// Used to send activity data (Connection)
+    ActivityConnection(String),
 }
 
 /// These messages should be forwarded to SIEM/Audit logging endpoint
 /// todo(mrhamburg): extend and expand where needed
+#[derive(Debug)]
 pub enum SessionAuditMessage {
     /// SqlBatch execution by a user
     SqlBatch(SessionUserInfo, Arc<str>, Arc<str>),
@@ -303,6 +307,7 @@ pub enum SessionAuditMessage {
 
 #[allow(unused)]
 /// todo(mrhamburg): properly implement and use where applicable
+#[derive(Debug)]
 pub struct SessionUserInfo {
     socket_addr: SocketAddr,
     userid: Arc<str>,
@@ -335,8 +340,8 @@ impl ServerInstance {
         }
     }
 
-    async fn inner_process_message(&self, _msg: ServerInstanceMessage) {
-        tracing::error!(message = "Received server instance message, processing has not been implemented, dropping message!");
+    async fn inner_process_message(&self, msg: ServerInstanceMessage) {
+        tracing::error!(message = format!("Received server instance message, processing has not been implemented, dropping message! {:?}", msg));
     }
 
     /// Starts the background job server instance for processing server messages.

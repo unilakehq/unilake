@@ -28,13 +28,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(&addr).await?;
     println!("Listening on: {}", addr);
 
-    let factory = Arc::new(StarRocksTdsHandlerFactory::new());
     // todo(mrhamburg): use bgworker for graceful shutdown
     let (instance, _) = {
         let instance = ServerInstance::new(ServerContext::default());
         let (instance, bgworker) = instance.start_instance();
         (instance, bgworker)
     };
+
+    let factory = Arc::new(StarRocksTdsHandlerFactory::new(instance.clone()));
 
     loop {
         let (socket, _) = listener.accept().await?;

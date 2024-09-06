@@ -48,7 +48,7 @@ impl TypeInfo {
         Self::VarLenSized(VarLenContext::new(VarLenType::Daten, 0, None))
     }
     pub fn new_datetime() -> Self {
-        Self::VarLenSized(VarLenContext::new(VarLenType::Datetimen, 0, None))
+        Self::VarLenSized(VarLenContext::new(VarLenType::Datetime2, 7, None))
     }
     pub fn new_nvarchar(max_len: usize) -> Self {
         Self::VarLenSized(VarLenContext::new(
@@ -235,9 +235,6 @@ impl TypeInfo {
                     | VarLenType::BigVarChar
                     | VarLenType::BigBinary
                     | VarLenType::BigVarBin => dest.put_u16_le(ty.len() as u16),
-                    VarLenType::Daten => {
-                        dest.put_u8(3 as u8);
-                    }
                     _ => {}
                 }
 
