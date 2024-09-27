@@ -13,17 +13,8 @@ public class DataTypesTest
 
         foreach (var line in lines)
         {
-            try
-            {
-                var result_set = new Runner().RunQuery(line.Query);
-                result_set.Should().NotBeNull();
-                result_set[0].Should().BeEquivalentTo(line.ExpectedResult);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error executing query: {line.Query}, Error: {e.Message}");
-                throw;
-            }
+            var resultSet = new Runner().RunQuery(line.Query);
+            line.ExpectedResult.Should().Be(resultSet.Print());
         }
     }
 }

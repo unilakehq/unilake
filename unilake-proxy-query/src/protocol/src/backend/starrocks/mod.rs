@@ -1,7 +1,8 @@
+// todo(mrhamburg): add feature to request for timings in the session (time in proxy, time in backend), this will also be needed for monitoring and troubleshooting
 mod extensions;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Duration, TimeDelta, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use futures::Sink;
 use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
@@ -14,8 +15,8 @@ use crate::frontend::{
     prot::{DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory},
     tds::server_context::ServerContext,
     BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
-    TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck, TokenPreLoginFedAuthRequiredOption,
-    TokenRow,
+    TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
+    TokenPreLoginFedAuthRequiredOption, TokenRow, UpdatableFlags,
 };
 
 type StarRocksSession = DefaultSession;
@@ -128,11 +129,11 @@ impl StarRocksTdsHandlerFactoryInnnerState {
     }
 
     async fn pool_register_connection_activity(&self, pool_name: &str) {
-        // only every 5 seconds
+        // only every 15 seconds
         // todo(mrhamburg): make sure this 5 seconds interval is configurable
         if let Some(last_request) = *self.last_activity_reported.lock().await {
             let elapsed = Utc::now().signed_duration_since(last_request);
-            if elapsed < TimeDelta::seconds(5) {
+            if elapsed < TimeDelta::seconds(15) {
                 return;
             }
         }
@@ -159,6 +160,24 @@ impl StarRocksTdsHandlerFactory {
         StarRocksTdsHandlerFactory {
             inner: StarRocksTdsHandlerFactoryInnnerState::new(server_instance),
         }
+    }
+    async fn handle_backend_error<C>(&self, client: &mut C, e: Error) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
+    {
+        //todo(mrhamburg): make sure this is also logged properly etc...
+        let error_token = TokenError::new(
+            0,
+            0,
+            0,
+            e.to_string(),
+            client.tds_server_context().server_name.clone(),
+            "".to_string(),
+            0,
+        );
+        self.send_token(client, error_token).await?;
+        self.send_token(client, TokenDone::new_error(0)).await?;
+        Ok(())
     }
 }
 
@@ -357,8 +376,8 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
                         Some(result)
                     }
                     Err(e) => {
-                        eprintln!("Query failed: {}", e);
-                        None
+                        self.handle_backend_error(client, e).await?;
+                        return Ok(())
                     }
                 }
             },
@@ -368,10 +387,9 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
             }
         };
         let mut result = query_result.unwrap();
-
-        let mut columns = TokenColMetaData::new();
+        let mut columns = TokenColMetaData::new(result.columns_ref().len());
         for column in result.columns_ref() {
-            columns.add_column(column);
+            let index = columns.add_column(column);
         }
         self.send_token(client, columns).await?;
 

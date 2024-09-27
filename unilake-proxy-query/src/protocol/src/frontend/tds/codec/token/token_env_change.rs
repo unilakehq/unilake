@@ -76,6 +76,7 @@ pub enum TokenEnvChange {
     Routing { host: String, port: u16 },
     ChangeMirror(String),
     Ignored(EnvChangeType),
+    ResetConnection,
 }
 
 impl TokenEnvChange {
@@ -90,6 +91,9 @@ impl TokenEnvChange {
     }
     pub fn new_packet_size_change(from: String, to: String) -> Self {
         Self::PacketSize(from, to)
+    }
+    pub fn new_reset_connection_ack() -> Self {
+        Self::ResetConnection
     }
 }
 
@@ -178,6 +182,7 @@ impl TdsTokenCodec for TokenEnvChange {
                     token_type = t.to_string()
                 );
             }
+            TokenEnvChange::ResetConnection => buff.put_u8(EnvChangeType::ResetConnection as u8),
         }
 
         // write changed data
@@ -191,7 +196,10 @@ impl TdsTokenCodec for TokenEnvChange {
                 encode::write_b_varchar(&mut buff, old)?;
                 encode::write_b_varchar(&mut buff, new)?;
             }
-            _ => todo!("Not sure what to do with other env change types"),
+            _ => {
+                buff.put_u8(0);
+                buff.put_u8(0);
+            }
         };
 
         dest.put_u16_le(buff.len() as u16);

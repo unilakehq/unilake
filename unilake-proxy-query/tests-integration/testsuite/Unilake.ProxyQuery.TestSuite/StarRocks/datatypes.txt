@@ -1,81 +1,145 @@
 # https://docs.starrocks.io/docs/category/numeric/
-# TODO: for each select cast, also add a NULL variant
-=====
+---------- Input ----------
+select NULL
+---------- Output ----------
+| NULL |
+| NULL |
+---------- Input ----------
 select cast(NULL as tinyint)
-=====
-NULL
-=====
+---------- Output ----------
+| CAST(NULL AS TINYINT) |
+| NULL                  |
+---------- Input ----------
 select cast(1 as tinyint)
-=====
-1
-=====
+---------- Output ----------
+| CAST(1 AS TINYINT) |
+| 1                  |
+---------- Input ----------
 select cast(1 as smallint)
-=====
-1
-=====
+---------- Output ----------
+| CAST(1 AS SMALLINT) |
+| 1                   |
+---------- Input ----------
+select cast(NULL as smallint)
+---------- Output ----------
+| CAST(NULL AS SMALLINT) |
+| NULL                   |
+---------- Input ----------
 select cast(1 as int)
-=====
-1
-=====
+---------- Output ----------
+| CAST(1 AS INT) |
+| 1              |
+---------- Input ----------
+select cast(NULL as int)
+---------- Output ----------
+| CAST(NULL AS INT) |
+| NULL              |
+---------- Input ----------
 select cast(1 as largeint)
-=====
-1
-=====
+---------- Output ----------
+| CAST(1 AS LARGEINT) |
+| 1                   |
+---------- Input ----------
+select cast(NULL as largeint)
+---------- Output ----------
+| CAST(NULL AS LARGEINT) |
+| NULL                   |
+---------- Input ----------
 select cast(1 as bigint)
-=====
-1
-=====
+---------- Output ----------
+| CAST(1 AS BIGINT) |
+| 1                 |
+---------- Input ----------
+select cast(NULL as bigint)
+---------- Output ----------
+| CAST(NULL AS BIGINT) |
+| NULL                 |
+---------- Input ----------
 select cast(1 as boolean)
-=====
-1
-=====
+---------- Output ----------
+| CAST(1 AS BOOLEAN) |
+| 1                  |
+---------- Input ----------
+select cast(NULL as boolean)
+---------- Output ----------
+| CAST(NULL AS BOOLEAN) |
+| NULL                  |
+---------- Input ----------
 select cast("12345678910.123456789" as decimal(21,8))
-=====
-12345678910.12345679
-=====
+---------- Output ----------
+| CAST('12345678910.123456789' AS DECIMAL128(21,8)) |
+| 12345678910.12345679                              |
+---------- Input ----------
+select cast(NULL as decimal(21,8))
+---------- Output ----------
+| CAST(NULL AS DECIMAL128(21,8)) |
+| NULL                           |
+---------- Input ----------
 select cast("12345678910.1234567" as double)
-=====
-12345678910.123457
-=====
+---------- Output ----------
+| CAST('12345678910.1234567' AS DOUBLE) |
+| 12345678910.123457                    |
+---------- Input ----------
+select cast(NULL as double)
+---------- Output ----------
+| CAST(NULL AS DOUBLE) |
+| NULL                 |
+---------- Input ----------
 select cast("123456.11" as float)
-=====
-123456.11
+---------- Output ----------
+| CAST('123456.11' AS FLOAT) |
+| 123456.11                  |
+---------- Input ----------
+select cast(NULL as float)
+---------- Output ----------
+| CAST(NULL AS FLOAT) |
+| NULL                |
 
 # https://docs.starrocks.io/docs/category/string/
-=====
+---------- Input ----------
 SELECT TO_BINARY('Hello World!', 'utf8')
-=====
-Hello World!
-=====
+---------- Output ----------
+| to_binary('Hello World!', 'utf8') |
+| Hello World!                      |
+---------- Input ----------
 select CAST('A' AS CHAR(1))
-=====
-A
-=====
+---------- Output ----------
+| CAST('A' AS CHAR(1)) |
+| A                    |
+---------- Input ----------
 select CAST(CONCAT('Hello', ' ', 'World') as STRING)
-=====
-Hello World
-=====
+---------- Output ----------
+| CAST((concat('Hello', ' ', 'World')) AS VARCHAR(65533)) |
+| Hello World                                             |
+
+---------- Input ----------
 select CAST(CONCAT('Hello', ' ', 'World') as varchar)
-=====
-Hello World
+---------- Output ----------
+| CAST((concat('Hello', ' ', 'World')) AS VARCHAR) |
+| Hello World                                      |
 
 # https://docs.starrocks.io/docs/category/date-and-time/
-=====
+---------- Input ----------
 SELECT DATE('2003-12-31 01:02:03');
-=====
-2003-12-31
-=====
+---------- Output ----------
+| date('2003-12-31 01:02:03') |
+| 12/31/2003 12:00:00 AM      |
+
+---------- Input ----------
 SELECT CAST('2003-12-31 01:02:03' as DATETIME);
-=====
-2003-12-31 01:02:03
+---------- Output ----------
+| CAST('2003-12-31 01:02:03' AS DATETIME) |
+| 12/31/2003 1:02:03 AM                   |
 
 # https://docs.starrocks.io/docs/category/semi-structured/
-=====
+---------- Input ----------
 select ARRAY<float>[1, 2];
-=====
-[1,2]
-=====
-SELECT 
+---------- Output ----------
+| [1, 2] |
+| [1,2]  |
+
+---------- Input ----------
+SELECT
     JSON_OBJECT(
         'id', 1,
         'name', 'John',
@@ -87,26 +151,25 @@ SELECT
             'country', 'Germany'
         )
     ) AS user_info
-=====
-{"address": {"city": "Hamburg", "country": "Germany", "street": "some_street"}, "age": 38, "email": "john@somewhere.com", "id": 1, "name": "John"}
-=====
+---------- Output ----------
+| user_info                                                                                                                                          |
+| {"address": {"city": "Hamburg", "country": "Germany", "street": "some_street"}, "age": 38, "email": "john@somewhere.com", "id": 1, "name": "John"} |
+
+---------- Input ----------
 select map{1:"apple", 2:"orange", 3:"pear"} as fruit;
-=====
-{1:"apple",2:"orange",3:"pear"}
-=====
+---------- Output ----------
+| fruit                           |
+| {1:"apple",2:"orange",3:"pear"} |
+
+---------- Input ----------
 select named_struct('a', 1, 'b', 2, 'c', 3, 'd', 4) as numbers;
-=====
-{"a":1,"b":2,"c":3,"d":4}
+---------- Output ----------
+| numbers                   |
+| {"a":1,"b":2,"c":3,"d":4} |
 
 # https://docs.starrocks.io/docs/category/other/
-=====
+---------- Input ----------
 select bitmap_to_string(bitmap_from_string("0, 1, 2"));
-=====
-0,1,2
-
-# edge cases
-# ====
-# select null
-# ====
-# NULL
-# ====
+---------- Output ----------
+| bitmap_to_string(bitmap_from_string('0, 1, 2')) |
+| 0,1,2                                           |

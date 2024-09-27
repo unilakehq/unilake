@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Text;
 
 namespace Unilake.ProxyQuery.TestSuite;
@@ -25,7 +26,7 @@ public static class TestFile
             if (line.StartsWith("#") || string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (line.StartsWith("====="))
+            if (line.StartsWith("---------- Input ----------"))
             {
                 if (currentQueryResult.Length > 0)
                 {
@@ -34,8 +35,14 @@ public static class TestFile
                     currentQueryResult.Clear();
                 }
 
-                inQueryBlock = currentQuery.Length == 0;
-                inResultBlock = !inQueryBlock;
+                inQueryBlock = true;
+                continue;
+            }
+
+            if (line.StartsWith("---------- Output ----------"))
+            {
+                inResultBlock = true;
+                inQueryBlock = false;
                 continue;
             }
 
@@ -49,4 +56,24 @@ public static class TestFile
         toreturn.Add(new TestFileEntry(currentQuery.ToString(), currentQueryResult.ToString()));
         return toreturn;
     }
+
+    // public static DataTable FromExpectedResult(string textResult)
+    // {
+    //     var lines = textResult.Split('\n');
+    //     var table = new DataTable();
+    //
+    //     if (lines.Length > 1)
+    //     {
+    //         var header = lines[0].Split('|').Skip(1).Select(s => s.TrimEnd(' ')).ToArray();
+    //         table.Columns.AddRange(header.Select(s => new DataColumn(s)).ToArray());
+    //
+    //         for (int i = 1; i < lines.Length; i++)
+    //         {
+    //             var rowValues = lines[i].Split('|').Skip(1).Select(s => s.TrimEnd(' ')).ToArray();
+    //             table.Rows.Add(rowValues);
+    //         }
+    //     }
+    //
+    //     return table;
+    // }
 }

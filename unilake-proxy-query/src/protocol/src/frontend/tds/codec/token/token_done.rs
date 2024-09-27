@@ -171,7 +171,7 @@ mod tests {
 
         // decode
         let token_type = buff.get_u8();
-        let result = TokenDone::decode(&mut buff).unwrap();
+        let result = TokenDone::decode(&mut buff)?;
 
         // assert
         assert_eq!(token_type, TdsTokenType::Done as u8);
@@ -199,7 +199,7 @@ mod tests {
 
         // decode
         let token_type = buff.get_u8();
-        let result = TokenDone::decode(&mut buff).unwrap();
+        let result = TokenDone::decode(&mut buff)?;
 
         // assert
         assert_eq!(token_type, TdsTokenType::Done as u8);

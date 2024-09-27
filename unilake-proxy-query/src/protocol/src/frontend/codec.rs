@@ -175,11 +175,11 @@ where
         self.codec().session_info.socket_addr()
     }
 
-    fn state(&self) -> &crate::frontend::prot::TdsSessionState {
+    fn state(&self) -> &TdsSessionState {
         self.codec().session_info.state()
     }
 
-    fn set_state(&mut self, new_state: crate::frontend::prot::TdsSessionState) {
+    fn set_state(&mut self, new_state: TdsSessionState) {
         self.codec_mut().session_info.set_state(new_state)
     }
 
@@ -233,6 +233,14 @@ where
 
     fn set_database(&mut self, db_name: String) {
         self.codec_mut().session_info.set_database(db_name)
+    }
+
+    fn get_catalog(&self) -> Option<&String> {
+        self.codec().session_info.get_catalog()
+    }
+
+    fn set_catalog(&mut self, catalog: String) {
+        self.codec_mut().session_info.set_catalog(catalog)
     }
 }
 

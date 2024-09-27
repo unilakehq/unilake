@@ -1,17 +1,18 @@
 use std::usize;
 
 use crate::frontend::{
-    sqlstring::SqlString, BaseMetaDataColumn, ColumnData, MetaDataColumn, TokenRow, TypeInfo,
+    sqlstring::SqlString, BaseMetaDataColumn, ColumnData, DataFlags, MetaDataColumn, TokenRow,
+    TypeInfo, UpdatableFlags,
 };
 use bigdecimal::BigDecimal;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use enumflags2::BitFlags;
+use mysql_async::consts::ColumnFlags;
 use mysql_async::Row;
 
 impl Into<MetaDataColumn> for &mysql_async::Column {
     fn into(self) -> MetaDataColumn {
         let name = String::from_utf8(self.name_ref().to_vec()).unwrap();
-        let column_type = match self.column_type() {
+        let ty = match self.column_type() {
             mysql_async::consts::ColumnType::MYSQL_TYPE_NEWDECIMAL
             | mysql_async::consts::ColumnType::MYSQL_TYPE_DECIMAL => {
                 TypeInfo::new_decimal(self.column_length() as u8, self.decimals())
@@ -41,16 +42,21 @@ impl Into<MetaDataColumn> for &mysql_async::Column {
                 unreachable!()
             }
         };
+
+        // Set flags
+        let mut flags = DataFlags::default();
+        flags.is_key = self.flags().contains(ColumnFlags::PART_KEY_FLAG);
+        flags.updatable = UpdatableFlags::NotUpdatable;
+        flags.is_nullable = true;
+
         MetaDataColumn {
-            base: BaseMetaDataColumn {
-                flags: BitFlags::empty(),
-                ty: column_type,
-            },
+            base: BaseMetaDataColumn { flags, ty },
             col_name: name,
         }
     }
 }
 
+// todo(mrhamburg): instead of unwrap_or_default, handle unwrap properly with error handling
 impl Into<TokenRow> for Row {
     fn into(mut self) -> TokenRow {
         let mut row = TokenRow::new(self.columns_ref().len(), false);
@@ -59,8 +65,8 @@ impl Into<TokenRow> for Row {
             .to_vec()
             .iter()
             .enumerate()
-            .map(|(i, c)| {
-                match c.column_type() {
+            .map(|(i, col)| {
+                match col.column_type() {
                     mysql_async::consts::ColumnType::MYSQL_TYPE_DECIMAL
                     | mysql_async::consts::ColumnType::MYSQL_TYPE_NEWDECIMAL => {
                         let x: Option<BigDecimal> = self.take(i).unwrap_or_default();

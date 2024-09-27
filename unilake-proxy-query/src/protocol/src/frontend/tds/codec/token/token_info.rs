@@ -41,6 +41,26 @@ impl TokenInfo {
 }
 
 impl TdsTokenCodec for TokenInfo {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::Info as u8);
+        let mut buff = BytesMut::new();
+
+        // set content
+        buff.put_u32_le(self.number);
+        buff.put_u8(self.state);
+        buff.put_u8(self.class);
+        encode::write_us_varchar(&mut buff, &self.message)?;
+        encode::write_b_varchar(&mut buff, &self.server)?;
+        encode::write_b_varchar(&mut buff, &self.procedure)?;
+        buff.put_u32_le(self.line);
+
+        // send length and content
+        dest.put_u16_le(buff.len() as u16);
+        dest.extend_from_slice(&buff);
+
+        Ok(())
+    }
+
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let _length = src.get_u16_le();
 
@@ -61,26 +81,6 @@ impl TdsTokenCodec for TokenInfo {
             procedure,
             line,
         }))
-    }
-
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
-        dest.put_u8(TdsTokenType::Info as u8);
-        let mut buff = BytesMut::new();
-
-        // set content
-        buff.put_u32_le(self.number);
-        buff.put_u8(self.state);
-        buff.put_u8(self.class);
-        encode::write_us_varchar(&mut buff, &self.message)?;
-        encode::write_b_varchar(&mut buff, &self.server)?;
-        encode::write_b_varchar(&mut buff, &self.procedure)?;
-        buff.put_u32_le(self.line);
-
-        // send length and content
-        dest.put_u16_le(buff.len() as u16);
-        dest.extend_from_slice(&buff);
-
-        Ok(())
     }
 }
 

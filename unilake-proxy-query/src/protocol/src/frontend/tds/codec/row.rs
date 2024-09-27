@@ -47,7 +47,7 @@ pub enum ColumnType {
     Timen,
     /// A n-bit datetime2 value (TDS 7.3).
     Datetime2,
-    /// A n-bit datetime value with an offset (TDS 7.3).
+    /// An n-bit datetime value with an offset (TDS 7.3).
     DatetimeOffsetn,
     /// A variable binary value.
     BigVarBin,

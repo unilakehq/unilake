@@ -34,7 +34,7 @@ impl TokenRow {
         value.into()
     }
 
-    /// Write/encode an nbc row to the client. Server decides whether to send an NBC row or a normal row.
+    /// Write/encode a nbc row to the client. Server decides whether to send an NBC row or a normal row.
     pub fn encode_nbc(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::NbcRow as u8);
         let bm = RowBitmap::from(&self.data);

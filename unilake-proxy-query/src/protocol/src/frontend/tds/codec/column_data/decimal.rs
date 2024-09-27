@@ -2,7 +2,7 @@ use crate::frontend::{Result, TdsTokenCodec};
 use bigdecimal::{num_bigint::Sign, BigDecimal, ToPrimitive};
 use tokio_util::bytes::{BufMut, BytesMut};
 
-/// Represent a sql Decimal type. It is stored in a i128 and has a
+/// Represent a sql Decimal type. It is stored in an i128 and has a
 /// maximum precision of 38 decimals.
 #[derive(Copy, Clone, Debug)]
 pub struct Decimal {

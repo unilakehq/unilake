@@ -4,7 +4,7 @@ use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 uint_enum! {
-    /// the type of the packet [2.2.3.1.1]#[repr(u32)]
+    /// the type of the packet [2.2.3.1.1]
     #[repr(u8)]
     pub enum PacketType {
         SQLBatch = 1,

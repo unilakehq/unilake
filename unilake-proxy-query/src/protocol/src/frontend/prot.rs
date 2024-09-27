@@ -61,11 +61,17 @@ pub trait SessionInfo: Send + Sync {
     /// Size of the TDS packet
     fn packet_size(&self) -> u16;
 
-    /// User name if SQL authentication is used
+    /// Username if SQL authentication is used
     fn get_sql_user_id(&self) -> &str;
 
-    /// User name if SQL authentication is used
+    /// Username if SQL authentication is used
     fn set_sql_user_id(&mut self, sql_user_id: String);
+
+    /// Session based catalog
+    fn get_catalog(&self) -> Option<&String>;
+
+    /// Set session based catalog
+    fn set_catalog(&mut self, catalog: String);
 
     /// Database to which connection is established
     fn get_database(&self) -> &str;
@@ -105,6 +111,7 @@ pub struct DefaultSession {
     session_id: Ulid,
     packet_size: u16,
     sql_user_id: Option<String>,
+    catalog: Option<String>,
     database: Option<String>,
     // connection_reset_request_count: usize,
     // dialect: Dialect,
@@ -126,10 +133,6 @@ impl SessionInfo for DefaultSession {
         self.state = new_state
     }
 
-    fn tds_server_context(&self) -> Arc<ServerContext> {
-        self.tds_server_context.clone()
-    }
-
     fn session_id(&self) -> Ulid {
         self.session_id
     }
@@ -142,12 +145,32 @@ impl SessionInfo for DefaultSession {
         todo!()
     }
 
+    fn set_sql_user_id(&mut self, sql_user_id: String) {
+        self.sql_user_id = Some(sql_user_id);
+    }
+
+    fn get_catalog(&self) -> Option<&String> {
+        self.catalog.as_ref()
+    }
+
+    fn set_catalog(&mut self, catalog: String) {
+        self.catalog = Some(catalog);
+    }
+
     fn get_database(&self) -> &str {
         self.database.as_deref().unwrap_or("")
     }
 
+    fn set_database(&mut self, db_name: String) {
+        self.database = Some(db_name);
+    }
+
     fn tds_version(&self) -> &str {
         todo!()
+    }
+
+    fn tds_server_context(&self) -> Arc<ServerContext> {
+        self.tds_server_context.clone()
     }
 
     fn connection_reset_request_count(&self) -> usize {
@@ -169,14 +192,6 @@ impl SessionInfo for DefaultSession {
     fn get_server_nonce(&self) -> Option<[u8; 32]> {
         self.server_nonce
     }
-
-    fn set_sql_user_id(&mut self, sql_user_id: String) {
-        self.sql_user_id = Some(sql_user_id);
-    }
-
-    fn set_database(&mut self, db_name: String) {
-        self.database = Some(db_name);
-    }
 }
 
 pub struct TdsWireMessageServerCodec {
@@ -191,6 +206,7 @@ impl DefaultSession {
             session_id: instance.next_session_id(),
             sql_user_id: None,
             state: TdsSessionState::default(),
+            catalog: None,
             database: None,
             tds_server_context: instance.ctx.clone(),
             client_nonce: None,

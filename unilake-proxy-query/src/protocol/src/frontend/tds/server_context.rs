@@ -91,10 +91,22 @@ impl ServerContext {
         self
     }
 
+    // todo(mrhamburg): the current version as returned is incorrect! add tests
     pub fn get_server_version(&self) -> u32 {
-        ((self.server_version.0 as u32) << 24)
-            | ((self.server_version.1 as u32) << 16)
-            | ((self.server_version.2 as u32) << 0)
+        let major = self.server_version.0;
+        let minor = self.server_version.1;
+        let build = self.server_version.2;
+        let revision = self.server_version.3;
+
+        let version_string = format!("{:X}{:X}{:02X}{:04X}", major, minor, build, revision);
+        println!("Debug - version_string: {}", version_string); // For debugging
+                                                                //10001027000
+                                                                //10010270000
+
+        u32::from_str_radix(&version_string, 16).unwrap_or_else(|e| {
+            println!("Error parsing: {:?}", e); // For debugging
+            0
+        })
     }
 
     pub fn with_packet_size(mut self, ps: u16) -> Self {
@@ -108,7 +120,7 @@ impl ServerContext {
 
     pub fn encryption_response(ctx: &Self, client: Option<EncryptionLevel>) -> EncryptionLevel {
         if client.is_none() {
-            return EncryptionLevel::Required;
+            EncryptionLevel::Required
         } else {
             match client.unwrap() {
                 // Not supported
@@ -146,5 +158,20 @@ impl ServerContext {
                 _ => EncryptionLevel::Required,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::frontend::tds::server_context::ServerContext;
+
+    #[test]
+    fn encode_server_version() {
+        let expected: u32 = 0x00001a0006;
+        let sut = ServerContext::new()
+            .with_server_version(16, 0, 4135, 0)
+            .build();
+        let actual = sut.get_server_version();
+        assert_eq!(actual, expected);
     }
 }

@@ -2,7 +2,6 @@ use crate::frontend::ColumnData;
 use crate::frontend::Result;
 use chrono::NaiveDate;
 use tokio_util::bytes::{BufMut, BytesMut};
-
 const BASE_DATE: Option<NaiveDate> = NaiveDate::from_ymd_opt(1, 1, 1);
 
 pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {

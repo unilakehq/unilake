@@ -39,12 +39,11 @@ impl TdsTokenCodec for TokenReturnValue {
 
 #[cfg(test)]
 mod tests {
-    use enumflags2::BitFlags;
     use tokio_util::bytes::{Buf, BytesMut};
 
     use crate::frontend::{
-        ColumnData, FixedLenType, Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenReturnValue,
-        TypeInfo,
+        ColumnData, DataFlags, FixedLenType, Result, TdsToken, TdsTokenCodec, TdsTokenType,
+        TokenReturnValue, TypeInfo,
     };
 
     use super::BaseMetaDataColumn;
@@ -56,10 +55,10 @@ mod tests {
             param_name: "some_parm".to_string(),
             udf: false,
             meta: BaseMetaDataColumn {
-                flags: BitFlags::empty(),
+                flags: DataFlags::default(),
                 ty: TypeInfo::FixedLen(FixedLenType::Bit),
             },
-            value: ColumnData::Bit(None),
+            value: ColumnData::BitN(None),
         };
 
         // arrange
