@@ -22,6 +22,7 @@ pub use message::*;
 pub use pre_login::*;
 pub use response::*;
 pub use row::*;
+pub use rpc_request::*;
 pub use token::*;
 pub use tokenfactory::*;
 pub use type_info::*;

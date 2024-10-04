@@ -9,6 +9,7 @@ publish = { workspace = true }
 
 
 [dependencies]
+xxhash-rust = { workspace = true }
 tokio = { workspace = true }
 enumflags2 = { workspace = true }
 encoding = { workspace = true }

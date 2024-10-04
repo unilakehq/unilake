@@ -1,7 +1,7 @@
 use crate::frontend::Result;
 use tokio_util::bytes::BytesMut;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SqlString {
     max_length: usize,
     value: Option<String>,
@@ -19,6 +19,13 @@ impl SqlString {
             super::plp::encode(dest, &self.max_length, None);
         }
         Ok(())
+    }
+
+    pub(crate) fn decode(src: &mut BytesMut, max_len: usize) -> Result<Self> {
+        Ok(SqlString::from_string(
+            super::plp::decode(src, &max_len)?,
+            max_len,
+        ))
     }
 
     pub(crate) fn is_empty(&self) -> bool {

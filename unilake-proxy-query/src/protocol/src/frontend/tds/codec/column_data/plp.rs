@@ -1,3 +1,4 @@
+use crate::frontend::error::TdsWireResult;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// Variable length-prefixed token [2.2.5.2.2]
@@ -33,6 +34,22 @@ pub(crate) fn encode(dest: &mut BytesMut, type_length: &usize, data: Option<&Str
                 // Write a zero-length chunk as a sentinel
                 dest.put_u32_le(0);
             }
+        }
+    }
+}
+
+pub(crate) fn decode(src: &mut BytesMut, type_length: &usize) -> TdsWireResult<Option<String>> {
+    match *type_length {
+        0 => Ok(None),
+        n if n < 0xffff => {
+            let length = src.get_u16_le() as usize / 2;
+            let iter = (0..length).map(|_| u16::from_le_bytes([src.get_u8(), src.get_u8()]));
+            Ok(std::char::decode_utf16(iter)
+                .collect::<Result<String, _>>()
+                .ok())
+        }
+        _ => {
+            todo!()
         }
     }
 }

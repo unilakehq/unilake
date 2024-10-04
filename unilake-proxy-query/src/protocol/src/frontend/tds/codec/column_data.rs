@@ -1,4 +1,4 @@
-use crate::frontend::Result;
+use crate::frontend::{Result, TypeInfo, VarLenType};
 use bigdecimal::BigDecimal;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use sqlstring::SqlString;
@@ -15,7 +15,7 @@ mod var_len;
 
 /// Token definition [2.2.4.2.1]
 /// A container of a value that can be represented as a TDS value.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ColumnData {
     /// 8-bit integer, unsigned (fixed-length).
     U8(u8),
@@ -93,5 +93,17 @@ impl ColumnData {
         }
 
         Ok(())
+    }
+
+    // todo(mrhamburg): further implement these types
+    pub fn decode(src: &mut BytesMut, typeinfo: &TypeInfo) -> Result<Self> {
+        match typeinfo {
+            TypeInfo::FixedLen(fl) => todo!(),
+            TypeInfo::VarLenSized(vs) => match vs.r#type() {
+                VarLenType::NVarchar => Ok(ColumnData::String(SqlString::decode(src, vs.len())?)),
+                _ => todo!(),
+            },
+            TypeInfo::VarLenSizedPrecision { .. } => todo!(),
+        }
     }
 }

@@ -67,17 +67,17 @@ pub trait SessionInfo: Send + Sync {
     /// Username if SQL authentication is used
     fn set_sql_user_id(&mut self, sql_user_id: String);
 
-    /// Session based catalog
-    fn get_catalog(&self) -> Option<&String>;
+    /// Session based database
+    fn get_database(&self) -> Option<&String>;
 
-    /// Set session based catalog
-    fn set_catalog(&mut self, catalog: String);
+    /// Set session based database
+    fn set_database(&mut self, database: String);
 
-    /// Database to which connection is established
-    fn get_database(&self) -> &str;
+    /// Schema to which connection is established
+    fn get_schema(&self) -> &str;
 
-    /// Set database to which connection is established
-    fn set_database(&mut self, db_name: String);
+    /// Set schema to which connection is established
+    fn set_schema(&mut self, schema_name: String);
 
     /// TDS version of the communication
     fn tds_version(&self) -> &str;
@@ -111,8 +111,8 @@ pub struct DefaultSession {
     session_id: Ulid,
     packet_size: u16,
     sql_user_id: Option<String>,
-    catalog: Option<String>,
     database: Option<String>,
+    schema: Option<String>,
     // connection_reset_request_count: usize,
     // dialect: Dialect,
     tds_server_context: Arc<ServerContext>,
@@ -149,20 +149,20 @@ impl SessionInfo for DefaultSession {
         self.sql_user_id = Some(sql_user_id);
     }
 
-    fn get_catalog(&self) -> Option<&String> {
-        self.catalog.as_ref()
+    fn get_database(&self) -> Option<&String> {
+        self.database.as_ref()
     }
 
-    fn set_catalog(&mut self, catalog: String) {
-        self.catalog = Some(catalog);
+    fn set_database(&mut self, catalog: String) {
+        self.database = Some(catalog);
     }
 
-    fn get_database(&self) -> &str {
-        self.database.as_deref().unwrap_or("")
+    fn get_schema(&self) -> &str {
+        self.schema.as_deref().unwrap_or("")
     }
 
-    fn set_database(&mut self, db_name: String) {
-        self.database = Some(db_name);
+    fn set_schema(&mut self, db_name: String) {
+        self.schema = Some(db_name);
     }
 
     fn tds_version(&self) -> &str {
@@ -206,8 +206,8 @@ impl DefaultSession {
             session_id: instance.next_session_id(),
             sql_user_id: None,
             state: TdsSessionState::default(),
-            catalog: None,
             database: None,
+            schema: None,
             tds_server_context: instance.ctx.clone(),
             client_nonce: None,
             server_nonce: None,

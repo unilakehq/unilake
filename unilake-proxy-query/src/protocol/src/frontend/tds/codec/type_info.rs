@@ -82,6 +82,7 @@ impl TypeInfo {
             Some(Collation::default()),
         ))
     }
+    //todo(mrhamburg): ssvariant?
 }
 
 #[derive(Clone, Debug, Copy)]
@@ -170,11 +171,9 @@ impl TypeInfo {
         }
 
         match VarLenType::try_from(ty) {
-            Err(()) => {
-                return Err(Error::Protocol(
-                    format!("invalid or unsupported column type: {:?}", ty).into(),
-                ))
-            }
+            Err(()) => Err(Error::Protocol(
+                format!("invalid or unsupported column type: {:?}", ty).into(),
+            )),
             Ok(ty) => {
                 let len = match ty {
                     VarLenType::Timen | VarLenType::DatetimeOffsetn | VarLenType::Datetime2 => {

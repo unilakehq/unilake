@@ -13,7 +13,7 @@ public class DataTypesTest
 
         foreach (var line in lines)
         {
-            var resultSet = new Runner().RunQuery(line.Query);
+            var resultSet = new Runner().ExecuteQueryDatatable(line.Query);
             line.ExpectedResult.Should().Be(resultSet.Print());
         }
     }

@@ -1,14 +1,8 @@
 // todo(mrhamburg): add feature to request for timings in the session (time in proxy, time in backend), this will also be needed for monitoring and troubleshooting
 mod extensions;
 
-use async_trait::async_trait;
-use chrono::{DateTime, TimeDelta, Utc};
-use futures::Sink;
-use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
-use tokio::sync::{Mutex, RwLock};
-use tokio_util::sync::CancellationToken;
-
+use crate::backend::app::generic::ResultSet;
+use crate::backend::app::FederatedFrontendHandler;
 use crate::frontend::prot::ServerInstanceMessage;
 use crate::frontend::{
     error::{TdsWireError, TdsWireResult},
@@ -16,8 +10,15 @@ use crate::frontend::{
     tds::server_context::ServerContext,
     BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
     TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
-    TokenPreLoginFedAuthRequiredOption, TokenRow, UpdatableFlags,
+    TokenPreLoginFedAuthRequiredOption, TokenRow,
 };
+use async_trait::async_trait;
+use chrono::{DateTime, TimeDelta, Utc};
+use futures::Sink;
+use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use tokio::sync::{Mutex, RwLock};
+use tokio_util::sync::CancellationToken;
 
 type StarRocksSession = DefaultSession;
 
@@ -179,6 +180,26 @@ impl StarRocksTdsHandlerFactory {
         self.send_token(client, TokenDone::new_error(0)).await?;
         Ok(())
     }
+
+    // todo(mrhamburg): this should also handle scenarios where only a confirmation is sent (like during a set request), which is I think only an info message
+    async fn handle_fed_resultset<C>(
+        &self,
+        client: &mut C,
+        mut result_set: ResultSet,
+    ) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
+    {
+        self.send_token(client, TokenColMetaData::from(&mut result_set))
+            .await?;
+        let mut count = 0;
+        for row in result_set {
+            self.send_token(client, row).await?;
+            count += 1;
+        }
+        self.send_token(client, TokenDone::new_count(0, count))
+            .await
+    }
 }
 
 #[async_trait]
@@ -267,7 +288,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         }
 
         // set database change
-        let old_database = client.get_database().to_string();
+        let old_database = client.get_schema().to_string();
         let new_database = msg.db_name.clone().unwrap_or_else(|| "main".to_string());
         self.send_token(
             client,
@@ -285,7 +306,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
             ),
         )
         .await?;
-        client.set_database(new_database);
+        client.set_schema(new_database);
 
         // set collation change
         // return_msg.add_token(TokenEnvChange::new_collation_change(
@@ -350,6 +371,11 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
     {
         tracing::info!("Received SQL batch request: {}", &msg.query);
+        // check for federated query
+        let fed = FederatedFrontendHandler::exec_query(msg)?;
+        if let Some(fed) = fed {
+            return self.handle_fed_resultset(client, fed).await;
+        }
 
         let pool = self
             .inner
@@ -366,7 +392,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         let mut conn = pool.get_conn().await;
         tracing::info!("Connection pool id: {}", conn.id());
 
-        // todo(mrhamburg): handle query cancellation
+        // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
         let cancellation_token = CancellationToken::new();
 
         let query_result = tokio::select! {
@@ -389,7 +415,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         let mut result = query_result.unwrap();
         let mut columns = TokenColMetaData::new(result.columns_ref().len());
         for column in result.columns_ref() {
-            let index = columns.add_column(column);
+            columns.add_column(column);
         }
         self.send_token(client, columns).await?;
 

@@ -15,7 +15,7 @@ pub fn read_b_varchar(src: &mut BytesMut) -> TdsWireResult<String> {
 }
 
 fn read_string(src: &mut BytesMut, length: usize) -> TdsWireResult<String> {
-    return if length > 0 {
+    if length > 0 {
         // Read the UTF-16 encoded bytes and decode them into a String
         let mut utf16_data = Vec::with_capacity(length * 2);
         (0..length).for_each(|_| utf16_data.push(src.get_u16_le()));
@@ -27,5 +27,5 @@ fn read_string(src: &mut BytesMut, length: usize) -> TdsWireResult<String> {
         Ok(result)
     } else {
         Ok(String::new())
-    };
+    }
 }

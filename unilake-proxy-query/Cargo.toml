@@ -27,6 +27,7 @@ unilake-sql-security = { path = "src/security" }
 unilake-sql-transpiler = { path = "src/sql/transpiler" }
 
 # Crates.io dependencies
+xxhash-rust = { version = "0.8.12", features = ["xxh3"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 chrono = "0.4.38"

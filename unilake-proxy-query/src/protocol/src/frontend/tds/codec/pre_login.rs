@@ -114,7 +114,7 @@ impl TdsMessageCodec for PreloginMessage {
         // write thread_id
         dst.put_u32(self.thread_id);
 
-        // write mars
+        // write MARS
         dst.put_u8(self.mars as u8);
 
         // TODO: I believe we can skip this

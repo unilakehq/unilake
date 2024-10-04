@@ -195,8 +195,8 @@ where
         self.codec().session_info.get_sql_user_id()
     }
 
-    fn get_database(&self) -> &str {
-        self.codec().session_info.get_database()
+    fn get_schema(&self) -> &str {
+        self.codec().session_info.get_schema()
     }
 
     fn tds_version(&self) -> &str {
@@ -231,16 +231,16 @@ where
         self.codec_mut().session_info.set_sql_user_id(sql_user_id)
     }
 
-    fn set_database(&mut self, db_name: String) {
-        self.codec_mut().session_info.set_database(db_name)
+    fn set_schema(&mut self, db_name: String) {
+        self.codec_mut().session_info.set_schema(db_name)
     }
 
-    fn get_catalog(&self) -> Option<&String> {
-        self.codec().session_info.get_catalog()
+    fn get_database(&self) -> Option<&String> {
+        self.codec().session_info.get_database()
     }
 
-    fn set_catalog(&mut self, catalog: String) {
-        self.codec_mut().session_info.set_catalog(catalog)
+    fn set_database(&mut self, catalog: String) {
+        self.codec_mut().session_info.set_database(catalog)
     }
 }
 
