@@ -1,4 +1,4 @@
-use crate::backend::app::generic::ResultSet;
+use crate::backend::app::generic::FedResult;
 use crate::frontend::error::TdsWireResult;
 use crate::frontend::BatchRequest;
 use crate::frontend::RpcRequest;
@@ -14,12 +14,12 @@ pub mod generic;
 pub struct FederatedFrontendHandler {}
 
 impl FederatedFrontendHandler {
-    pub fn exec_query(query: &BatchRequest) -> TdsWireResult<Option<ResultSet>> {
+    pub fn exec_query(query: &BatchRequest) -> TdsWireResult<(Option<FedResult>, u64)> {
         let hash = hash_query(query);
-        generic::process(hash, query)
+        Ok((generic::process_static(hash, query), hash))
     }
 
-    pub fn exec_rpc(&self, rpc: &RpcRequest) -> TdsWireResult<Option<ResultSet>> {
+    pub fn exec_rpc(&self, rpc: &RpcRequest) -> TdsWireResult<Option<FedResult>> {
         todo!()
     }
 }

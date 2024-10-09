@@ -1,7 +1,7 @@
 // todo(mrhamburg): add feature to request for timings in the session (time in proxy, time in backend), this will also be needed for monitoring and troubleshooting
 mod extensions;
 
-use crate::backend::app::generic::ResultSet;
+use crate::backend::app::generic::{FedResult, ResultSet};
 use crate::backend::app::FederatedFrontendHandler;
 use crate::frontend::prot::ServerInstanceMessage;
 use crate::frontend::{
@@ -19,14 +19,16 @@ use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
+use ulid::Ulid;
 
 type StarRocksSession = DefaultSession;
 
 /// Acts like a wrapper around a mysql connection pool for StarRocks.
 struct StarRocksPool {
     /// Connection pool for StarRocks
-    /// todo(mrhamburg): we actually need multiple pools, for multiple FE nodes (so 3 FE nodes, is 3 pools and load-balance connections)
+    /// todo(mrhamburg): we actually need multiple pools, for multiple FE nodes (so 3 FE nodes, is 3 pools and load-balance connections)?
     pool: Pool,
+    bound_sessions: RwLock<HashMap<Ulid, Arc<RwLock<Conn>>>>,
     last_connection_request: Mutex<Option<DateTime<Utc>>>,
     activity_timeout_in_minutes: u16,
 }
@@ -49,10 +51,13 @@ impl StarRocksPool {
         }
     }
 
-    pub async fn get_conn(&self) -> Conn {
-        let conn = self.pool.get_conn().await;
+    pub async fn get_conn(&self, session_id: Ulid) -> Arc<RwLock<Conn>> {
         self.update_last_connection_request().await;
+        if let Some(conn) = self.bound_sessions.read().await.get(&session_id) {
+            return conn.clone();
+        }
 
+        let conn = self.pool.get_conn().await;
         if let Err(err) = conn {
             match err {
                 Error::Io(io_err) => {
@@ -65,9 +70,25 @@ impl StarRocksPool {
                 }
             }
         } else {
-            return conn.unwrap();
+            {
+                let mut bound_sessions = self.bound_sessions.write().await;
+                bound_sessions.insert(session_id, Arc::new(RwLock::new(conn.unwrap())));
+            }
+            if let Some(conn) = self.bound_sessions.read().await.get(&session_id) {
+                return conn.clone();
+            }
         }
         todo!()
+    }
+
+    pub async fn release_conn(&self, session_id: Ulid) {
+        {
+            if let Some(conn) = self.bound_sessions.read().await.get(&session_id) {
+                let mut conn = conn.write().await;
+                conn.reset().await;
+            }
+        }
+        self.bound_sessions.write().await.remove(&session_id);
     }
 }
 
@@ -110,7 +131,9 @@ impl StarRocksTdsHandlerFactoryInnnerState {
                 Arc::new(StarRocksPool {
                     pool,
                     last_connection_request: Mutex::new(None),
+                    //todo(mrhamburg): determine this, don't think 60 minutes is a good fit
                     activity_timeout_in_minutes: 60, // Default to 60 minutes
+                    bound_sessions: RwLock::new(HashMap::new()),
                 }),
             );
         }
@@ -181,30 +204,59 @@ impl StarRocksTdsHandlerFactory {
         Ok(())
     }
 
-    // todo(mrhamburg): this should also handle scenarios where only a confirmation is sent (like during a set request), which is I think only an info message
     async fn handle_fed_resultset<C>(
         &self,
         client: &mut C,
-        mut result_set: ResultSet,
+        fed_result: FedResult,
     ) -> TdsWireResult<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
     {
-        self.send_token(client, TokenColMetaData::from(&mut result_set))
-            .await?;
-        let mut count = 0;
-        for row in result_set {
-            self.send_token(client, row).await?;
-            count += 1;
+        match fed_result {
+            FedResult::Tabular(mut result_set) => {
+                self.send_token(client, TokenColMetaData::from(&mut result_set))
+                    .await?;
+                let mut count = 0;
+                for row in result_set {
+                    self.send_token(client, row).await?;
+                    count += 1;
+                }
+                self.send_token(client, TokenDone::new_count(0, count))
+                    .await
+            }
+            FedResult::Info(_) => todo!(),
+            FedResult::State(_) => todo!(),
+            FedResult::Empty => self.send_token(client, TokenDone::new_count(0, 0)).await,
         }
-        self.send_token(client, TokenDone::new_count(0, count))
-            .await
+    }
+
+    // todo(mrhamburg): handle setting session variables
+    async fn handle_set_session_variables<C>(&self, client: &mut C) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
+    {
+        todo!()
+    }
+
+    // todo(mrhamburg): implement session variables handling, return the string needed to be added to the query for the backend
+    // see:
+    fn get_session_variables<C>(&self, client: &C) -> String
+    where
+        C: SessionInfo,
+    {
+        let mut result = String::new();
+        result.push_str("/*+ SET_VAR (");
+        for (key, value) in client.get_session_variables() {
+            // result.push_str(&format!("{} = {}, ", key, value));
+        }
+        result.push_str(") */");
+        result
     }
 }
 
 #[async_trait]
 impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
-    fn open_session(
+    async fn open_session(
         &self,
         socket_addr: &SocketAddr,
         instance_info: Arc<ServerInstance>,
@@ -216,8 +268,11 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         ))
     }
 
-    fn close_session(&self, _session: &StarRocksSession) {
-        todo!()
+    async fn close_session(&self, session: &StarRocksSession) {
+        tracing::info!("Closing session for: {}", session.session_id());
+        if let Some(pool) = self.inner.get_pool("testing", false).await {
+            pool.release_conn(session.session_id()).await;
+        }
     }
 
     async fn on_prelogin_request<C>(
@@ -372,9 +427,11 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
     {
         tracing::info!("Received SQL batch request: {}", &msg.query);
         // check for federated query
-        let fed = FederatedFrontendHandler::exec_query(msg)?;
+        let (fed, hash) = FederatedFrontendHandler::exec_query(msg)?;
         if let Some(fed) = fed {
             return self.handle_fed_resultset(client, fed).await;
+        } else {
+            tracing::trace!("No federated query found for: {}", hash);
         }
 
         let pool = self
@@ -389,8 +446,9 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
             })
             .await;
 
-        let mut conn = pool.get_conn().await;
-        tracing::info!("Connection pool id: {}", conn.id());
+        let conn = pool.get_conn(client.session_id()).await;
+        let mut conn = conn.write().await;
+        tracing::debug!("Connection id: {}", conn.id());
 
         // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
         let cancellation_token = CancellationToken::new();

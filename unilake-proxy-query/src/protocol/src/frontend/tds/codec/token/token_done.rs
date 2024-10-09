@@ -115,6 +115,14 @@ impl TokenDone {
 }
 
 impl TdsTokenCodec for TokenDone {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::Done as u8);
+        dest.put_u16_le(self.status.bits());
+        dest.put_u16_le(self.cur_cmd);
+        dest.put_u64_le(self.done_rows);
+        Ok(())
+    }
+
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let status = BitFlags::from_bits(src.get_u16_le())
             .map_err(|_| Error::Protocol("token(done): invalid status".into()))?;
@@ -126,14 +134,6 @@ impl TdsTokenCodec for TokenDone {
             cur_cmd,
             done_rows,
         }))
-    }
-
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
-        dest.put_u8(TdsTokenType::Done as u8);
-        dest.put_u16_le(self.status.bits() as u16);
-        dest.put_u16_le(self.cur_cmd);
-        dest.put_u64_le(self.done_rows);
-        Ok(())
     }
 }
 

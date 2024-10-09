@@ -38,6 +38,7 @@ impl ResponseMessage {
             TdsToken::LoginAck(token) => token.encode(dst),
             TdsToken::ReturnValue(token) => token.encode(dst),
             TdsToken::Row(token) => token.encode(dst),
+            TdsToken::SessionState(token) => token.encode(dst),
             // TdsToken::Sspi(token) => token.encode(dst),
             _ => unimplemented!(),
         }

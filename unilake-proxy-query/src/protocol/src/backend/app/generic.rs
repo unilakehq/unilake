@@ -1,26 +1,126 @@
-use crate::frontend::error::TdsWireResult;
 use crate::frontend::sqlstring::SqlString;
 use crate::frontend::{
     BaseMetaDataColumn, BatchRequest, ColumnData, DataFlags, MetaDataColumn, TokenColMetaData,
-    TokenRow, TypeInfo,
+    TokenInfo, TokenRow, TokenSessionState, TypeInfo,
 };
 use std::collections::VecDeque;
 
-pub(crate) fn process(hash: u64, req: &BatchRequest) -> TdsWireResult<Option<ResultSet>> {
+pub(crate) fn process_static(hash: u64, req: &BatchRequest) -> Option<FedResult> {
     // hash example
-    // match hash {
-    //     10359985016278064883 => engine_edition(req),
-    //     _ => Ok(None),
-    // }
+    let mut toreturn = match hash {
+        10359985016278064883 => Some(FedResult::Tabular(engine_edition(req))),
+        17700992380341451191 => Some(FedResult::Tabular(session_properties(req))),
+        5755979048921116848 => Some(FedResult::Tabular(databases(req))),
+        6768217174072757231 => Some(FedResult::Tabular(context_info(req))),
+        9848272818868536402 => Some(FedResult::Tabular(database_size_info(req))),
+        7919239051011949721 => Some(FedResult::Tabular(backup_info(req))),
+        _ => None,
+    };
 
-    // non-hash, contains example (best to be complimented with ast information?)
-    match req {
-        n if n.contains("EngineEdition") && n.contains("productversion") => engine_edition(req),
-        _ => Ok(None),
-    }
+    // non-hash
+    toreturn = match req {
+        n if n.starts_with("set", true) => set_statement(req),
+        _ => toreturn,
+    };
+
+    toreturn
 }
 
-fn engine_edition(req: &BatchRequest) -> TdsWireResult<Option<ResultSet>> {
+fn set_statement(req: &BatchRequest) -> Option<FedResult> {
+    tracing::info!("Received SET statement: {}", req.query);
+    Some(FedResult::Empty)
+}
+
+fn backup_info(req: &BatchRequest) -> ResultSet {
+    let result_set = ResultSetBuilder::new()
+        .add_column(
+            Some("Within 24hrs"),
+            TypeInfo::new_int(false),
+            DataFlags::default(),
+        )
+        .add_column(
+            Some("Older than 24hrs"),
+            TypeInfo::new_int(false),
+            DataFlags::default(),
+        )
+        .add_column(
+            Some("No backup found"),
+            TypeInfo::new_int(false),
+            DataFlags::default(),
+        )
+        .add_row(&[ColumnData::I32(0), ColumnData::I32(0), ColumnData::I32(0)]);
+
+    result_set.result
+}
+
+fn database_size_info(req: &BatchRequest) -> ResultSet {
+    let result_set = ResultSetBuilder::new()
+        .add_column(
+            Some("name"),
+            TypeInfo::new_nvarchar(255),
+            DataFlags::default(),
+        )
+        .add_column(
+            Some("DataFileSizeMB"),
+            TypeInfo::new_int(false),
+            DataFlags::default(),
+        )
+        .add_column(
+            Some("LogFileSizeMB"),
+            TypeInfo::new_int(false),
+            DataFlags::default(),
+        )
+        .add_row(&[
+            ColumnData::String(SqlString::from_string(
+                Some("default_catalog".to_string()),
+                255,
+            )),
+            ColumnData::I32(0),
+            ColumnData::I32(0),
+        ]);
+
+    result_set.result
+}
+
+fn context_info(req: &BatchRequest) -> ResultSet {
+    let result_set = ResultSetBuilder::new()
+        .add_column(None, TypeInfo::new_nvarchar(100), DataFlags::default())
+        .add_row(&[ColumnData::String(SqlString::from_string(None, 100))]);
+    result_set.result
+}
+
+fn databases(req: &BatchRequest) -> ResultSet {
+    let result_set = ResultSetBuilder::new()
+        .add_column(
+            Some("name"),
+            TypeInfo::new_nvarchar(100),
+            DataFlags::default(),
+        )
+        .add_row(&[ColumnData::String(SqlString::from_string(
+            Some("dwh".to_string()),
+            100,
+        ))]);
+    result_set.result
+}
+
+fn session_properties(req: &BatchRequest) -> ResultSet {
+    let result_set = ResultSetBuilder::new()
+        .add_column(None, TypeInfo::new_int(false), DataFlags::default())
+        .add_column(None, TypeInfo::new_int(false), DataFlags::default())
+        .add_row(&[ColumnData::I32(1), ColumnData::I32(1)]);
+
+    result_set.result
+}
+
+fn hello_world(req: &BatchRequest) -> ResultSet {
+    let result_set = ResultSetBuilder::new()
+        .add_column(Some("Hello"), TypeInfo::new_bit(), DataFlags::default())
+        .add_column(Some("World"), TypeInfo::new_bit(), DataFlags::default())
+        .add_row(&[ColumnData::Bit(true), ColumnData::Bit(false)]);
+    result_set.result
+}
+
+fn engine_edition(req: &BatchRequest) -> ResultSet {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_column(None, TypeInfo::new_nvarchar(100), DataFlags::default())
@@ -30,7 +130,7 @@ fn engine_edition(req: &BatchRequest) -> TdsWireResult<Option<ResultSet>> {
         .add_column(None, TypeInfo::new_nvarchar(100), DataFlags::default())
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_row(&[
-            ColumnData::I32N(Some(3)),
+            ColumnData::I32(3),
             ColumnData::String(SqlString::from_string(
                 Some("Microsoft SQL Server".to_string()),
                 256,
@@ -48,10 +148,10 @@ fn engine_edition(req: &BatchRequest) -> TdsWireResult<Option<ResultSet>> {
                 Some("8e833a79ef92".to_string()),
                 256,
             )),
-            ColumnData::I32N(Some(1)),
+            ColumnData::I32(1),
         ]);
 
-    Ok(result_set.into())
+    result_set.result
 }
 
 impl From<&mut ResultSet> for TokenColMetaData {
@@ -79,6 +179,14 @@ impl Iterator for ResultSet {
             None
         }
     }
+}
+
+// todo(mrhamburg): we need to check where we do the set commands for sessions and which one we support
+pub enum FedResult {
+    Tabular(ResultSet),
+    Info(TokenInfo),
+    State(TokenSessionState),
+    Empty,
 }
 
 pub struct ResultSet {
@@ -121,16 +229,22 @@ impl ResultSetBuilder {
     }
 }
 
-impl From<ResultSetBuilder> for Option<ResultSet> {
-    fn from(value: ResultSetBuilder) -> Self {
-        Some(value.result)
-    }
-}
-
 impl BatchRequest {
-    pub fn contains(&self, keyword: &str) -> bool {
-        self.query
-            .to_uppercase()
-            .contains(keyword.to_uppercase().as_str())
+    pub fn contains(&self, keyword: &str, case_insensitive: bool) -> bool {
+        if case_insensitive {
+            self.query_lowercased
+                .contains(keyword.to_lowercase().as_str())
+        } else {
+            self.query.contains(keyword)
+        }
+    }
+
+    pub fn starts_with(&self, keyword: &str, case_insensitive: bool) -> bool {
+        if case_insensitive {
+            self.query_lowercased
+                .starts_with(keyword.to_lowercase().as_str())
+        } else {
+            self.query.starts_with(keyword)
+        }
     }
 }

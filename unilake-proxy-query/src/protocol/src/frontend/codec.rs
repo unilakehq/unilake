@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::Error as IOError;
 use std::sync::Arc;
 
@@ -14,8 +15,8 @@ use ulid::Ulid;
 use crate::frontend::error::{TdsWireError, TdsWireResult};
 use crate::frontend::prot::{ServerInstance, SessionInfo, TdsSessionState, TdsWireHandlerFactory};
 use crate::frontend::{
-    PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage, ALL_HEADERS_LEN_TX,
-    MAX_PACKET_SIZE,
+    ColumnData, PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage,
+    ALL_HEADERS_LEN_TX, MAX_PACKET_SIZE,
 };
 
 #[non_exhaustive]
@@ -242,6 +243,20 @@ where
     fn set_database(&mut self, catalog: String) {
         self.codec_mut().session_info.set_database(catalog)
     }
+
+    fn set_session_variable(&mut self, name: String, value: Option<ColumnData>) {
+        self.codec_mut()
+            .session_info
+            .set_session_variable(name, value);
+    }
+
+    fn get_session_variable(&self, name: &str) -> &Option<ColumnData> {
+        self.codec().session_info.get_session_variable(name)
+    }
+
+    fn get_session_variables(&self) -> &HashMap<String, Option<ColumnData>> {
+        self.codec().session_info.get_session_variables()
+    }
 }
 
 async fn process_request<T, H, S>(
@@ -318,7 +333,7 @@ where
     let addr = tcp_socket.peer_addr()?;
     tcp_socket.set_nodelay(true)?;
 
-    let session_info = handler.open_session(&addr, instance.clone());
+    let session_info = handler.open_session(&addr, instance.clone()).await;
 
     let session_info = match session_info {
         Ok(s) => {
@@ -357,6 +372,7 @@ where
         }
 
         // remove session
+        handler.close_session(&socket.codec().session_info).await;
         instance.decrement_session_counter();
     }
 

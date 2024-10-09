@@ -1,10 +1,12 @@
 use crate::frontend::{
     error::{TdsWireError, TdsWireResult},
     tds::server_context::ServerContext,
-    BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse, TdsMessage, TdsToken,
+    BatchRequest, ColumnData, LoginMessage, PreloginMessage, TdsBackendResponse, TdsMessage,
+    TdsToken,
 };
 use async_trait::async_trait;
 use futures::{Sink, SinkExt};
+use std::collections::HashMap;
 use std::{
     net::SocketAddr,
     sync::{
@@ -99,12 +101,17 @@ pub trait SessionInfo: Send + Sync {
 
     /// Get server nonce for SQL authentication
     fn get_server_nonce(&self) -> Option<[u8; 32]>;
+
+    fn set_session_variable(&mut self, name: String, value: Option<ColumnData>);
+
+    fn get_session_variable(&self, name: &str) -> &Option<ColumnData>;
+
+    fn get_session_variables(&self) -> &HashMap<String, Option<ColumnData>>;
 }
 
 pub enum Dialect {
     Mssql,
 }
-
 pub struct DefaultSession {
     socket_addr: SocketAddr,
     state: TdsSessionState,
@@ -118,6 +125,7 @@ pub struct DefaultSession {
     tds_server_context: Arc<ServerContext>,
     client_nonce: Option<[u8; 32]>,
     server_nonce: Option<[u8; 32]>,
+    session_variables: HashMap<String, Option<ColumnData>>,
 }
 
 impl SessionInfo for DefaultSession {
@@ -192,6 +200,21 @@ impl SessionInfo for DefaultSession {
     fn get_server_nonce(&self) -> Option<[u8; 32]> {
         self.server_nonce
     }
+
+    fn set_session_variable(&mut self, name: String, value: Option<ColumnData>) {
+        self.session_variables.insert(name, value);
+    }
+
+    fn get_session_variable(&self, name: &str) -> &Option<ColumnData> {
+        if let Some(value) = self.session_variables.get(name) {
+            return value;
+        }
+        &None
+    }
+
+    fn get_session_variables(&self) -> &HashMap<String, Option<ColumnData>> {
+        &self.session_variables
+    }
 }
 
 pub struct TdsWireMessageServerCodec {
@@ -211,6 +234,7 @@ impl DefaultSession {
             tds_server_context: instance.ctx.clone(),
             client_nonce: None,
             server_nonce: None,
+            session_variables: HashMap::new(),
             // connection_reset_request_count: 0,
             // dialect: Dialect::Mssql,
         }
@@ -223,14 +247,14 @@ where
     S: SessionInfo + Send + Sync,
 {
     /// Create a new TDS server session
-    fn open_session(
+    async fn open_session(
         &self,
         socket_addr: &SocketAddr,
         instance_info: Arc<ServerInstance>,
     ) -> Result<S, TdsWireError>;
 
     /// Close TDS server session
-    fn close_session(&self, session: &S);
+    async fn close_session(&self, session: &S);
 
     /// Called when pre-login request arrives
     async fn on_prelogin_request<C>(

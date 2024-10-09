@@ -11,6 +11,7 @@ pub struct Decimal {
 }
 
 // todo(mrhamburg): implement serialization for mysql_async, instead of making use of BigDecimal.
+// todo(mrhamburg): check this implementation as azdatastudio is having issues with decimal precision. Query failed: Invalid numeric precision/scale.
 impl Decimal {
     /// Creates a new Decimal value.
     ///

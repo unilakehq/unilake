@@ -9,6 +9,7 @@ use tokio_util::bytes::{Buf, BufMut, BytesMut};
 #[derive(Debug)]
 pub struct BatchRequest {
     pub query: String,
+    pub query_lowercased: String,
     pub transaction_descriptor: Vec<u8>,
 }
 
@@ -53,7 +54,8 @@ impl TdsMessageCodec for BatchRequest {
         let query_text = String::from_utf16_lossy(&qtx[..]);
 
         Ok(TdsMessage::BatchRequest(BatchRequest {
-            query: query_text,
+            query: query_text.clone(),
+            query_lowercased: query_text.to_lowercase(),
             transaction_descriptor: tx_descriptor.to_vec(),
         }))
     }
@@ -84,10 +86,13 @@ mod tests {
 
     #[test]
     fn encode_decode_batchrequest() -> Result<()> {
+        let query = String::from(
+            "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
+        );
+
         let input = BatchRequest {
-            query: String::from(
-                "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
-            ),
+            query: query.clone(),
+            query_lowercased: query.to_lowercase(),
             transaction_descriptor: vec![0; 8],
         };
 

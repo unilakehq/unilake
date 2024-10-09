@@ -10,6 +10,7 @@ mod token_order;
 mod token_return_status;
 mod token_return_value;
 mod token_row;
+mod token_session_state;
 mod token_sspi;
 mod token_type;
 
@@ -25,6 +26,7 @@ pub use token_order::*;
 pub use token_return_status::*;
 pub use token_return_value::*;
 pub use token_row::*;
+pub use token_session_state::*;
 pub use token_sspi::*;
 pub use token_type::*;
 
@@ -45,6 +47,7 @@ pub enum TdsToken {
     ReturnValue(TokenReturnValue),
     Row(TokenRow),
     Sspi(TokenSspi),
+    SessionState(TokenSessionState),
 }
 
 pub trait TdsTokenCodec {
@@ -78,7 +81,8 @@ impl TdsToken {
             LoginAck,
             ReturnValue,
             Row,
-            Sspi
+            Sspi,
+            SessionState
         )
     }
 }
