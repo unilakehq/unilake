@@ -1,7 +1,7 @@
 // todo(mrhamburg): add feature to request for timings in the session (time in proxy, time in backend), this will also be needed for monitoring and troubleshooting
 mod extensions;
 
-use crate::backend::app::generic::{FedResult, ResultSet};
+use crate::backend::app::generic::FedResult;
 use crate::backend::app::FederatedFrontendHandler;
 use crate::frontend::prot::ServerInstanceMessage;
 use crate::frontend::{
@@ -85,7 +85,7 @@ impl StarRocksPool {
         {
             if let Some(conn) = self.bound_sessions.read().await.get(&session_id) {
                 let mut conn = conn.write().await;
-                conn.reset().await;
+                let _ = conn.reset().await;
             }
         }
         self.bound_sessions.write().await.remove(&session_id);
