@@ -109,6 +109,34 @@ impl TokenDone {
         }
     }
 
+    pub fn set_status_more(&mut self, more: bool) {
+        self.status.set(DoneStatus::More, more);
+    }
+
+    pub fn set_status_error(&mut self, error: bool) {
+        self.status.set(DoneStatus::Error, error);
+    }
+
+    pub fn set_status_inexact(&mut self, inexact: bool) {
+        self.status.set(DoneStatus::Inexact, inexact);
+    }
+
+    pub fn set_status_count(&mut self, count: bool) {
+        self.status.set(DoneStatus::Count, count);
+    }
+
+    pub fn set_status_attention(&mut self, attention: bool) {
+        self.status.set(DoneStatus::Attention, attention);
+    }
+
+    pub fn set_status_rpc_in_batch(&mut self, rpc_in_batch: bool) {
+        self.status.set(DoneStatus::RpcInBatch, rpc_in_batch);
+    }
+
+    pub fn set_status_srv_error(&mut self, srv_error: bool) {
+        self.status.set(DoneStatus::SrvError, srv_error);
+    }
+
     pub fn new_final() -> Self {
         Self::new_done(0)
     }

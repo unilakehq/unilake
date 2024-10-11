@@ -1,7 +1,7 @@
 use super::{batch_request::BatchRequest, ResponseMessage};
 use crate::frontend::tds::codec::rpc_request::RpcRequest;
 use crate::frontend::{
-    error::TdsWireResult, LoginMessage, PacketType, PreloginMessage, TokenFedAuth,
+    error::TdsWireResult, AttentionSignal, LoginMessage, PacketType, PreloginMessage, TokenFedAuth,
 };
 use tokio_util::bytes::BytesMut;
 
@@ -12,7 +12,7 @@ pub enum TdsMessage {
     Response(ResponseMessage),
     BatchRequest(BatchRequest),
     FedAuth(TokenFedAuth),
-    Attention,
+    Attention(AttentionSignal),
     RemoteProcedureCall(RpcRequest),
 }
 
@@ -25,11 +25,11 @@ impl TdsMessage {
             PacketType::PreTDSv7Login => PreloginMessage::decode(buf),
             PacketType::TDSv7Login => LoginMessage::decode(buf),
             PacketType::Rpc => RpcRequest::decode(buf),
+            PacketType::Attention => AttentionSignal::decode(buf),
 
             // todo(mrhamburg): improve this, should return a specific error message
             PacketType::FederatedAuthenticationInfo => todo!(),
             PacketType::BulkLoad => todo!(),
-            PacketType::AttentionSignal => todo!(),
             PacketType::TransactionManagerReq => todo!(),
             // _ => TdsWireError::new("Unknown message type").into(),
             _ => unimplemented!("unknown message type"),
@@ -72,3 +72,4 @@ impl_into_tdsmessage!(LoginMessage, TdsMessage::Login);
 impl_into_tdsmessage!(ResponseMessage, TdsMessage::Response);
 impl_into_tdsmessage!(BatchRequest, TdsMessage::BatchRequest);
 impl_into_tdsmessage!(TokenFedAuth, TdsMessage::FedAuth);
+impl_into_tdsmessage!(AttentionSignal, TdsMessage::Attention);

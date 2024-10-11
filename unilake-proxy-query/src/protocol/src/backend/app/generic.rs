@@ -1,29 +1,94 @@
+use crate::backend::app::{FedResultStream, FederatedRequestType};
+use crate::frontend::error::TdsWireResult;
 use crate::frontend::sqlstring::SqlString;
 use crate::frontend::{
     BaseMetaDataColumn, BatchRequest, ColumnData, DataFlags, MetaDataColumn, TokenColMetaData,
     TokenInfo, TokenRow, TokenSessionState, TypeInfo,
 };
+use async_stream::stream;
 use std::collections::VecDeque;
 
-pub(crate) fn process_static(hash: u64, req: &BatchRequest) -> Option<FedResult> {
-    // hash example
-    let mut toreturn = match hash {
-        10359985016278064883 => Some(FedResult::Tabular(engine_edition(req))),
-        17700992380341451191 => Some(FedResult::Tabular(session_properties(req))),
-        5755979048921116848 => Some(FedResult::Tabular(databases(req))),
-        6768217174072757231 => Some(FedResult::Tabular(context_info(req))),
-        9848272818868536402 => Some(FedResult::Tabular(database_size_info(req))),
-        7919239051011949721 => Some(FedResult::Tabular(backup_info(req))),
-        _ => None,
-    };
+pub(crate) fn process_static(hash: u64, req: &FederatedRequestType) -> Option<FedResultStream> {
+    // hash based
+    if let FederatedRequestType::Query(req) = req {
+        let found = match hash {
+            10359985016278064883 => Some(engine_edition(req)),
+            17700992380341451191 => Some(session_properties(req)),
+            5755979048921116848 => Some(databases(req)),
+            6768217174072757231 => Some(context_info(req)),
+            9848272818868536402 => Some(database_size_info(req)),
+            7919239051011949721 => Some(backup_info(req)),
+            _ => None,
+        };
+        if let Some(result_set) = found {
+            let stream = stream! {yield result_set;};
+            return Some(FedResultStream::new(Box::pin(stream)));
+        }
 
+        if hash == 3415367573379425041 {
+            return Some(server_edition(req));
+        }
+    }
+
+    None
     // non-hash
-    toreturn = match req {
-        n if n.starts_with("set", true) => set_statement(req),
-        _ => toreturn,
+    // toreturn = match req {
+    //     n if n.starts_with("set", true) => set_statement(req),
+    //     _ => toreturn,
+    // };
+    //
+    // toreturn
+}
+
+fn server_edition(req: &BatchRequest) -> FedResultStream {
+    let stream = stream! {
+    let result_set = ResultSetBuilder::new()
+        .add_column(
+            Some("DatabaseEngineType"),
+            TypeInfo::new_int(false),
+            DataFlags::default(),
+        )
+        .add_column(
+            Some("DatabaseEngineEdition"),
+            TypeInfo::new_int(false),
+            DataFlags::default(),
+        )
+        .add_column(
+            Some("ProductVersion"),
+            TypeInfo::new_nvarchar(255),
+            DataFlags::default(),
+        )
+        .add_column(
+            Some("MicrosoftVersion"),
+            TypeInfo::new_nvarchar(255),
+            DataFlags::default(),
+        )
+        .add_row(&[
+            ColumnData::I32(1),
+            ColumnData::I32(3),
+            ColumnData::new_varchar("16.0.4140.4", 255),
+            ColumnData::I32(268439596),
+        ]);
+
+        // first resultset
+        yield Ok(FedResult::Tabular(result_set.result));
+
+       let result_set = ResultSetBuilder::new()
+            .add_column(Some("host_platform"), TypeInfo::new_nvarchar(255), DataFlags::default())
+            .add_row(&[ColumnData::new_varchar("Linux", 255)]);
+
+        // second resultset
+        yield Ok(FedResult::Tabular(result_set.result));
+
+        let result_set = ResultSetBuilder::new()
+            .add_column(Some("ConnectionProtocol"), TypeInfo::new_nvarchar(255), DataFlags::default())
+            .add_row(&[ColumnData::new_varchar("TCP", 255)]);
+
+        // third resultset
+        yield Ok(FedResult::Tabular(result_set.result));
     };
 
-    toreturn
+    FedResultStream::new(Box::pin(stream))
 }
 
 fn set_statement(req: &BatchRequest) -> Option<FedResult> {
@@ -31,7 +96,7 @@ fn set_statement(req: &BatchRequest) -> Option<FedResult> {
     Some(FedResult::Empty)
 }
 
-fn backup_info(req: &BatchRequest) -> ResultSet {
+fn backup_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("Within 24hrs"),
@@ -50,10 +115,10 @@ fn backup_info(req: &BatchRequest) -> ResultSet {
         )
         .add_row(&[ColumnData::I32(0), ColumnData::I32(0), ColumnData::I32(0)]);
 
-    result_set.result
+    Ok(FedResult::Tabular(result_set.result))
 }
 
-fn database_size_info(req: &BatchRequest) -> ResultSet {
+fn database_size_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("name"),
@@ -79,17 +144,17 @@ fn database_size_info(req: &BatchRequest) -> ResultSet {
             ColumnData::I32(0),
         ]);
 
-    result_set.result
+    Ok(FedResult::Tabular(result_set.result))
 }
 
-fn context_info(req: &BatchRequest) -> ResultSet {
+fn context_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_nvarchar(100), DataFlags::default())
         .add_row(&[ColumnData::String(SqlString::from_string(None, 100))]);
-    result_set.result
+    Ok(FedResult::Tabular(result_set.result))
 }
 
-fn databases(req: &BatchRequest) -> ResultSet {
+fn databases(req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("name"),
@@ -100,27 +165,27 @@ fn databases(req: &BatchRequest) -> ResultSet {
             Some("dwh".to_string()),
             100,
         ))]);
-    result_set.result
+    Ok(FedResult::Tabular(result_set.result))
 }
 
-fn session_properties(req: &BatchRequest) -> ResultSet {
+fn session_properties(req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_row(&[ColumnData::I32(1), ColumnData::I32(1)]);
 
-    result_set.result
+    Ok(FedResult::Tabular(result_set.result))
 }
 
-fn hello_world(req: &BatchRequest) -> ResultSet {
+fn hello_world(req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(Some("Hello"), TypeInfo::new_bit(), DataFlags::default())
         .add_column(Some("World"), TypeInfo::new_bit(), DataFlags::default())
         .add_row(&[ColumnData::Bit(true), ColumnData::Bit(false)]);
-    result_set.result
+    Ok(FedResult::Tabular(result_set.result))
 }
 
-fn engine_edition(req: &BatchRequest) -> ResultSet {
+fn engine_edition(req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_column(None, TypeInfo::new_nvarchar(100), DataFlags::default())
@@ -151,7 +216,7 @@ fn engine_edition(req: &BatchRequest) -> ResultSet {
             ColumnData::I32(1),
         ]);
 
-    result_set.result
+    Ok(FedResult::Tabular(result_set.result))
 }
 
 impl From<&mut ResultSet> for TokenColMetaData {

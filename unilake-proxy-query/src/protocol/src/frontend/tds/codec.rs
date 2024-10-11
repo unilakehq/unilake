@@ -1,3 +1,4 @@
+mod attention;
 mod batch_request;
 mod column_data;
 mod decode;
@@ -14,6 +15,7 @@ mod token;
 pub mod tokenfactory;
 mod type_info;
 
+pub use attention::*;
 pub use batch_request::*;
 pub use column_data::*;
 pub use header::*;

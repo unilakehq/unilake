@@ -3,6 +3,7 @@ use crate::frontend::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::frontend::utils::ReadAndAdvance;
 use crate::frontend::{Error, TdsMessage, TdsMessageCodec, TokenError};
 use byteorder::{ByteOrder, LittleEndian};
+use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 
 /// SQLBatch Message [2.2.6.7]
@@ -11,6 +12,16 @@ pub struct BatchRequest {
     pub query: String,
     pub query_lowercased: String,
     pub transaction_descriptor: Vec<u8>,
+}
+
+impl BatchRequest {
+    /// Returns a hash for the query in this batchrequest
+    // todo(mrhamburg): should this be for each query inside of this request? (not support multi-statement)
+    pub fn get_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        hasher.write(&self.query.as_bytes());
+        hasher.finish()
+    }
 }
 
 impl TdsMessageCodec for BatchRequest {

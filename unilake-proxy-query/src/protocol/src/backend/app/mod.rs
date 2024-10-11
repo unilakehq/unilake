@@ -2,7 +2,9 @@ use crate::backend::app::generic::FedResult;
 use crate::frontend::error::TdsWireResult;
 use crate::frontend::BatchRequest;
 use crate::frontend::RpcRequest;
-use std::hash::{DefaultHasher, Hasher};
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tokio_stream::Stream;
 
 pub mod azdatastudio;
 pub mod generic;
@@ -11,29 +13,36 @@ pub mod generic;
 // Generic approaches accommodate the above
 // Also: I think this mod should be placed elsewhere (sql perhaps?), or not
 
+pub enum FederatedRequestType<'a> {
+    Query(&'a BatchRequest),
+    Rpc(&'a RpcRequest),
+}
+
 pub struct FederatedFrontendHandler {}
 
 impl FederatedFrontendHandler {
-    pub fn exec_query(query: &BatchRequest) -> TdsWireResult<(Option<FedResult>, u64)> {
-        let hash = hash_query(query);
-        Ok((generic::process_static(hash, query), hash))
-    }
-
-    pub fn exec_rpc(&self, rpc: &RpcRequest) -> TdsWireResult<Option<FedResult>> {
-        todo!()
+    pub fn exec_request(
+        hash: u64,
+        request: FederatedRequestType,
+    ) -> TdsWireResult<Option<FedResultStream>> {
+        Ok(generic::process_static(hash, &request))
     }
 }
 
-fn hash_query(query: &BatchRequest) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    hasher.write(&query.query.as_bytes());
-    hasher.finish()
+pub struct FedResultStream {
+    it: Pin<Box<dyn Stream<Item = TdsWireResult<FedResult>> + Send>>,
 }
 
-fn hash_rpc(rpc: &RpcRequest) -> String {
-    todo!()
+impl FedResultStream {
+    pub fn new(it: Pin<Box<dyn Stream<Item = TdsWireResult<FedResult>> + Send>>) -> Self {
+        Self { it }
+    }
 }
 
-fn request_ast(request: &str) -> String {
-    todo!()
+impl Stream for FedResultStream {
+    type Item = TdsWireResult<FedResult>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.it).poll_next(cx)
+    }
 }

@@ -105,7 +105,7 @@ impl ServerContext {
 
         u32::from_str_radix(&version_string, 16).unwrap_or_else(|e| {
             println!("Error parsing: {:?}", e); // For debugging
-            0
+            0x1000102c
         })
     }
 

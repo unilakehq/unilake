@@ -108,4 +108,3 @@ uint_enum! {
 // DoneInProc = 0xFF,
 // FedAuthInfo = 0xEE,
 // ReturnStatus = 0x79,
-// SessionState = 0xE4,

@@ -12,7 +12,7 @@ uint_enum! {
         PreTDSv7Login = 2,
         Rpc = 3,
         TabularResult = 4,
-        AttentionSignal = 6,
+        Attention = 6,
         BulkLoad = 7,
         /// Federated Authentication Token
         Fat = 8,
@@ -31,7 +31,7 @@ impl fmt::Display for PacketType {
             PacketType::PreTDSv7Login => "PreTDSv7Login",
             PacketType::Rpc => "Rpc",
             PacketType::TabularResult => "TabularResult",
-            PacketType::AttentionSignal => "AttentionSignal",
+            PacketType::Attention => "AttentionSignal",
             PacketType::BulkLoad => "BulkLoad",
             PacketType::Fat => "Fat",
             PacketType::TransactionManagerReq => "TransactionManagerReq",

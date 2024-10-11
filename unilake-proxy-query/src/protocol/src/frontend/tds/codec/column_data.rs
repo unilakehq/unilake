@@ -66,6 +66,10 @@ pub enum ColumnData {
 }
 
 impl ColumnData {
+    pub fn new_varchar(value: &str, max_length: usize) -> Self {
+        ColumnData::String(SqlString::from_string(Some(value.to_string()), max_length))
+    }
+
     /// Encode this value into the given destination buffer.
     pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         match self {

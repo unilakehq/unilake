@@ -2,19 +2,19 @@
 mod extensions;
 
 use crate::backend::app::generic::FedResult;
-use crate::backend::app::FederatedFrontendHandler;
+use crate::backend::app::{FedResultStream, FederatedFrontendHandler, FederatedRequestType};
 use crate::frontend::prot::ServerInstanceMessage;
 use crate::frontend::{
     error::{TdsWireError, TdsWireResult},
     prot::{DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory},
     tds::server_context::ServerContext,
-    BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
-    TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
+    BatchRequest, DoneStatus, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse,
+    TokenColMetaData, TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
     TokenPreLoginFedAuthRequiredOption, TokenRow,
 };
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
-use futures::Sink;
+use futures::{Sink, StreamExt};
 use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
@@ -207,27 +207,33 @@ impl StarRocksTdsHandlerFactory {
     async fn handle_fed_resultset<C>(
         &self,
         client: &mut C,
-        fed_result: FedResult,
+        mut fed_result: FedResultStream,
     ) -> TdsWireResult<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
     {
-        match fed_result {
-            FedResult::Tabular(mut result_set) => {
-                self.send_token(client, TokenColMetaData::from(&mut result_set))
-                    .await?;
-                let mut count = 0;
-                for row in result_set {
-                    self.send_token(client, row).await?;
-                    count += 1;
-                }
-                self.send_token(client, TokenDone::new_count(0, count))
-                    .await
+        while let Some(result) = fed_result.next().await {
+            match result {
+                Ok(fed_result) => match fed_result {
+                    FedResult::Tabular(mut result) => {
+                        self.send_token(client, TokenColMetaData::from(&mut result))
+                            .await?;
+                        let mut count = 0;
+                        for row in result {
+                            self.send_token(client, row).await?;
+                            count += 1;
+                        }
+                        let token_done = TokenDone::new_count(0, count);
+                        self.send_token(client, token_done).await?;
+                    }
+                    FedResult::Info(_) => todo!(),
+                    FedResult::State(_) => todo!(),
+                    FedResult::Empty => self.send_token(client, TokenDone::new_count(0, 0)).await?,
+                },
+                Err(_) => todo!(),
             }
-            FedResult::Info(_) => todo!(),
-            FedResult::State(_) => todo!(),
-            FedResult::Empty => self.send_token(client, TokenDone::new_count(0, 0)).await,
         }
+        Ok(())
     }
 
     // todo(mrhamburg): handle setting session variables
@@ -427,12 +433,13 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
     {
         tracing::info!("Received SQL batch request: {}", &msg.query);
         // check for federated query
-        let (fed, hash) = FederatedFrontendHandler::exec_query(msg)?;
-        if let Some(fed) = fed {
-            return self.handle_fed_resultset(client, fed).await;
-        } else {
-            tracing::trace!("No federated query found for: {}", hash);
+        let hash = msg.get_hash();
+        if let Some(handler) =
+            FederatedFrontendHandler::exec_request(hash, FederatedRequestType::Query(msg))?
+        {
+            return self.handle_fed_resultset(client, handler).await;
         }
+        tracing::trace!("No federated query found for: {}", hash);
 
         let pool = self
             .inner

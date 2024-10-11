@@ -102,7 +102,7 @@ where
         &mut self,
         src: &mut tokio_util::bytes::BytesMut,
     ) -> Result<Option<Self::Item>, Self::Error> {
-        // sanity checks on network level are done here, fully decoding is done afterwards
+        // sanity checks on network level are done here, fully decoding is done afterward
         if let Some(header) = src.get(..ALL_HEADERS_LEN_TX) {
             // check if header is correct and as expected
             let mut buff = BytesMut::from(header);
@@ -112,6 +112,9 @@ where
                 return Err(TdsWireError::Protocol(
                     "Invalid packet size, too large".to_string(),
                 ));
+            } else if (header.length as usize) < src.len() {
+                // wait for more data
+                return Ok(None);
             }
         } else {
             // wait for more data
