@@ -232,7 +232,7 @@ impl TypeInfo {
         }
     }
 
-    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub fn encode(&self, dest: &mut BytesMut) {
         match self {
             TypeInfo::VarLenSized(ty) => {
                 dest.put_u8(ty.r#type as u8);
@@ -274,8 +274,8 @@ impl TypeInfo {
                 VarLenType::Decimaln | VarLenType::Numericn => {
                     dest.put_u8(*ty as u8);
                     dest.put_u8(*size as u8);
-                    dest.put_u8(*precision as u8);
-                    dest.put_u8(*scale as u8);
+                    dest.put_u8(*precision);
+                    dest.put_u8(*scale);
                 }
                 _ => {}
             },
@@ -283,8 +283,6 @@ impl TypeInfo {
                 dest.put_u8(*ty as u8);
             }
         }
-
-        Ok(())
     }
 }
 
@@ -300,7 +298,7 @@ mod tests {
     fn decode_encode_roundtrip_varchar() {
         let mut buf = BytesMut::from(RAW_BYTES_VARCHAR);
         let decoded = TypeInfo::decode(&mut buf).unwrap();
-        decoded.encode(&mut buf).unwrap();
+        decoded.encode(&mut buf);
 
         assert_eq!(buf, BytesMut::from(RAW_BYTES_VARCHAR));
     }

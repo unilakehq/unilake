@@ -185,7 +185,7 @@ impl TdsTokenCodec for TokenColMetaData {
 
         for column in &self.columns {
             // push column base metadata
-            column.base.encode(dest)?;
+            column.base.encode(dest);
 
             // push column name (length + value)
             encode::write_b_varchar(dest, &column.col_name)?;
@@ -220,14 +220,13 @@ impl BaseMetaDataColumn {
         Ok(BaseMetaDataColumn { flags, ty })
     }
 
-    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub fn encode(&self, dest: &mut BytesMut) {
         // user type
         dest.put_u32_le(0x00);
         // flags
         dest.put_u16_le(self.flags.to_u16());
         // token data (type, length, etc.)
-        self.ty.encode(dest)?;
-        Ok(())
+        self.ty.encode(dest);
     }
 }
 

@@ -18,6 +18,10 @@ use std::{
 use tokio::{sync::Semaphore, time::sleep};
 use ulid::Ulid;
 
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>());
+}
+
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
     #[default]

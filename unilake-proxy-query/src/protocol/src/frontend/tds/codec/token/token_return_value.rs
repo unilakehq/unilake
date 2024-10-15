@@ -19,21 +19,21 @@ pub struct TokenReturnValue {
 }
 
 impl TdsTokenCodec for TokenReturnValue {
-    /// Decode is not implemented for this token type.
-    fn decode(_src: &mut BytesMut) -> Result<TdsToken> {
-        unimplemented!()
-    }
-
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::ReturnValue as u8);
 
         dest.put_u16_le(self.param_ordinal);
         encode::write_b_varchar(dest, &self.param_name)?;
         dest.put_u8(self.udf as u8);
-        self.meta.encode(dest)?;
+        self.meta.encode(dest);
         self.value.encode(dest)?;
 
         Ok(())
+    }
+
+    /// Decode is not implemented for this token type.
+    fn decode(_src: &mut BytesMut) -> Result<TdsToken> {
+        unimplemented!()
     }
 }
 
