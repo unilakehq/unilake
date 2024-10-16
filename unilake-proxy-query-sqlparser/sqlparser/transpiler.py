@@ -1,6 +1,7 @@
 from typing import Type
 
-from sqlglot import parse_one, exp, Expression
+from sqlglot import parse_one, exp, Expression, maybe_parse
+from sqlglot.expressions import replace_placeholders
 from sqlglot.optimizer import traverse_scope
 from sqlglot.optimizer.qualify import qualify
 
@@ -54,7 +55,7 @@ def _scan_transform(node, scope_id: int, entities, attributes, aggregates):
 def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutput:
     if not sql:
         return ScanOutput(
-            objects=[], dialect=dialect, query=sql, type=ScanOutputType.UNKNOWN, error=None
+            objects=[], dialect=dialect, query={"query": sql}, type=ScanOutputType.UNKNOWN, error=None
         )
     dialect = _get_dialect(dialect)
 
@@ -67,7 +68,6 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
     aggregates = []
 
     query_type = ScanOutputType.from_key(parsed.key)
-    transformed_sql = None
     objects = []
 
     # scoped query
@@ -75,7 +75,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         for i, scope in enumerate(scoped):
             entities.append([])
             attributes.append([])
-            transformed_sql = scope.expression.transform(
+            scope.expression.transform(
                 _scan_transform, i, entities, attributes, aggregates
             )
             objects.append(
@@ -87,37 +87,37 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         return ScanOutput(
             objects=objects,
             dialect=dialect,
-            query=transformed_sql.dump(),
+            query=parsed.dump(),
             type=query_type,
             error=None,
         )
     # non-scoped query
     else:
-        transformed_sql = parsed.transform(_scan_transform, 0, entities, attributes, aggregates)
+        parsed.transform(_scan_transform, 0, entities, attributes, aggregates)
         objects.append(
             ScanOutputObject(scope=0, entities=entities[0], attributes=attributes[0], is_agg=False)
         )
         return ScanOutput(
             objects=objects,
             dialect=dialect,
-            query=transformed_sql.dump(),
+            query=parsed.dump(),
             type=query_type,
             error=None,
         )
 
 
 def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: dict):
-    node_str = str(node)
-    found_filter = filter_lookup.get(node_str)
+    filters = []
+    for select in node.selects:
+        node_str = str(select.this)
+        found = filter_lookup.get(hash((scope_id, node_str)))
+        if found:
+            cond = maybe_parse(found["expression"], into=exp.Condition, dialect=OUTPUT_DIALECT)
+            filters.append(replace_placeholders(cond, select.this))
 
-    if found_filter:
-        if node.parent.parent.key != exp.Join.key:
-            node.parent_select.where(
-                found_filter["expression"].replace("?", node_str),
-                append=True,
-                dialect=OUTPUT_DIALECT,
-                copy=False,
-            )
+    if filters:
+        node.where(*filters, append=True, dialect=OUTPUT_DIALECT, copy=False)
+
     return node
 
 
@@ -432,13 +432,12 @@ def inner_transpile(source: dict) -> TranspilerOutput:
         or len(transpiler_input.query.keys()) == 0
     ):
         return TranspilerOutput(
-            sql="",
             sql_transformed="",
             sql_transformed_secure="",
             error=ErrorMessage(msg="Invalid input", line=1, column=1),
         )
 
-    # set environment variables
+    # set environment lookups
     rule_lookup = {
         hash((rule.scope, rule.attribute)): rule.rule_definition for rule in transpiler_input.rules
     }
@@ -450,16 +449,15 @@ def inner_transpile(source: dict) -> TranspilerOutput:
     # transform input
     input_sql = Expression.load(transpiler_input.query)
     scoped = traverse_scope(input_sql)
-    transformed_sql = None
 
     if scoped:
         for i, scope in enumerate(scoped):
-            transformed_sql = scope.expression.transform(
+            scope.expression.transform(
                 _transformer, i, rule_lookup, filter_lookup, copy=False
             )
 
     return TranspilerOutput(
-        sql_transformed=str(transformed_sql.sql(OUTPUT_DIALECT)),
+        sql_transformed=str(input_sql.sql(OUTPUT_DIALECT)),
         sql_transformed_secure="",
         error=None,
     )

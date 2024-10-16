@@ -40,7 +40,7 @@ class TestTranspile(unittest.TestCase):
         output = transpile(input)
         self.assertIsNone(output.error)
         self.assertEqual(
-            """SELECT XX_HASH3_128("b"."a") AS "a" FROM "catalog"."database"."b" AS "b" """.strip(),
+            "SELECT XX_HASH3_128(`b`.`a`) AS `a` FROM `catalog`.`database`.`b` AS `b`",
             output.sql_transformed,
         )
 

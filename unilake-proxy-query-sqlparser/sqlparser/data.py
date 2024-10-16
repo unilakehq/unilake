@@ -42,6 +42,11 @@ class ScanOutputType(str, Enum):
     CREATE = "CREATE"
     DESCRIBE = "DESCRIBE"
     UNKNOWN = "UNKNOWN"
+    TRUNCATE = "TRUNCATE"
+    ALTER = "ALTER"
+    DROP = "DROP"
+    REFRESH = "REFRESH"
+    COMMAND = "COMMAND"
 
     @classmethod
     def from_key(cls, key: str) -> "ScanOutputType":

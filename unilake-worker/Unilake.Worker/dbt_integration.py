@@ -73,6 +73,7 @@ JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
 
+
 def to_dict(obj):
     if isinstance(obj, agate.Table):
         return {
@@ -89,10 +90,10 @@ def to_dict(obj):
         return dict((key, to_dict(val)) for key, val in obj.items())
     elif isinstance(obj, Iterable):
         return [to_dict(val) for val in obj]
-    elif hasattr(obj, '__dict__'):
+    elif hasattr(obj, "__dict__"):
         return to_dict(vars(obj))
-    elif hasattr(obj, '__slots__'):
-        return to_dict(dict((name, getattr(obj, name)) for name in getattr(obj, '__slots__')))
+    elif hasattr(obj, "__slots__"):
+        return to_dict(dict((name, getattr(obj, name)) for name in getattr(obj, "__slots__")))
     return obj
 
 
@@ -105,11 +106,11 @@ def memoize_get_rendered(function):
     """Custom memoization function for dbt-core jinja interface"""
 
     def wrapper(
-            string: str,
-            ctx: Dict[str, Any],
-            node: "ManifestNode" = None,
-            capture_macros: bool = False,
-            native: bool = False,
+        string: str,
+        ctx: Dict[str, Any],
+        node: "ManifestNode" = None,
+        capture_macros: bool = False,
+        native: bool = False,
     ):
         v = md5(string.strip().encode("utf-8")).hexdigest()
         v += "__" + str(CACHE_VERSION)
@@ -139,13 +140,13 @@ class ConfigInterface:
     class instantiation"""
 
     def __init__(
-            self,
-            threads: Optional[int] = 1,
-            target: Optional[str] = None,
-            profiles_dir: Optional[str] = None,
-            project_dir: Optional[str] = None,
-            vars: Optional[str] = "{}",
-            profile: Optional[str] = None
+        self,
+        threads: Optional[int] = 1,
+        target: Optional[str] = None,
+        profiles_dir: Optional[str] = None,
+        project_dir: Optional[str] = None,
+        vars: Optional[str] = "{}",
+        profile: Optional[str] = None,
     ):
         self.threads = threads
         self.target = target
@@ -178,7 +179,11 @@ class DbtAdapterExecutionResult:
     """Interface for execution results, this keeps us 1 layer removed from dbt interfaces which may change"""
 
     def __init__(
-            self, adapter_response: "AdapterResponse", table: agate.Table, raw_sql: str, compiled_sql: str
+        self,
+        adapter_response: "AdapterResponse",
+        table: agate.Table,
+        raw_sql: str,
+        compiled_sql: str,
     ) -> None:
         self.adapter_response = adapter_response
         self.table = table
@@ -200,14 +205,13 @@ class DbtProject:
     dbt-core. The adapter attribute is the primary interface for the dbt adapter"""
 
     def __init__(
-            self,
-            target: Optional[str] = None,
-            profiles_dir: Optional[str] = None,
-            project_dir: Optional[str] = None,
-            threads: Optional[int] = 1,
-            profile: Optional[str] = None,
+        self,
+        target: Optional[str] = None,
+        profiles_dir: Optional[str] = None,
+        project_dir: Optional[str] = None,
+        threads: Optional[int] = 1,
+        profile: Optional[str] = None,
     ):
-
         self.args = ConfigInterface(
             threads=threads,
             target=target,
@@ -362,7 +366,9 @@ class DbtProject:
         )
 
     @lru_cache(maxsize=10)
-    def get_source_node(self, target_source_name: str, target_table_name: str) -> "MaybeParsedSource":
+    def get_source_node(
+        self, target_source_name: str, target_table_name: str
+    ) -> "MaybeParsedSource":
         """Get a `"ManifestNode"` from a dbt project source name and table name"""
         return self.dbt.resolve_source(
             target_source_name=target_source_name,
@@ -389,15 +395,15 @@ class DbtProject:
         return partial(self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt)
 
     def adapter_execute(
-            self, sql: str, auto_begin: bool = True, fetch: bool = False
+        self, sql: str, auto_begin: bool = True, fetch: bool = False
     ) -> Tuple["AdapterResponse", agate.Table]:
         """Wraps adapter.execute. Execute SQL against database"""
         return self.adapter.execute(sql, auto_begin, fetch)
 
     def execute_macro(
-            self,
-            macro: str,
-            kwargs: Optional[Dict[str, Any]] = None,
+        self,
+        macro: str,
+        kwargs: Optional[Dict[str, Any]] = None,
     ) -> Any:
         """Wraps adapter execute_macro. Execute a macro like a function."""
         return self.get_macro_function(macro)(kwargs=kwargs)
@@ -500,7 +506,7 @@ class DbtProject:
         return columns
 
     def get_or_create_relation(
-            self, database: str, schema: str, name: str
+        self, database: str, schema: str, name: str
     ) -> Tuple["BaseRelation", bool]:
         """Get relation or create if not exists. Returns tuple of relation and
         boolean result of whether it existed ie: (relation, did_exist)"""
@@ -515,7 +521,7 @@ class DbtProject:
         )
 
     def materialize(
-            self, node: "ManifestNode", temporary: bool = True
+        self, node: "ManifestNode", temporary: bool = True
     ) -> Tuple["AdapterResponse", None]:
         """Materialize a table in the database"""
         return self.adapter_execute(
