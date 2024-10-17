@@ -44,10 +44,128 @@ class TestTranspile(unittest.TestCase):
             output.sql_transformed,
         )
 
-    @unittest.skip("Tests not implemented yet")
-    def test_transpile_single_filter(self):
-        pass
+    def test_transpile_star_expand_with_mask(self):
+        query = scan("SELECT * from b", "unilake", "catalog", "database")
+        input = {
+            "rules": [
+                {
+                    "scope": 0,
+                    "attribute": '"b"."a"',
+                    "rule_id": "some_guid",
+                    "rule_definition": {"name": "xxhash3", "properties": None},
+                }
+            ],
+            "filters": [],
+            "visible_schema": {
+                "catalog": {
+                    "database": {
+                        "b": {"a": "INT", "b": "VARCHAR"},
+                    }
+                }
+            },
+            "cause": None,
+            "query": query.query,
+            "request_url": None,
+        }
+        output = transpile(input)
+        self.assertIsNone(output.error)
+        self.assertEqual(
+            "SELECT XX_HASH3_128(`b`.`a`) AS `a`, `b`.`b` AS `b` FROM `catalog`.`database`.`b` AS `b`",
+            output.sql_transformed,
+        )
 
-    @unittest.skip("Tests not implemented yet")
-    def test_transpile_multiple_rules(self):
-        pass
+    def test_transpile_star_expand_with_filter(self):
+        query = scan("SELECT * from b", "unilake", "catalog", "database")
+        input = {
+            "rules": [],
+            "filters": [{
+                "scope": 0,
+                "attribute": '"b"."a"',
+                "filter_id": "some_guid",
+                "filter_definition": {
+                    "expression": "? > 0"
+                }
+            }],
+            "visible_schema": {
+                "catalog": {
+                    "database": {
+                        "b": {"a": "INT", "b": "VARCHAR"},
+                    }
+                }
+            },
+            "cause": None,
+            "query": query.query,
+            "request_url": None,
+        }
+        output = transpile(input)
+        self.assertIsNone(output.error)
+        self.assertEqual(
+            "SELECT `b`.`a` AS `a`, `b`.`b` AS `b` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`a` > 0",
+            output.sql_transformed,
+        )
+
+    def test_transpile_star_expand_with_mask_and_filter(self):
+        query = scan("SELECT * from b", "unilake", "catalog", "database")
+        input = {
+            "rules": [
+                {
+                    "scope": 0,
+                    "attribute": '"b"."a"',
+                    "rule_id": "some_guid",
+                    "rule_definition": {"name": "xxhash3", "properties": None},
+                }
+            ],
+            "filters": [{
+                "scope": 0,
+                "attribute": '"b"."a"',
+                "filter_id": "some_guid",
+                "filter_definition": {
+                    "expression": "? > 0"
+                }
+            }],
+            "visible_schema": {
+                "catalog": {
+                    "database": {
+                        "b": {"a": "INT", "b": "VARCHAR"},
+                    }
+                }
+            },
+            "cause": None,
+            "query": query.query,
+            "request_url": None,
+        }
+        output = transpile(input)
+        self.assertIsNone(output.error)
+        self.assertEqual(
+            "SELECT XX_HASH3_128(`b`.`a`) AS `a`, `b`.`b` AS `b` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`a` > 0",
+            output.sql_transformed,
+        )
+
+    def test_transpile_large_query(self):
+        with open("data/large_query.sql", "r") as file:
+            sql = file.read()
+        query = scan(sql, "snowflake", "catalog", "database")
+        input = {
+            "rules": [
+                {
+                    "scope": 0,
+                    "attribute": '"b"."a"',
+                    "rule_id": "some_guid",
+                    "rule_definition": {"name": "xxhash3", "properties": None},
+                }
+            ],
+            "filters": [{
+                "scope": 0,
+                "attribute": '"b"."a"',
+                "filter_id": "some_guid",
+                "filter_definition": {
+                    "expression": "? > 0"
+                }
+            }],
+            "visible_schema": None,
+            "cause": None,
+            "query": query.query,
+            "request_url": None,
+        }
+        output = transpile(input)
+        self.assertIsNone(output.error)

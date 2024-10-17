@@ -3,6 +3,13 @@ from tests.test_query import TestQuery
 
 
 class TestRulesMask(TestQuery):
+    def test_rules_mask_multiple_times(self):
+        self.run_test_with_masking_rule(
+            {"name": "xxhash3", "properties": None},
+            "SELECT a, len(a) as b from b",
+            "SELECT XX_HASH3_128(`b`.`a`) AS `a`, LENGTH(XX_HASH3_128(`b`.`a`)) AS `b` FROM `catalog`.`database`.`b` AS `b`",
+        )
+
     def test_rules_mask_xxhash3(self):
         self.run_test_with_masking_rule(
             {"name": "xxhash3", "properties": None},
@@ -193,6 +200,8 @@ class TestRulesMask(TestQuery):
     # [] - UPDATE (FROM CTE)
     # [] - UPDATE (FROM multi-table join)
     # [] - UPDATE (FROM subquery)
+    # [ ] - CREATE VIEW
+    # [ ] - CREATE MATERIALIZED VIEW
 
     def test_rules_mask_insert_into_subquery_result(self):
         self.run_test_with_custom_masking_rule(
@@ -207,3 +216,9 @@ class TestRulesMask(TestQuery):
             "INSERT INTO test (a, b) SELECT a, b from test2",
             "INSERT INTO `catalog`.`database`.`test` (`a`, `b`) SELECT NULL AS `a`, `test2`.`b` AS `b` FROM `catalog`.`database`.`test2` AS `test2`",
         )
+
+    @unittest.skip("Tests not implemented yet")
+    def test_rules_mask_alter_view_should_not_nest_additional_masks(self):
+        # TODO: make sure that an alter view, does not accidentally introduce additional masks
+        # OR: intercept and return the original view definition, when showing show create view command
+        pass

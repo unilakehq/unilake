@@ -112,6 +112,8 @@ class TestRulesFilter(TestQuery):
     # [] - UPDATE (FROM CTE)
     # [] - UPDATE (FROM multi-table join)
     # [] - UPDATE (FROM subquery)
+    # [ ] - CREATE VIEW
+    # [ ] - CREATE MATERIALIZED VIEW
 
     @unittest.skip("Tests not implemented yet")
     def test_rules_filter_update_from_select(self):
@@ -142,13 +144,13 @@ class TestRulesFilter(TestQuery):
             [
                 {
                     "scope": 0,
-                    "attribute": '"b"."a"',
+                    "attribute": '"test2"."a"',
                     "filter_id": "some_guid",
                     "filter_definition": {"expression": "? > 0"},
                 }
             ],
             "INSERT INTO test (a, b) SELECT a,b from test2",
-            "INSERT INTO test (a, b) SELECT `a` AS `a`, b AS `b` from test2 WHERE `a` > 0",
+            "INSERT INTO `catalog`.`database`.`test` (`a`, `b`) SELECT `test2`.`a` AS `a`, `test2`.`b` AS `b` FROM `catalog`.`database`.`test2` AS `test2` WHERE `test2`.`a` > 0",
         )
 
 
@@ -175,3 +177,8 @@ class TestRulesFilter(TestQuery):
             "",
             "",
         )
+
+    @unittest.skip("Tests not implemented yet")
+    def test_rules_filter_alter_view_should_not_nest_additional_filters(self):
+        # TODO: make sure that an alter view, does not accidentally introduce additional filters
+        pass

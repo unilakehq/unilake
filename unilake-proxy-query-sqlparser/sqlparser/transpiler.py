@@ -1,6 +1,6 @@
 from typing import Type
 
-from sqlglot import parse_one, exp, Expression, maybe_parse
+from sqlglot import parse_one, exp, Expression, maybe_parse, MappingSchema
 from sqlglot.expressions import replace_placeholders
 from sqlglot.optimizer import traverse_scope
 from sqlglot.optimizer.qualify import qualify
@@ -34,10 +34,8 @@ def _scan_transform(node, scope_id: int, entities, attributes, aggregates):
         entities[scope_id].append(ScanEntity(node.catalog, node.db, node.name, node.alias))
 
     # Get columns
-    elif node_type is exp.Column:
-        alias = node.alias
-        if node.parent is not None and node.parent.key == "alias":
-            alias = node.parent.alias
+    elif node_type is exp.Column and node.parent.key not in ["ordered", "group"]:
+        alias = node.parent.alias
         attributes[scope_id].append(ScanAttribute(node.table, node.name, alias))
 
     # Get Stars
@@ -55,7 +53,7 @@ def _scan_transform(node, scope_id: int, entities, attributes, aggregates):
 def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutput:
     if not sql:
         return ScanOutput(
-            objects=[], dialect=dialect, query={"query": sql}, type=ScanOutputType.UNKNOWN, error=None
+            objects=[], dialect=dialect, query={"query": sql}, type=ScanOutputType.UNKNOWN, error=None, target_entity=None,
         )
     dialect = _get_dialect(dialect)
 
@@ -69,6 +67,12 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
 
     query_type = ScanOutputType.from_key(parsed.key)
     objects = []
+
+    target_entity = None
+    if isinstance(parsed.this, exp.Schema):
+        target_entity = str(parsed.this.this)
+    elif isinstance(parsed.this, exp.Table):
+        target_entity = str(parsed.this)
 
     # scoped query
     if scoped:
@@ -90,6 +94,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
             query=parsed.dump(),
             type=query_type,
             error=None,
+            target_entity=target_entity,
         )
     # non-scoped query
     else:
@@ -103,17 +108,22 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
             query=parsed.dump(),
             type=query_type,
             error=None,
+            target_entity=target_entity,
         )
 
 
 def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: dict):
     filters = []
     for select in node.selects:
-        node_str = str(select.this)
+        found_column = select.find(exp.Column)
+        if found_column is None:
+            continue
+
+        node_str = str(found_column)
         found = filter_lookup.get(hash((scope_id, node_str)))
         if found:
             cond = maybe_parse(found["expression"], into=exp.Condition, dialect=OUTPUT_DIALECT)
-            filters.append(replace_placeholders(cond, select.this))
+            filters.append(replace_placeholders(cond, found_column))
 
     if filters:
         node.where(*filters, append=True, dialect=OUTPUT_DIALECT, copy=False)
@@ -121,7 +131,7 @@ def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: dict):
     return node
 
 
-def _transform_predicate(node: exp.Column, scope_id: int, rule_lookup: dict):
+def _transform_mask(node: exp.Column, scope_id: int, rule_lookup: dict):
     node_str = str(node)
     found = rule_lookup.get(hash((scope_id, node_str)))
     if not found:
@@ -375,44 +385,24 @@ def _transform_predicate(node: exp.Column, scope_id: int, rule_lookup: dict):
         case _:
             return node
 
-
-def _transform_star(node: exp.Star, scope_id: int):
-    # todo(mrhamburg): handle star expressions and expansion, based on input json
-    # unset star and add security predicates to all columns
-    return node
-    node.pop()
-    for column in rule_lookup.get("some_star_info"):
-        col = exp.column(
-            this=exp.Identifier(this=column["column_name"], quoted=True),
-            table=exp.Identifier(this=column["table_alias"], quoted=True),
-        )
-        col = transform_predicate(col)
-        node.parent_select.expressions.append(col)
-    # todo: get the actual table and transform the alias of that, if needed
-    return node
-
-
 def _hide_literals(node: exp.Literal):
     node.set("this", "?", overwrite=True)
     return node
 
-
-def _transformer(node, scope_id: int, rule_lookup: dict, filter_lookup: dict):
-    if node.is_star:
-        return _transform_star(node, scope_id)
-    elif isinstance(node, exp.Select):
+def _transformer_filters(node, scope_id: int, filter_lookup: dict):
+    if isinstance(node, exp.Select):
         return _transform_filters(node, scope_id, filter_lookup)
-    # we only need to do this for the secured output
-    elif isinstance(node, exp.Column):
-        return _transform_predicate(node, scope_id, rule_lookup)
     return node
 
+def _transformer_mask(node, scope_id: int, rule_lookup: dict):
+    if isinstance(node, exp.Column):
+        return _transform_mask(node, scope_id, rule_lookup)
+    return node
 
 def _transformer_hide_literals(node):
     if isinstance(node, exp.Literal):
         return _hide_literals(node)
-    return _transformer(node)
-
+    return node
 
 def inner_transpile(source: dict) -> TranspilerOutput:
     # check input
@@ -448,12 +438,22 @@ def inner_transpile(source: dict) -> TranspilerOutput:
 
     # transform input
     input_sql = Expression.load(transpiler_input.query)
+
+    # set visible schema (if applicable)
+    if transpiler_input.visible_schema:
+        visible_schema = MappingSchema(transpiler_input.visible_schema)
+        input_sql = qualify(input_sql, expand_stars=True, schema=visible_schema, validate_qualify_columns=True)
+
+    # set scopes
     scoped = traverse_scope(input_sql)
 
     if scoped:
         for i, scope in enumerate(scoped):
             scope.expression.transform(
-                _transformer, i, rule_lookup, filter_lookup, copy=False
+                _transformer_mask, i, rule_lookup, copy=False
+            )
+            scope.expression.transform(
+                _transformer_filters, i, filter_lookup, copy=False
             )
 
     return TranspilerOutput(

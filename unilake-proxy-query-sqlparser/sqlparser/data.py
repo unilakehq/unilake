@@ -47,6 +47,8 @@ class ScanOutputType(str, Enum):
     DROP = "DROP"
     REFRESH = "REFRESH"
     COMMAND = "COMMAND"
+    EXPORT = "EXPORT"
+    SET = "SET"
 
     @classmethod
     def from_key(cls, key: str) -> "ScanOutputType":
@@ -76,6 +78,7 @@ class ScanOutput:
     query: dict | None
     type: ScanOutputType
     error: ErrorMessage | None
+    target_entity: str | None
 
     def to_json(self) -> dict:
         return {
@@ -84,6 +87,7 @@ class ScanOutput:
             "query": self.query,
             "type": self.type.value,
             "error": self.error.to_json() if self.error else None,
+            "target_entity": self.target_entity,
         }
 
 
@@ -103,19 +107,12 @@ class TranspilerInputFilters:
     filter_definition: dict
 
 
-@dataclass
-class TranspilerInputStarExpand:
-    scope: int
-    table_alias: str
-    column_name: str
-    column_alias: str
-
 
 @dataclass
 class TranspilerInput:
     rules: list[TranspilerInputRules]
     filters: list[TranspilerInputFilters]
-    star_expand: list[TranspilerInputStarExpand]
+    visible_schema: dict
     cause: dict | None
     query: dict
     request_url: str | None
@@ -130,14 +127,10 @@ class TranspilerInput:
         for filter_ in json_data.get("filters", []):
             filters.append(TranspilerInputFilters(**filter_))
 
-        star_expand = []
-        for expand in json_data.get("star_expand", []):
-            star_expand.append(TranspilerInputStarExpand(**expand))
-
         return TranspilerInput(
             rules,
             filters,
-            star_expand,
+            json_data.get("visible_schema"),
             json_data.get("cause"),
             json_data.get("query"),
             json_data.get("request_url") if "request_url" else None,
