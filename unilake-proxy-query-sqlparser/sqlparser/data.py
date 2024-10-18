@@ -140,12 +140,10 @@ class TranspilerInput:
 @dataclass
 class TranspilerOutput:
     sql_transformed: str
-    sql_transformed_secure: str
     error: ErrorMessage | None
 
     def to_json(self) -> dict:
         return {
             "sql_transformed": self.sql_transformed,
-            "sql_transformed_secure": self.sql_transformed_secure,
             "error": self.error.to_json() if self.error else None,
         }

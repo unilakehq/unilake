@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from sqlglot import exp, tokens, Parser
+from sqlglot import exp, tokens, Parser, Generator
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.tokens import Tokenizer, TokenType
 
@@ -81,6 +81,13 @@ class Unilake(Dialect):
 
             return super()._parse_create()
 
+    class Generator(Generator):
+        TRANSFORMS = {
+            **Generator.TRANSFORMS,
+        }
+
+        def tag_sql(self, expression: exp.Create):
+            pass
 
 # CREATE TAG [category].[name] (WITH DESCRIPTION 'Example Tag');
 # UPDATE TAG [category].[name] SET description = 'Updated Example Tag'

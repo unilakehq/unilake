@@ -14,7 +14,7 @@ from sqlparser.data import (
     ScanOutputObject,
     TranspilerOutput,
     ErrorMessage,
-    TranspilerInput,
+    TranspilerInput, TranspilerInputRules, TranspilerInputFilters,
 )
 
 OUTPUT_DIALECT = "starrocks"
@@ -404,13 +404,11 @@ def _transformer_hide_literals(node):
         return _hide_literals(node)
     return node
 
-def inner_transpile(source: dict) -> TranspilerOutput:
+def inner_transpile(source: dict, secure_output: bool = False) -> TranspilerOutput:
     # check input
     if source is None:
         return TranspilerOutput(
-            sql="",
             sql_transformed="",
-            sql_transformed_secure="",
             error=ErrorMessage(msg="Missing input", line=1, column=1),
         )
 
@@ -423,7 +421,6 @@ def inner_transpile(source: dict) -> TranspilerOutput:
     ):
         return TranspilerOutput(
             sql_transformed="",
-            sql_transformed_secure="",
             error=ErrorMessage(msg="Invalid input", line=1, column=1),
         )
 
@@ -438,6 +435,8 @@ def inner_transpile(source: dict) -> TranspilerOutput:
 
     # transform input
     input_sql = Expression.load(transpiler_input.query)
+    if secure_output:
+        input_sql.transform(_transformer_hide_literals, copy=False)
 
     # set visible schema (if applicable)
     if transpiler_input.visible_schema:
@@ -449,15 +448,22 @@ def inner_transpile(source: dict) -> TranspilerOutput:
 
     if scoped:
         for i, scope in enumerate(scoped):
-            scope.expression.transform(
-                _transformer_mask, i, rule_lookup, copy=False
-            )
-            scope.expression.transform(
-                _transformer_filters, i, filter_lookup, copy=False
-            )
+            if _has_rules_for_scope(transpiler_input.rules, i):
+                scope.expression.transform(
+                    _transformer_mask, i, rule_lookup, copy=False
+                )
+            if _has_rules_for_scope(transpiler_input.filters, i):
+                scope.expression.transform(
+                    _transformer_filters, i, filter_lookup, copy=False
+                )
 
     return TranspilerOutput(
         sql_transformed=str(input_sql.sql(OUTPUT_DIALECT)),
-        sql_transformed_secure="",
         error=None,
     )
+
+def _has_rules_for_scope(rules: list[TranspilerInputRules | TranspilerInputFilters], scope: int) -> bool:
+    for rule in rules:
+        if rule.scope == scope:
+            return True
+    return False
