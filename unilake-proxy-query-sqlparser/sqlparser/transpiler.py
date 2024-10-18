@@ -1,3 +1,4 @@
+import json
 from typing import Type
 
 from sqlglot import parse_one, exp, Expression, maybe_parse, MappingSchema
@@ -91,7 +92,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         return ScanOutput(
             objects=objects,
             dialect=dialect,
-            query=parsed.dump(),
+            query=json.dumps(parsed.dump()),
             type=query_type,
             error=None,
             target_entity=target_entity,
@@ -105,7 +106,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         return ScanOutput(
             objects=objects,
             dialect=dialect,
-            query=parsed.dump(),
+            query=json.dumps(parsed.dump()),
             type=query_type,
             error=None,
             target_entity=target_entity,
@@ -404,7 +405,7 @@ def _transformer_hide_literals(node):
         return _hide_literals(node)
     return node
 
-def inner_transpile(source: dict, secure_output: bool = False) -> TranspilerOutput:
+def inner_transpile(source: str | dict | TranspilerInput, secure_output: bool = False) -> TranspilerOutput:
     # check input
     if source is None:
         return TranspilerOutput(
@@ -412,11 +413,15 @@ def inner_transpile(source: dict, secure_output: bool = False) -> TranspilerOutp
             error=ErrorMessage(msg="Missing input", line=1, column=1),
         )
 
-    # parse input
-    transpiler_input = TranspilerInput.from_json(source)
+    # parse input, if needed
+    transpiler_input = source
+    if not isinstance(source, TranspilerInput):
+        transpiler_input = TranspilerInput.from_json(source)
+
     if (
         transpiler_input is None
         or transpiler_input.query is None
+        or not isinstance(transpiler_input.query, dict)
         or len(transpiler_input.query.keys()) == 0
     ):
         return TranspilerOutput(

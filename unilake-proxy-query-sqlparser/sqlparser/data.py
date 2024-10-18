@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from enum import Enum
 
@@ -75,7 +76,7 @@ class ScanOutputObject:
 class ScanOutput:
     objects: list[ScanOutputObject]
     dialect: str
-    query: dict | None
+    query: str | None
     type: ScanOutputType
     error: ErrorMessage | None
     target_entity: str | None
@@ -106,19 +107,20 @@ class TranspilerInputFilters:
     filter_id: str
     filter_definition: dict
 
-
-
 @dataclass
 class TranspilerInput:
     rules: list[TranspilerInputRules]
     filters: list[TranspilerInputFilters]
     visible_schema: dict
     cause: dict | None
-    query: dict
+    query: str
     request_url: str | None
 
     @staticmethod
-    def from_json(json_data: dict) -> "TranspilerInput":
+    def from_json(json_data: str | dict) -> "TranspilerInput":
+        if isinstance(json_data, str):
+            json_data = json.loads(json_data)
+
         rules = []
         for rule in json_data.get("rules", []):
             rules.append(TranspilerInputRules(**rule))
@@ -132,7 +134,7 @@ class TranspilerInput:
             filters,
             json_data.get("visible_schema"),
             json_data.get("cause"),
-            json_data.get("query"),
+            json.loads(json_data.get("query")),
             json_data.get("request_url") if "request_url" else None,
         )
 

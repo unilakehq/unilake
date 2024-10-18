@@ -1,3 +1,4 @@
+import json
 import unittest
 from sqlparser import transpile, scan
 
@@ -182,6 +183,25 @@ class TestTranspile(unittest.TestCase):
             "request_url": None,
         }
         output = transpile(input, secure_output=True)
+        self.assertIsNone(output.error)
+        self.assertEqual(
+            "SELECT `b`.`firstname` AS `firstname` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`username` = '?' AND `b`.`country` IN ('?', '?') AND `b`.`age` > ?",
+            output.sql_transformed,
+        )
+
+    def test_transpile_string_json_input(self):
+        sql = "SELECT firstname FROM b where username = 'admin' and country in ('USA', 'Canada') and age > 30"
+        query = scan(sql, "snowflake", "catalog", "database")
+        input = {
+            "rules": [],
+            "filters": [],
+            "visible_schema": None,
+            "cause": None,
+            "query": query.query,
+            "request_url": None,
+        }
+        some_input_json = json.dumps(input)
+        output = transpile(some_input_json, secure_output=True)
         self.assertIsNone(output.error)
         self.assertEqual(
             "SELECT `b`.`firstname` AS `firstname` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`username` = '?' AND `b`.`country` IN ('?', '?') AND `b`.`age` > ?",
