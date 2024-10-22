@@ -1,17 +1,21 @@
 // todo(mrhamburg): add feature to request for timings in the session (time in proxy, time in backend), this will also be needed for monitoring and troubleshooting
 mod extensions;
+mod session;
 
 use crate::backend::app::generic::FedResult;
 use crate::backend::app::{FedResultStream, FederatedFrontendHandler, FederatedRequestType};
-use crate::frontend::prot::ServerInstanceMessage;
+use crate::backend::starrocks::session::StarRocksSession;
+use crate::frontend::prot::{ServerInstanceMessage, SessionAuditMessage, SessionUserInfo};
 use crate::frontend::{
     error::{TdsWireError, TdsWireResult},
-    prot::{DefaultSession, ServerInstance, SessionInfo, TdsWireHandlerFactory},
+    prot::{ServerInstance, TdsWireHandlerFactory},
     tds::server_context::ServerContext,
-    BatchRequest, DoneStatus, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse,
-    TokenColMetaData, TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
+    BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
+    TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
     TokenPreLoginFedAuthRequiredOption, TokenRow,
 };
+use crate::security::handler::QueryHandler;
+use crate::session::SessionInfo;
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
 use futures::{Sink, StreamExt};
@@ -20,8 +24,6 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 use ulid::Ulid;
-
-type StarRocksSession = DefaultSession;
 
 /// Acts like a wrapper around a mysql connection pool for StarRocks.
 struct StarRocksPool {
@@ -154,7 +156,7 @@ impl StarRocksTdsHandlerFactoryInnnerState {
 
     async fn pool_register_connection_activity(&self, pool_name: &str) {
         // only every 15 seconds
-        // todo(mrhamburg): make sure this 5 seconds interval is configurable
+        // todo(mrhamburg): make sure this 15 seconds interval is configurable
         if let Some(last_request) = *self.last_activity_reported.lock().await {
             let elapsed = Utc::now().signed_duration_since(last_request);
             if elapsed < TimeDelta::seconds(15) {
@@ -172,6 +174,19 @@ impl StarRocksTdsHandlerFactoryInnnerState {
             tracing::error!("Failed to register connection activity: {}", err);
         }
         *self.last_activity_reported.lock().await = Some(Utc::now());
+    }
+
+    async fn audit_on_query<S: SessionInfo>(&self, user_info: &S, query: QueryHandler) -> () {
+        if let Err(e) = self
+            .server_instance
+            .process_message(ServerInstanceMessage::Audit(SessionAuditMessage::SqlQuery(
+                SessionUserInfo::from(user_info),
+                query,
+            )))
+        {
+            //todo(mrhamburg): log this properly
+            todo!()
+        }
     }
 }
 
@@ -235,29 +250,6 @@ impl StarRocksTdsHandlerFactory {
         }
         Ok(())
     }
-
-    // todo(mrhamburg): handle setting session variables
-    async fn handle_set_session_variables<C>(&self, client: &mut C) -> TdsWireResult<()>
-    where
-        C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
-    {
-        todo!()
-    }
-
-    // todo(mrhamburg): implement session variables handling, return the string needed to be added to the query for the backend
-    // see:
-    fn get_session_variables<C>(&self, client: &C) -> String
-    where
-        C: SessionInfo,
-    {
-        let mut result = String::new();
-        result.push_str("/*+ SET_VAR (");
-        for (key, value) in client.get_session_variables() {
-            // result.push_str(&format!("{} = {}, ", key, value));
-        }
-        result.push_str(") */");
-        result
-    }
 }
 
 #[async_trait]
@@ -268,7 +260,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         instance_info: Arc<ServerInstance>,
     ) -> Result<StarRocksSession, TdsWireError> {
         tracing::info!("New session for: {}", socket_addr);
-        Ok(DefaultSession::new(
+        Ok(StarRocksSession::new(
             socket_addr.clone(),
             instance_info.clone(),
         ))
@@ -349,7 +341,11 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         }
 
         // set database change
-        let old_database = client.get_schema().to_string();
+        let old_database = if let Some(old_database) = client.get_database() {
+            old_database.clone().to_string()
+        } else {
+            "".to_string()
+        };
         let new_database = msg.db_name.clone().unwrap_or_else(|| "main".to_string());
         self.send_token(
             client,
@@ -459,9 +455,20 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
 
         // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
         let cancellation_token = CancellationToken::new();
+        let mut query_handler = QueryHandler::new();
+        let query = query_handler
+            .handle_query(&msg.query, client)
+            .ok()
+            // todo(mrhamburg): implement error handling, remove unwraps or oks
+            .unwrap()
+            .to_string();
+
+        // send query and its handler to the audit system, the handler can obfuscate sensitive data
+        // and contains all information used in the transpiling process
+        self.inner.audit_on_query(client, query_handler).await;
 
         let query_result = tokio::select! {
-            result = conn.query_iter(&msg.query) => {
+            result = conn.query_iter(query) => {
                 match result {
                     Ok(result) => {
                         Some(result)

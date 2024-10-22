@@ -2,15 +2,50 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 
+import sqlglot
+
 
 @dataclass
 class ErrorMessage:
-    msg: str
+    description: str
     line: int
-    column: int
+    col: int
+    start_context: str
+    highlight: str
+    end_context: str
+    into_expression: str | None
 
     def to_json(self):
-        return {"msg": self.msg, "line": self.line, "column": self.column}
+        return {
+            "description": self.description,
+            "line": self.line,
+            "col": self.col,
+            "start_context": self.start_context,
+            "highlight": self.highlight,
+            "end_context": self.end_context,
+            "into_expression": self.into_expression
+        }
+
+@dataclass
+class ParserError:
+    error_type: str
+    message: str
+    errors: [ErrorMessage]
+
+    def to_json(self):
+        return {
+            "error_type": self.error_type,
+            "message": self.message,
+            "errors": [error.to_json() for error in self.errors]
+        }
+
+    @staticmethod
+    def from_sqlglot_parse_error(error: sqlglot.errors.ParseError) -> "ParserError":
+        return ParserError(
+            error_type="PARSE_ERROR",
+            message="",
+            errors=[ErrorMessage(**error_info) for error_info in error.errors]
+        )
 
 
 @dataclass
@@ -78,7 +113,7 @@ class ScanOutput:
     dialect: str
     query: str | None
     type: ScanOutputType
-    error: ErrorMessage | None
+    error: ParserError | None
     target_entity: str | None
 
     def to_json(self) -> dict:
@@ -91,6 +126,16 @@ class ScanOutput:
             "target_entity": self.target_entity,
         }
 
+    @staticmethod
+    def from_parser_error(parser_error: ParserError) -> "ScanOutput":
+        return ScanOutput(
+            objects=[],
+            dialect="",
+            query=None,
+            type=ScanOutputType.UNKNOWN,
+            error=parser_error,
+            target_entity=None,
+        )
 
 @dataclass
 class TranspilerInputRules:
@@ -142,10 +187,17 @@ class TranspilerInput:
 @dataclass
 class TranspilerOutput:
     sql_transformed: str
-    error: ErrorMessage | None
+    error: ParserError | None
 
     def to_json(self) -> dict:
         return {
             "sql_transformed": self.sql_transformed,
             "error": self.error.to_json() if self.error else None,
         }
+
+    @staticmethod
+    def from_parser_error(parser_error: ParserError) -> "TranspilerOutput":
+        return TranspilerOutput(
+            sql_transformed="",
+            error=parser_error
+        )

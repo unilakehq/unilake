@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::random;
 use tokio_util::bytes::{Buf, BytesMut};
 
 use crate::frontend::error::TdsWireResult;
@@ -30,5 +30,5 @@ impl ReadAndAdvance for BytesMut {
 }
 
 pub fn generate_random_nonce() -> [u8; 32] {
-    rand::thread_rng().gen::<[u8; 32]>()
+    random::<[u8; 32]>()
 }

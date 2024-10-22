@@ -1,12 +1,12 @@
 use crate::frontend::{
     error::{TdsWireError, TdsWireResult},
     tds::server_context::ServerContext,
-    BatchRequest, ColumnData, LoginMessage, PreloginMessage, TdsBackendResponse, TdsMessage,
-    TdsToken,
+    BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse, TdsMessage, TdsToken,
 };
+use crate::security::handler::QueryHandler;
+use crate::session::{DefaultSession, SessionInfo};
 use async_trait::async_trait;
 use futures::{Sink, SinkExt};
-use std::collections::HashMap;
 use std::{
     net::SocketAddr,
     sync::{
@@ -17,10 +17,6 @@ use std::{
 };
 use tokio::{sync::Semaphore, time::sleep};
 use ulid::Ulid;
-
-fn print_type_of<T>(_: &T) {
-    println!("{}", std::any::type_name::<T>());
-}
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -51,198 +47,8 @@ pub enum TdsSessionState {
     Final,
 }
 
-pub trait SessionInfo: Send + Sync {
-    /// Currently in use socket
-    fn socket_addr(&self) -> SocketAddr;
-
-    /// Current session state
-    fn state(&self) -> &TdsSessionState;
-
-    /// Mutate current session state
-    fn set_state(&mut self, new_state: TdsSessionState);
-
-    /// Session identifier
-    fn session_id(&self) -> Ulid;
-
-    /// Size of the TDS packet
-    fn packet_size(&self) -> u16;
-
-    /// Username if SQL authentication is used
-    fn get_sql_user_id(&self) -> &str;
-
-    /// Username if SQL authentication is used
-    fn set_sql_user_id(&mut self, sql_user_id: String);
-
-    /// Session based database
-    fn get_database(&self) -> Option<&String>;
-
-    /// Set session based database
-    fn set_database(&mut self, database: String);
-
-    /// Schema to which connection is established
-    fn get_schema(&self) -> &str;
-
-    /// Set schema to which connection is established
-    fn set_schema(&mut self, schema_name: String);
-
-    /// TDS version of the communication
-    fn tds_version(&self) -> &str;
-
-    /// TDS server context
-    fn tds_server_context(&self) -> Arc<ServerContext>;
-
-    /// Counter of connection reset requests for this session
-    fn connection_reset_request_count(&self) -> usize;
-
-    /// Set client nonce for SQL authentication
-    fn set_client_nonce(&mut self, nonce: [u8; 32]);
-
-    /// Get client nonce for SQL authentication
-    fn get_client_nonce(&self) -> Option<[u8; 32]>;
-
-    /// Set server nonce for SQL authentication
-    fn set_server_nonce(&mut self, nonce: [u8; 32]);
-
-    /// Get server nonce for SQL authentication
-    fn get_server_nonce(&self) -> Option<[u8; 32]>;
-
-    fn set_session_variable(&mut self, name: String, value: Option<ColumnData>);
-
-    fn get_session_variable(&self, name: &str) -> &Option<ColumnData>;
-
-    fn get_session_variables(&self) -> &HashMap<String, Option<ColumnData>>;
-}
-
-pub enum Dialect {
-    Mssql,
-}
-pub struct DefaultSession {
-    socket_addr: SocketAddr,
-    state: TdsSessionState,
-    session_id: Ulid,
-    packet_size: u16,
-    sql_user_id: Option<String>,
-    database: Option<String>,
-    schema: Option<String>,
-    // connection_reset_request_count: usize,
-    // dialect: Dialect,
-    tds_server_context: Arc<ServerContext>,
-    client_nonce: Option<[u8; 32]>,
-    server_nonce: Option<[u8; 32]>,
-    session_variables: HashMap<String, Option<ColumnData>>,
-}
-
-impl SessionInfo for DefaultSession {
-    fn socket_addr(&self) -> SocketAddr {
-        self.socket_addr
-    }
-
-    fn state(&self) -> &TdsSessionState {
-        &self.state
-    }
-
-    fn set_state(&mut self, new_state: TdsSessionState) {
-        self.state = new_state
-    }
-
-    fn session_id(&self) -> Ulid {
-        self.session_id
-    }
-
-    fn packet_size(&self) -> u16 {
-        self.packet_size
-    }
-
-    fn get_sql_user_id(&self) -> &str {
-        todo!()
-    }
-
-    fn set_sql_user_id(&mut self, sql_user_id: String) {
-        self.sql_user_id = Some(sql_user_id);
-    }
-
-    fn get_database(&self) -> Option<&String> {
-        self.database.as_ref()
-    }
-
-    fn set_database(&mut self, catalog: String) {
-        self.database = Some(catalog);
-    }
-
-    fn get_schema(&self) -> &str {
-        self.schema.as_deref().unwrap_or("")
-    }
-
-    fn set_schema(&mut self, db_name: String) {
-        self.schema = Some(db_name);
-    }
-
-    fn tds_version(&self) -> &str {
-        todo!()
-    }
-
-    fn tds_server_context(&self) -> Arc<ServerContext> {
-        self.tds_server_context.clone()
-    }
-
-    fn connection_reset_request_count(&self) -> usize {
-        todo!()
-    }
-
-    fn set_client_nonce(&mut self, nonce: [u8; 32]) {
-        self.client_nonce = Some(nonce);
-    }
-
-    fn get_client_nonce(&self) -> Option<[u8; 32]> {
-        self.client_nonce
-    }
-
-    fn set_server_nonce(&mut self, nonce: [u8; 32]) {
-        self.server_nonce = Some(nonce);
-    }
-
-    fn get_server_nonce(&self) -> Option<[u8; 32]> {
-        self.server_nonce
-    }
-
-    fn set_session_variable(&mut self, name: String, value: Option<ColumnData>) {
-        self.session_variables.insert(name, value);
-    }
-
-    fn get_session_variable(&self, name: &str) -> &Option<ColumnData> {
-        if let Some(value) = self.session_variables.get(name) {
-            return value;
-        }
-        &None
-    }
-
-    fn get_session_variables(&self) -> &HashMap<String, Option<ColumnData>> {
-        &self.session_variables
-    }
-}
-
 pub struct TdsWireMessageServerCodec {
     pub client_info: DefaultSession,
-}
-
-impl DefaultSession {
-    pub fn new(socket_addr: SocketAddr, instance: Arc<ServerInstance>) -> Self {
-        DefaultSession {
-            socket_addr,
-            packet_size: instance.ctx.packet_size,
-            session_id: instance.next_session_id(),
-            sql_user_id: None,
-            state: TdsSessionState::default(),
-            database: None,
-            schema: None,
-            tds_server_context: instance.ctx.clone(),
-            client_nonce: None,
-            server_nonce: None,
-            session_variables: HashMap::new(),
-            // connection_reset_request_count: 0,
-            // dialect: Dialect::Mssql,
-        }
-    }
 }
 
 #[async_trait]
@@ -327,7 +133,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub enum ServerInstanceMessage {
     /// Used to send an audit message for a connected session
     Audit(SessionAuditMessage),
@@ -339,22 +144,36 @@ pub enum ServerInstanceMessage {
 
 /// These messages should be forwarded to SIEM/Audit logging endpoint
 /// todo(mrhamburg): extend and expand where needed
-#[derive(Debug)]
 pub enum SessionAuditMessage {
-    /// SqlBatch execution by a user
-    SqlBatch(SessionUserInfo, Arc<str>, Arc<str>),
+    /// Sql execution by a user
+    SqlQuery(SessionUserInfo, QueryHandler),
     /// Login succeeded event
     LoginSucceeded(SessionUserInfo),
     /// Login failed event
     LoginFailed(SessionUserInfo),
 }
 
-#[allow(unused)]
-/// todo(mrhamburg): properly implement and use where applicable
-#[derive(Debug)]
 pub struct SessionUserInfo {
     socket_addr: SocketAddr,
-    userid: Arc<str>,
+    userid: String,
+}
+
+impl SessionUserInfo {
+    pub fn from(info: &dyn SessionInfo) -> Self {
+        SessionUserInfo {
+            socket_addr: info.socket_addr(),
+            userid: info.get_sql_user_id().to_string(),
+        }
+    }
+}
+
+impl From<&dyn SessionInfo> for SessionUserInfo {
+    fn from(info: &dyn SessionInfo) -> Self {
+        SessionUserInfo {
+            socket_addr: info.socket_addr(),
+            userid: info.get_sql_user_id().to_string(),
+        }
+    }
 }
 
 pub struct ServerInstance {
@@ -385,11 +204,11 @@ impl ServerInstance {
     }
 
     async fn inner_process_message(&self, msg: ServerInstanceMessage) {
-        tracing::error!(message = format!("Received server instance message, processing has not been implemented, dropping message! {:?}", msg));
+        tracing::error!(message = "Received server instance message, processing has not been implemented, dropping message!".to_string());
     }
 
     /// Starts the background job server instance for processing server messages.
-    /// Currently is set to max 4 messages being processed in parallel.
+    /// Currently, is set to max 4 messages being processed in parallel.
     /// In case 4 messages are already being processed, the process will check every 10 milliseconds for
     /// an open slot to process new messages.
     /// Note: the server instance can only be started once, will panic in case the background process has

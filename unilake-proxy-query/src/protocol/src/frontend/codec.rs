@@ -13,11 +13,12 @@ use tokio_util::codec::{Decoder, Encoder, Framed};
 use ulid::Ulid;
 
 use crate::frontend::error::{TdsWireError, TdsWireResult};
-use crate::frontend::prot::{ServerInstance, SessionInfo, TdsSessionState, TdsWireHandlerFactory};
+use crate::frontend::prot::{ServerInstance, TdsSessionState, TdsWireHandlerFactory};
 use crate::frontend::{
-    ColumnData, PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage,
-    ALL_HEADERS_LEN_TX, MAX_PACKET_SIZE,
+    PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage, ALL_HEADERS_LEN_TX,
+    MAX_PACKET_SIZE,
 };
+use crate::session::{SessionInfo, SessionVariable};
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -98,10 +99,7 @@ where
     type Item = TdsFrontendRequest;
     type Error = TdsWireError;
 
-    fn decode(
-        &mut self,
-        src: &mut tokio_util::bytes::BytesMut,
-    ) -> Result<Option<Self::Item>, Self::Error> {
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         // sanity checks on network level are done here, fully decoding is done afterward
         if let Some(header) = src.get(..ALL_HEADERS_LEN_TX) {
             // check if header is correct and as expected
@@ -112,7 +110,7 @@ where
                 return Err(TdsWireError::Protocol(
                     "Invalid packet size, too large".to_string(),
                 ));
-            } else if (header.length as usize) < src.len() {
+            } else if src.len() < (header.length as usize) {
                 // wait for more data
                 return Ok(None);
             }
@@ -195,32 +193,40 @@ where
         self.codec().session_info.packet_size()
     }
 
-    fn get_sql_user_id(&self) -> &str {
+    fn get_sql_user_id(&self) -> Arc<str> {
         self.codec().session_info.get_sql_user_id()
     }
 
-    fn get_schema(&self) -> &str {
+    fn set_sql_user_id(&mut self, sql_user_id: String) {
+        self.codec_mut().session_info.set_sql_user_id(sql_user_id)
+    }
+
+    fn get_database(&self) -> Option<Arc<str>> {
+        self.codec().session_info.get_database()
+    }
+
+    fn set_database(&mut self, catalog: String) {
+        self.codec_mut().session_info.set_database(catalog)
+    }
+
+    fn get_schema(&self) -> Option<Arc<str>> {
         self.codec().session_info.get_schema()
     }
 
-    fn tds_version(&self) -> &str {
-        self.codec().session_info.tds_version()
+    fn set_schema(&mut self, db_name: String) {
+        self.codec_mut().session_info.set_schema(db_name)
     }
 
-    fn connection_reset_request_count(&self) -> usize {
-        self.codec().session_info.connection_reset_request_count()
+    fn tds_version(&self) -> Arc<str> {
+        self.codec().session_info.tds_version()
     }
 
     fn tds_server_context(&self) -> Arc<crate::frontend::tds::server_context::ServerContext> {
         self.codec().session_info.tds_server_context().clone()
     }
 
-    fn set_server_nonce(&mut self, nonce: [u8; 32]) {
-        self.codec_mut().session_info.set_server_nonce(nonce);
-    }
-
-    fn get_server_nonce(&self) -> Option<[u8; 32]> {
-        self.codec().session_info.get_server_nonce()
+    fn connection_reset_request_count(&self) -> usize {
+        self.codec().session_info.connection_reset_request_count()
     }
 
     fn set_client_nonce(&mut self, nonce: [u8; 32]) {
@@ -231,33 +237,25 @@ where
         self.codec().session_info.get_client_nonce()
     }
 
-    fn set_sql_user_id(&mut self, sql_user_id: String) {
-        self.codec_mut().session_info.set_sql_user_id(sql_user_id)
+    fn set_server_nonce(&mut self, nonce: [u8; 32]) {
+        self.codec_mut().session_info.set_server_nonce(nonce);
     }
 
-    fn set_schema(&mut self, db_name: String) {
-        self.codec_mut().session_info.set_schema(db_name)
+    fn get_server_nonce(&self) -> Option<[u8; 32]> {
+        self.codec().session_info.get_server_nonce()
     }
 
-    fn get_database(&self) -> Option<&String> {
-        self.codec().session_info.get_database()
-    }
-
-    fn set_database(&mut self, catalog: String) {
-        self.codec_mut().session_info.set_database(catalog)
-    }
-
-    fn set_session_variable(&mut self, name: String, value: Option<ColumnData>) {
+    fn set_session_variable(&mut self, name: String, value: SessionVariable) {
         self.codec_mut()
             .session_info
-            .set_session_variable(name, value);
+            .set_session_variable(name, value)
     }
 
-    fn get_session_variable(&self, name: &str) -> &Option<ColumnData> {
+    fn get_session_variable(&self, name: &str) -> &SessionVariable {
         self.codec().session_info.get_session_variable(name)
     }
 
-    fn get_session_variables(&self) -> &HashMap<String, Option<ColumnData>> {
+    fn get_session_variables(&self) -> HashMap<&str, &SessionVariable> {
         self.codec().session_info.get_session_variables()
     }
 }
@@ -427,10 +425,5 @@ async fn is_sslrequest_pending(tcp_socket: &TcpStream) -> Result<bool, IOError> 
     }
 
     let _buf = BytesMut::from(buf.filled());
-    return Ok(false);
-    todo!();
-    // if let Ok(Some(_)) = SslRequest::decode(&mut buf) {
-    //     return Ok(true);
-    // }
     Ok(false)
 }

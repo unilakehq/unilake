@@ -46,9 +46,7 @@ impl ResponseMessage {
 }
 
 impl TdsMessageCodec for ResponseMessage {
-    fn decode(
-        src: &mut tokio_util::bytes::BytesMut,
-    ) -> crate::frontend::error::TdsWireResult<super::TdsMessage>
+    fn decode(src: &mut BytesMut) -> TdsWireResult<super::TdsMessage>
     where
         Self: Sized,
     {

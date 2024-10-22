@@ -12,9 +12,7 @@ resolver = "2"
 members = [
     "src/protocol",
     "src/common/policyengine",
-    "src/sql/parser",
-    "src/sql/security",
-    "src/sql/transpiler",
+    "src/sql",
     "src/endpoint",
 ]
 
@@ -22,9 +20,7 @@ members = [
 # Workspace dependencies
 unilake-proxy-query-protocol = { path = "src/protocol" }
 unilake-common-policyengine = { path = "src/common/policyengine" }
-unilake-sql-parser = { path = "src/sql/parser" }
-unilake-sql-security = { path = "src/security" }
-unilake-sql-transpiler = { path = "src/sql/transpiler" }
+unilake-sql = { path = "src/sql" }
 
 # Crates.io dependencies
 xxhash-rust = { version = "0.8.12", features = ["xxh3"] }
@@ -59,6 +55,11 @@ mysql_async = { version = "0.34.2", features = [
     "bigdecimal",
     "chrono",
 ], default-features = false }
+pyo3 = { version = "0.22.3", features = ["gil-refs", "serde"] }
+serde_json = "1.0.129"
+serde = { version = "1.0.210", features = ["derive"] }
+casbin = { version = "2.5.0", default-features = false, features = ["runtime-tokio", "logging", "incremental", "explain"] }
+backon = { version = "1.2.0" }
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.

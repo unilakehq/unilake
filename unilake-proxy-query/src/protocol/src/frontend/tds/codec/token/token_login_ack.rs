@@ -33,6 +33,22 @@ impl TokenLoginAck {
 }
 
 impl TdsTokenCodec for TokenLoginAck {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::LoginAck as u8);
+        let mut buff = BytesMut::new();
+
+        // set content
+        buff.put_u8(self.interface);
+        buff.put_u32(self.tds_version as u32);
+        encode::write_b_varchar(&mut buff, &self.prog_name)?;
+        buff.put_u32_le(self.version);
+
+        // push length and content
+        dest.put_u16_le(buff.len() as u16);
+        dest.extend_from_slice(&buff);
+
+        Ok(())
+    }
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let _length = src.get_u16_le();
 
@@ -50,22 +66,6 @@ impl TdsTokenCodec for TokenLoginAck {
             prog_name,
             version,
         }))
-    }
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
-        dest.put_u8(TdsTokenType::LoginAck as u8);
-        let mut buff = BytesMut::new();
-
-        // set content
-        buff.put_u8(self.interface);
-        buff.put_u32(self.tds_version as u32);
-        encode::write_b_varchar(&mut buff, &self.prog_name)?;
-        buff.put_u32_le(self.version);
-
-        // push length and content
-        dest.put_u16_le(buff.len() as u16);
-        dest.extend_from_slice(&buff);
-
-        Ok(())
     }
 }
 

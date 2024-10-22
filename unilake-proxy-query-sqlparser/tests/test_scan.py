@@ -172,6 +172,12 @@ class TestScan(unittest.TestCase):
         self.assertEqual(len(actual_output.objects[0].attributes), 1)
         self.assertEqual(actual_output.objects[0].attributes[0].name, "column_name")
 
+    def test_scan_error_sql_incorrect_format(self):
+        # I believe this is only applicable for count(*), but who knows
+        sql = "SELECT foo FROM (SELECT baz FROM t"
+        actual_output = scan(sql, "mysql", "catalog", "database")
+        self.assertIsNotNone(actual_output.error)
+
     # Table Operations
     # [V] - UPDATE FROM SELECT
     # [V] - CREATE TABLE FROM SELECT

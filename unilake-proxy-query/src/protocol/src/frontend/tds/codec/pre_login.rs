@@ -68,79 +68,6 @@ impl PreloginMessage {
 }
 
 impl TdsMessageCodec for PreloginMessage {
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
-        // create headers
-        let mut options = Vec::<(u8, u16, u16)>::with_capacity(3);
-        options.push((PRELOGIN_VERSION, 6, 0));
-        options.push((PRELOGIN_THREADID, 4, 0));
-        options.push((PRELOGIN_MARS, 1, 0));
-
-        if self.activity_id.is_some() {
-            options.push((PRELOGIN_TRACEID, 36, 0));
-        }
-        if self.fed_auth_required.is_some() & self.fed_auth_required.unwrap() {
-            options.push((PRELOGIN_FEDAUTHREQUIRED, 1, 0));
-        }
-        if self.nonce.is_some() {
-            options.push((PRELOGIN_NONCEOPT, 32, 0));
-        }
-        options.push((PRELOGIN_ENCRYPTION, 1, 0));
-        options.push((PRELOGIN_TERMINATOR, 0, 0));
-
-        // get current offset (5 bytes for each option, except for the terminator, which is 1 byte)
-        let mut current_offset: u16 = (options.len() * 5 - 4) as u16;
-        for i in 0..options.len() {
-            options[i].2 = current_offset;
-            current_offset += options[i].1;
-        }
-
-        // write token headers
-        for i in 0..options.len() {
-            let option = &options[i];
-            // type
-            dst.put_u8(option.0);
-            if option.0 != PRELOGIN_TERMINATOR {
-                // position
-                dst.put_u16(option.2);
-                // length
-                dst.put_u16(option.1);
-            }
-        }
-
-        // write version
-        dst.put_u32(self.version);
-        dst.put_u16(self.sub_build);
-
-        // write thread_id
-        dst.put_u32(self.thread_id);
-
-        // write MARS
-        dst.put_u8(self.mars as u8);
-
-        // TODO: I believe we can skip this
-        // write trace_id
-        // if self.activity_id.is_some(){
-        //     dst.write_u32(self.activity_id.unwrap()).await?;
-        // }
-
-        // write fed_auth_required
-        if self.fed_auth_required.is_some() & self.fed_auth_required.unwrap() {
-            dst.put_u8(self.fed_auth_required.unwrap() as u8);
-        }
-
-        // write nonce
-        if self.nonce.is_some() {
-            dst.put(self.nonce.unwrap().as_slice());
-        }
-
-        // write encryption
-        if self.encryption.is_some() {
-            dst.put_u8(self.encryption.unwrap() as u8);
-        }
-
-        Ok(())
-    }
-
     fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage> {
         let mut ret = PreloginMessage::new();
         let options = {
@@ -267,6 +194,79 @@ impl TdsMessageCodec for PreloginMessage {
         }
 
         Ok(TdsMessage::PreLogin(ret))
+    }
+
+    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+        // create headers
+        let mut options = Vec::<(u8, u16, u16)>::with_capacity(3);
+        options.push((PRELOGIN_VERSION, 6, 0));
+        options.push((PRELOGIN_THREADID, 4, 0));
+        options.push((PRELOGIN_MARS, 1, 0));
+
+        if self.activity_id.is_some() {
+            options.push((PRELOGIN_TRACEID, 36, 0));
+        }
+        if self.fed_auth_required.is_some() & self.fed_auth_required.unwrap() {
+            options.push((PRELOGIN_FEDAUTHREQUIRED, 1, 0));
+        }
+        if self.nonce.is_some() {
+            options.push((PRELOGIN_NONCEOPT, 32, 0));
+        }
+        options.push((PRELOGIN_ENCRYPTION, 1, 0));
+        options.push((PRELOGIN_TERMINATOR, 0, 0));
+
+        // get current offset (5 bytes for each option, except for the terminator, which is 1 byte)
+        let mut current_offset: u16 = (options.len() * 5 - 4) as u16;
+        for i in 0..options.len() {
+            options[i].2 = current_offset;
+            current_offset += options[i].1;
+        }
+
+        // write token headers
+        for i in 0..options.len() {
+            let option = &options[i];
+            // type
+            dst.put_u8(option.0);
+            if option.0 != PRELOGIN_TERMINATOR {
+                // position
+                dst.put_u16(option.2);
+                // length
+                dst.put_u16(option.1);
+            }
+        }
+
+        // write version
+        dst.put_u32(self.version);
+        dst.put_u16(self.sub_build);
+
+        // write thread_id
+        dst.put_u32(self.thread_id);
+
+        // write MARS
+        dst.put_u8(self.mars as u8);
+
+        // TODO: I believe we can skip this
+        // write trace_id
+        // if self.activity_id.is_some(){
+        //     dst.write_u32(self.activity_id.unwrap()).await?;
+        // }
+
+        // write fed_auth_required
+        if self.fed_auth_required.is_some() & self.fed_auth_required.unwrap() {
+            dst.put_u8(self.fed_auth_required.unwrap() as u8);
+        }
+
+        // write nonce
+        if self.nonce.is_some() {
+            dst.put(self.nonce.unwrap().as_slice());
+        }
+
+        // write encryption
+        if self.encryption.is_some() {
+            dst.put_u8(self.encryption.unwrap() as u8);
+        }
+
+        Ok(())
     }
 }
 

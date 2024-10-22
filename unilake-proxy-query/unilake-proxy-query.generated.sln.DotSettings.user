@@ -22,5 +22,6 @@
   &lt;TestAncestor&gt;
     &lt;TestId&gt;MSTest::17B6397E-A88F-45C3-AD44-574EC5611B5A::net8.0::Unilake.ProxyQuery.TestSuite.StarRocks.DataTypesTest.AdHocTest&lt;/TestId&gt;
     &lt;TestId&gt;MSTest::17B6397E-A88F-45C3-AD44-574EC5611B5A::net8.0::Unilake.ProxyQuery.TestSuite.StarRocks.DataTypesTest.TestDataTypes&lt;/TestId&gt;
+    &lt;TestId&gt;MSTest::17B6397E-A88F-45C3-AD44-574EC5611B5A::net8.0::Unilake.ProxyQuery.TestSuite.StarRocks.BenchmarkTests.PerformanceTest&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

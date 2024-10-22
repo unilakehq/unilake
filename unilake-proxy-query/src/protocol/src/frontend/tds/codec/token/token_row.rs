@@ -97,7 +97,7 @@ impl TdsTokenCodec for TokenRow {
     }
 }
 
-/// A bitmap of null values in the row. Sometimes SQL Server decides to pack the
+/// A bitmap of null values in the row. Sometimes the query result decides to pack the
 /// null values in the row, calling it the NBCROW. In this kind of tokens the row
 /// itself skips the null columns completely, but they can be found from the bitmap
 /// stored in the beginning of the token.

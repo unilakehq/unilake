@@ -10,16 +10,6 @@ pub struct TokenOrder {
 }
 
 impl TdsTokenCodec for TokenOrder {
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
-        let len = src.get_u16_le() / 2;
-        let mut column_indexes = Vec::with_capacity(len as usize);
-        for _ in 0..len {
-            column_indexes.push(src.get_u16_le());
-        }
-
-        Ok(TdsToken::Order(TokenOrder { column_indexes }))
-    }
-
     fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         dst.put_u8(TdsTokenType::Order as u8);
         dst.put_u16_le((self.column_indexes.len() * 2) as u16);
@@ -28,6 +18,16 @@ impl TdsTokenCodec for TokenOrder {
         }
 
         Ok(())
+    }
+
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let len = src.get_u16_le() / 2;
+        let mut column_indexes = Vec::with_capacity(len as usize);
+        for _ in 0..len {
+            column_indexes.push(src.get_u16_le());
+        }
+
+        Ok(TdsToken::Order(TokenOrder { column_indexes }))
     }
 }
 

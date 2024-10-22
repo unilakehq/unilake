@@ -30,3 +30,6 @@ ulid = { workspace = true }
 mysql_async = { workspace = true }
 chrono = { workspace = true }
 bigdecimal = { workspace = true }
+unilake-sql = { workspace = true }
+casbin = { workspace = true }
+

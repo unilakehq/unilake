@@ -24,46 +24,6 @@ pub struct TokenFedAuth {
 }
 
 impl TdsTokenCodec for TokenFedAuth {
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
-        let mut options = Vec::new();
-        let _token_length = src.get_u32_le();
-        let count_of_ids = src.get_u32_le();
-        let mut items: Vec<(u8, u32, u32)> = Vec::with_capacity(count_of_ids as usize);
-        let mut current_count = 0;
-        while current_count < count_of_ids {
-            let ty = src.get_u8();
-            let info_data_length = src.get_u32_le();
-            let info_data_offset = src.get_u32_le();
-            items.push((ty, info_data_length, info_data_offset));
-            current_count += 1;
-        }
-
-        for (ty, info_data_length, _) in items {
-            let (_, buff) = src.read_and_advance(info_data_length as usize);
-
-            let content = String::from_utf8(buff.to_vec())
-                .map_err(|_| Error::Protocol("Failed to convert UTF-8 to String".to_string()))
-                .unwrap();
-
-            match ty {
-                // STS URL as Token Endpoint
-                0x01 => {
-                    options.push(TokenFedAuthOption::StsUrl(content));
-                }
-                // Service Principal Name
-                0x02 => {
-                    options.push(TokenFedAuthOption::Spn(content));
-                }
-                // Invalid InfoId
-                0xEE | _ => {
-                    break;
-                }
-            }
-        }
-
-        Ok(TdsToken::FedAuth(TokenFedAuth { options }))
-    }
-
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::FedAuthInfo as u8);
         let options_length = self.options.len() * 9;
@@ -102,6 +62,46 @@ impl TdsTokenCodec for TokenFedAuth {
         dest.extend_from_slice(&buff);
 
         Ok(())
+    }
+
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let mut options = Vec::new();
+        let _token_length = src.get_u32_le();
+        let count_of_ids = src.get_u32_le();
+        let mut items: Vec<(u8, u32, u32)> = Vec::with_capacity(count_of_ids as usize);
+        let mut current_count = 0;
+        while current_count < count_of_ids {
+            let ty = src.get_u8();
+            let info_data_length = src.get_u32_le();
+            let info_data_offset = src.get_u32_le();
+            items.push((ty, info_data_length, info_data_offset));
+            current_count += 1;
+        }
+
+        for (ty, info_data_length, _) in items {
+            let (_, buff) = src.read_and_advance(info_data_length as usize);
+
+            let content = String::from_utf8(buff.to_vec())
+                .map_err(|_| Error::Protocol("Failed to convert UTF-8 to String".to_string()))
+                .unwrap();
+
+            match ty {
+                // STS URL as Token Endpoint
+                0x01 => {
+                    options.push(TokenFedAuthOption::StsUrl(content));
+                }
+                // Service Principal Name
+                0x02 => {
+                    options.push(TokenFedAuthOption::Spn(content));
+                }
+                // Invalid InfoId
+                0xEE | _ => {
+                    break;
+                }
+            }
+        }
+
+        Ok(TdsToken::FedAuth(TokenFedAuth { options }))
     }
 }
 

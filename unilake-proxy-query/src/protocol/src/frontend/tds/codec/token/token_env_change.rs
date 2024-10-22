@@ -98,55 +98,6 @@ impl TokenEnvChange {
 }
 
 impl TdsTokenCodec for TokenEnvChange {
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
-        let len = src.get_u16_le() as usize;
-
-        // We read all the bytes now, due to whatever environment change tokens
-        // we read, they might contain padding zeroes in the end we must
-        // discard.
-        let mut buf = src.split_to(len);
-        let ty_byte = buf.get_u8();
-        let ty = EnvChangeType::try_from(ty_byte)
-            .map_err(|_| Error::Protocol(format!("invalid envchange type {:x}", ty_byte).into()))?;
-
-        let token = match ty {
-            EnvChangeType::Database | EnvChangeType::PacketSize => {
-                let new_value = decode::read_b_varchar(&mut buf)?;
-                let old_value = decode::read_b_varchar(&mut buf)?;
-
-                TokenEnvChange::Database(new_value, old_value)
-            }
-            EnvChangeType::BeginTransaction | EnvChangeType::EnlistDTCTransaction => {
-                let len = buf.get_u8();
-                assert_eq!(len, 8);
-
-                let mut desc = [0; 8];
-                buf.put_and_advance(&mut desc)?;
-
-                TokenEnvChange::BeginTransaction(desc)
-            }
-            EnvChangeType::CommitTransaction => TokenEnvChange::CommitTransaction,
-            EnvChangeType::RollbackTransaction => TokenEnvChange::RollbackTransaction,
-            EnvChangeType::DefectTransaction => TokenEnvChange::DefectTransaction,
-            EnvChangeType::Routing => {
-                buf.get_u16_le(); // routing data value length
-                buf.get_u8(); // routing protocol, always 0 (tcp)
-
-                let port = buf.get_u16_le();
-                let host = decode::read_us_varchar(&mut buf)?;
-
-                TokenEnvChange::Routing { host, port }
-            }
-            EnvChangeType::Rtls => {
-                let mirror_name = decode::read_b_varchar(&mut buf)?;
-                TokenEnvChange::ChangeMirror(mirror_name)
-            }
-            ty => TokenEnvChange::Ignored(ty),
-        };
-
-        Ok(TdsToken::EnvChange(token))
-    }
-
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::EnvChange as u8);
 
@@ -206,6 +157,55 @@ impl TdsTokenCodec for TokenEnvChange {
         dest.extend_from_slice(&buff);
 
         Ok(())
+    }
+
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+        let len = src.get_u16_le() as usize;
+
+        // We read all the bytes now, due to whatever environment change tokens
+        // we read, they might contain padding zeroes in the end we must
+        // discard.
+        let mut buf = src.split_to(len);
+        let ty_byte = buf.get_u8();
+        let ty = EnvChangeType::try_from(ty_byte)
+            .map_err(|_| Error::Protocol(format!("invalid envchange type {:x}", ty_byte).into()))?;
+
+        let token = match ty {
+            EnvChangeType::Database | EnvChangeType::PacketSize => {
+                let new_value = decode::read_b_varchar(&mut buf)?;
+                let old_value = decode::read_b_varchar(&mut buf)?;
+
+                TokenEnvChange::Database(new_value, old_value)
+            }
+            EnvChangeType::BeginTransaction | EnvChangeType::EnlistDTCTransaction => {
+                let len = buf.get_u8();
+                assert_eq!(len, 8);
+
+                let mut desc = [0; 8];
+                buf.put_and_advance(&mut desc)?;
+
+                TokenEnvChange::BeginTransaction(desc)
+            }
+            EnvChangeType::CommitTransaction => TokenEnvChange::CommitTransaction,
+            EnvChangeType::RollbackTransaction => TokenEnvChange::RollbackTransaction,
+            EnvChangeType::DefectTransaction => TokenEnvChange::DefectTransaction,
+            EnvChangeType::Routing => {
+                buf.get_u16_le(); // routing data value length
+                buf.get_u8(); // routing protocol, always 0 (tcp)
+
+                let port = buf.get_u16_le();
+                let host = decode::read_us_varchar(&mut buf)?;
+
+                TokenEnvChange::Routing { host, port }
+            }
+            EnvChangeType::Rtls => {
+                let mirror_name = decode::read_b_varchar(&mut buf)?;
+                TokenEnvChange::ChangeMirror(mirror_name)
+            }
+            ty => TokenEnvChange::Ignored(ty),
+        };
+
+        Ok(TdsToken::EnvChange(token))
     }
 }
 

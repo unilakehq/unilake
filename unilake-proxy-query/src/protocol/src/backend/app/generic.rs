@@ -40,7 +40,7 @@ pub(crate) fn process_static(hash: u64, req: &FederatedRequestType) -> Option<Fe
     // toreturn
 }
 
-fn server_edition(req: &BatchRequest) -> FedResultStream {
+fn server_edition(_req: &BatchRequest) -> FedResultStream {
     let stream = stream! {
     let result_set = ResultSetBuilder::new()
         .add_column(
@@ -118,7 +118,7 @@ fn backup_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn database_size_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn database_size_info(_: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("name"),
@@ -147,14 +147,14 @@ fn database_size_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn context_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn context_info(_: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_nvarchar(100), DataFlags::default())
         .add_row(&[ColumnData::String(SqlString::from_string(None, 100))]);
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn databases(req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn databases(_: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("name"),
@@ -168,7 +168,7 @@ fn databases(req: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn session_properties(req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn session_properties(_: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
@@ -177,7 +177,7 @@ fn session_properties(req: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn hello_world(req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn hello_world(_: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(Some("Hello"), TypeInfo::new_bit(), DataFlags::default())
         .add_column(Some("World"), TypeInfo::new_bit(), DataFlags::default())
@@ -185,7 +185,7 @@ fn hello_world(req: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn engine_edition(req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn engine_edition(_: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_column(None, TypeInfo::new_nvarchar(100), DataFlags::default())

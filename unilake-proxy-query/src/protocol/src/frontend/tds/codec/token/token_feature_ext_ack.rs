@@ -32,6 +32,26 @@ impl FeatureAck {
 }
 
 impl TdsTokenCodec for TokenFeatureExtAck {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+        dest.put_u8(TdsTokenType::FeatureExtAck as u8);
+        for item in self.features.iter() {
+            match item {
+                FeatureAck::FedAuth(s) => match s {
+                    FedAuthAck::SecurityToken { nonce } => {
+                        dest.put_u8(FeatureExt::FedAuth as u8);
+                        let len = nonce.as_ref().unwrap().len();
+                        dest.put_u32_le(len as u32);
+                        dest.put_slice(nonce.as_ref().unwrap());
+                    }
+                },
+                _ => unimplemented!("unsupported feature {:?}", item),
+            }
+        }
+
+        dest.put_u8(FeatureExt::Terminator as u8);
+        Ok(())
+    }
+
     fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let mut features = Vec::new();
         loop {
@@ -58,26 +78,6 @@ impl TdsTokenCodec for TokenFeatureExtAck {
         }
 
         Ok(TdsToken::FeatureExtAck(TokenFeatureExtAck { features }))
-    }
-
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
-        dest.put_u8(TdsTokenType::FeatureExtAck as u8);
-        for item in self.features.iter() {
-            match item {
-                FeatureAck::FedAuth(s) => match s {
-                    FedAuthAck::SecurityToken { nonce } => {
-                        dest.put_u8(FeatureExt::FedAuth as u8);
-                        let len = nonce.as_ref().unwrap().len();
-                        dest.put_u32_le(len as u32);
-                        dest.put_slice(nonce.as_ref().unwrap());
-                    }
-                },
-                _ => unimplemented!("unsupported feature {:?}", item),
-            }
-        }
-
-        dest.put_u8(FeatureExt::Terminator as u8);
-        Ok(())
     }
 }
 
