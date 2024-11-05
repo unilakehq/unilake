@@ -193,7 +193,7 @@ impl PolicyHitManager {
 
             let prio = match name {
                 // highly constraint
-                "hidden" => 0, // todo: technically hidden column is also a form of masking, check how to add
+                "hidden" => 0,
                 "replace_null" => 10,
                 "replace_string" => 20,
                 "replace_char" => 30,

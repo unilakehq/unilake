@@ -56,7 +56,6 @@ impl TokenError {
 
 /// A unified error enum that contains several errors that might occur during
 /// the lifecycle of this codec
-// todo(mrhamburg): give these a nice spot
 #[derive(Error, Debug)]
 pub enum TdsWireError {
     #[error("Protocol error: {}", _0)]

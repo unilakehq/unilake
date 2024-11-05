@@ -486,7 +486,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         let mut query_handler = QueryHandler::new();
         let query = query_handler
             // todo(mrhamburg): properly bring back dialect, catalog and database here
-            .handle_query(&msg.query, "", "", "")
+            .handle_query(&msg.query, "tsql", "default_catalog", "dwh")
             .ok()
             // todo(mrhamburg): implement error handling, remove unwraps or oks
             .unwrap()

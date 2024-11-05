@@ -9,12 +9,10 @@ publish = { workspace = true }
 
 [dependencies]
 # internal
-unilake-sql = { workspace = true }
 unilake-common = { workspace = true }
 unilake-security = { workspace = true }
 
 # crates
-xxhash-rust = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 async-stream = { workspace = true }
@@ -24,7 +22,6 @@ byteorder = { workspace = true }
 uuid = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-string_enum = { workspace = true }
 tokio-util = { workspace = true }
 tokio-rustls = { workspace = true }
 derive-new = { workspace = true }
