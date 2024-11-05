@@ -3,8 +3,10 @@ use crate::frontend::TokenError;
 use crate::session::{
     SessionInfo, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE, SESSION_VARIABLE_DIALECT,
 };
+use std::sync::Arc;
 use unilake_sql::{
-    run_scan_operation, run_transpile_operation, ParserError, ScanOutput, TranspilerInput,
+    run_scan_operation, run_secure_operation, run_transpile_operation, ParserError, ScanOutput,
+    TranspilerInput,
 };
 
 // TODO: implementation of the main PDP functionality
@@ -54,8 +56,10 @@ impl From<ParserError> for QueryHandlerError {
 pub struct QueryHandler {
     scan_output: Option<ScanOutput>,
     transpiler_input: Option<TranspilerInput>,
-    output_query: Option<String>,
-    output_query_secured: Option<String>,
+    output_query: Option<Arc<str>>,
+    output_query_secured: Option<Arc<str>>,
+    input_query_secured: Option<Arc<str>>,
+    input_query: Option<Arc<str>>,
 }
 
 impl QueryHandler {
@@ -65,6 +69,8 @@ impl QueryHandler {
             transpiler_input: None,
             output_query: None,
             output_query_secured: None,
+            input_query_secured: None,
+            input_query: None,
         }
     }
 
@@ -129,6 +135,7 @@ impl QueryHandler {
             return Ok(query_result);
         }
 
+        self.input_query = Some(Arc::from(query.to_string()));
         let scan_output = self.scan(query, session_info)?;
         // todo(mrhamburg): pdp has state and caching and all, needs to be improved
         let pdp = QueryPolicyDecision::new();
@@ -137,7 +144,7 @@ impl QueryHandler {
 
         self.scan_output = Some(scan_output);
         self.transpiler_input = Some(transpiler_input);
-        self.output_query = Some(output_query);
+        self.output_query = Some(Arc::from(output_query));
 
         Ok(self.output_query.as_ref().unwrap())
     }
@@ -155,18 +162,33 @@ impl QueryHandler {
         Ok(transpiler_output.sql_transformed)
     }
 
-    pub fn secure_query(&mut self) -> Result<&str, QueryHandlerError> {
+    pub fn secure_output_query(&mut self) -> Result<&str, QueryHandlerError> {
         // You can only secure a query once
-        if let Some(ref output_query) = self.output_query_secured {
-            return Ok(output_query);
+        if let Some(ref output_query_secured) = self.output_query_secured {
+            return Ok(output_query_secured);
         } else if let Some(ref transpiler_input) = self.transpiler_input {
-            self.output_query_secured = Some(self.transpile_query(transpiler_input, true)?);
+            self.output_query_secured =
+                Some(Arc::from(self.transpile_query(transpiler_input, true)?));
         }
 
         Ok(self.output_query_secured.as_ref().unwrap())
     }
+
+    pub fn secure_input_query(&mut self) -> Result<&str, QueryHandlerError> {
+        // You can only secure an input query once
+        if let Some(ref input_query_secured) = self.input_query_secured {
+            return Ok(input_query_secured);
+        }
+
+        self.input_query_secured = Some(Arc::from(
+            run_secure_operation(self.input_query.as_ref().unwrap().as_ref())
+                .map_err(|e| TdsWireError::Protocol(e.to_string()))?,
+        ));
+        Ok(self.input_query_secured.as_ref().unwrap())
+    }
 }
 
+// TODO: implement instead of PolicyManager?
 struct QueryPolicyDecision {}
 
 impl QueryPolicyDecision {

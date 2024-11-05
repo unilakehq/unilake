@@ -24,3 +24,6 @@ def transpile(source: str | dict | TranspilerInput, secure_output: bool = False)
     except Exception as e:
         parser_error = ParserError(type="INTERNAL_ERROR", message=str(e), errors=[])
         return TranspilerOutput.from_parser_error(parser_error)
+
+def secure_query(sql: str, dialect: str, catalog: str, database: str) -> str:
+    pass

@@ -50,6 +50,25 @@ pub fn run_transpile_operation(
     })
 }
 
+pub fn run_secure_operation(input: &str) -> PyResult<String> {
+    pyo3::prepare_freethreaded_python();
+    let start_time = std::time::Instant::now();
+    Python::with_gil(|py| {
+        let builtins = PyModule::import_bound(py, "sqlparser").unwrap();
+        let result = builtins
+            .getattr("secure_query")
+            .unwrap()
+            // todo(mrhamburg): properly unwrap serde_json to avoid panic
+            .call1((input,))
+            .unwrap();
+
+        let elapsed_time = std::time::Instant::now().duration_since(start_time);
+        println!("Elapsed time [Secure]: {:?}", elapsed_time);
+
+        Ok(result.extract::<String>()?)
+    })
+}
+
 impl<'py> FromPyObject<'py> for ScanOutput {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(ScanOutput {
@@ -139,21 +158,25 @@ impl VisibleSchemaBuilder {
             catalog: HashMap::new(),
         }
     }
+
     fn get_or_add_catalog(&mut self, name: String) -> &mut Catalog {
         self.catalog
             .entry(name)
             .or_insert(Catalog { db: HashMap::new() })
     }
+
     fn get_or_add_database(catalog: &mut Catalog, name: String) -> &mut Database {
         catalog.db.entry(name).or_insert(Database {
             table: HashMap::new(),
         })
     }
+
     fn get_or_add_table(database: &mut Database, name: String) -> &mut Table {
         database.table.entry(name).or_insert(Table {
             columns: HashMap::new(),
         })
     }
+
     fn get_or_add_column(table: &mut Table, name: String, data_type: String) -> &mut Table {
         table.columns.entry(name).or_insert(data_type);
         table
