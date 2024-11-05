@@ -63,6 +63,7 @@ casbin = { git = "https://github.com/mrhamburg/casbin-rs.git", branch = "mrhambu
 backon = { version = "1.2.0" }
 moka = { version = "0.12.8", features = ["future"] }
 redis = { version = "0.27.5", features = ["futures", "tokio", "aio", "tokio-comp"] }
+base64 = "0.22.1"
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.
