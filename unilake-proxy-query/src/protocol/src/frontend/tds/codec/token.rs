@@ -17,7 +17,6 @@ mod token_type;
 pub use token_col_metadata::*;
 pub use token_done::*;
 pub use token_env_change::*;
-pub use token_error::*;
 pub use token_feature_ext_ack::*;
 pub use token_fed_auth::*;
 pub use token_info::*;
@@ -37,7 +36,7 @@ use tokio_util::bytes::BytesMut;
 pub enum TdsToken {
     Done(TokenDone),
     EnvChange(TokenEnvChange),
-    Error(TokenError),
+    Error(unilake_common::error::TokenError),
     Info(TokenInfo),
     Order(TokenOrder),
     FeatureExtAck(TokenFeatureExtAck),
@@ -100,7 +99,7 @@ macro_rules! impl_into_tdstoken {
 impl_into_tdstoken!(TokenInfo, TdsToken::Info);
 impl_into_tdstoken!(TokenDone, TdsToken::Done);
 impl_into_tdstoken!(TokenEnvChange, TdsToken::EnvChange);
-impl_into_tdstoken!(TokenError, TdsToken::Error);
+impl_into_tdstoken!(unilake_common::error::TokenError, TdsToken::Error);
 impl_into_tdstoken!(TokenOrder, TdsToken::Order);
 impl_into_tdstoken!(TokenFeatureExtAck, TdsToken::FeatureExtAck);
 impl_into_tdstoken!(TokenColMetaData, TdsToken::ColMetaData);

@@ -2360,30 +2360,42 @@ dependencies = [
 ]
 
 [[package]]
-name = "unilake-common-policyengine"
+name = "unilake-common"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
 
 [[package]]
-name = "unilake-proxy-query-protocol"
+name = "unilake-endpoint"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "mysql_async",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "unilake-protocol",
+]
+
+[[package]]
+name = "unilake-protocol"
 version = "0.1.0"
 dependencies = [
  "async-stream",
  "async-trait",
- "base64 0.22.1",
  "bigdecimal",
  "byteorder",
- "casbin",
  "chrono",
  "derive-new",
  "encoding",
  "enumflags2",
  "futures",
- "moka",
  "mysql_async",
  "rand",
- "redis",
- "serde",
- "serde_json",
  "string_enum",
  "thiserror",
  "tokio",
@@ -2392,9 +2404,28 @@ dependencies = [
  "tokio-util",
  "tracing",
  "ulid",
+ "unilake-common",
+ "unilake-security",
  "unilake-sql",
  "uuid",
  "xxhash-rust",
+]
+
+[[package]]
+name = "unilake-security"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.22.1",
+ "casbin",
+ "chrono",
+ "moka",
+ "redis",
+ "serde",
+ "serde_json",
+ "tokio",
+ "unilake-common",
+ "unilake-sql",
 ]
 
 [[package]]
@@ -2404,19 +2435,6 @@ dependencies = [
  "pyo3",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "unilake-sql-endpoint"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures",
- "mysql_async",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "unilake-proxy-query-protocol",
 ]
 
 [[package]]

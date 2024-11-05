@@ -3,7 +3,6 @@ use crate::frontend::{
     tds::server_context::ServerContext,
     BatchRequest, LoginMessage, PreloginMessage, TdsBackendResponse, TdsMessage, TdsToken,
 };
-use crate::security::handler::QueryHandler;
 use crate::session::{DefaultSession, SessionInfo};
 use async_trait::async_trait;
 use futures::{Sink, SinkExt};
@@ -17,6 +16,7 @@ use std::{
 };
 use tokio::{sync::Semaphore, time::sleep};
 use ulid::Ulid;
+use unilake_security::handler::QueryHandler;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {

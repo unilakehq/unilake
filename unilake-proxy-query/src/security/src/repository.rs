@@ -1,6 +1,6 @@
 // TODO: implementation for acquiring policy information (PIP)
 // Note: use backon for resilience
-use crate::security::model::{GroupModel, ObjectModel, UserModel};
+use unilake_common::model::{GroupModel, ObjectModel, UserModel};
 
 pub struct RepoRest {
     api_endpoint: String,

@@ -3,9 +3,11 @@ use tokio_util::bytes::{Buf, BytesMut};
 use crate::frontend::error::{TdsWireError, TdsWireResult};
 
 use super::{
-    TdsMessageCodec, TdsToken, TdsTokenCodec, TdsTokenType, TokenColMetaData, TokenError,
-    TokenInfo, TokenLoginAck, TokenOrder, TokenReturnValue,
+    TdsMessageCodec, TdsToken, TdsTokenCodec, TdsTokenType, TokenColMetaData, TokenInfo,
+    TokenLoginAck, TokenOrder, TokenReturnValue,
 };
+
+use unilake_common::error::TokenError;
 
 #[derive(Debug)]
 pub struct ResponseMessage {

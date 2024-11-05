@@ -1,5 +1,5 @@
 [package]
-name = "unilake-proxy-query-protocol"
+name = "unilake-protocol"
 version = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
@@ -8,6 +8,12 @@ repository = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]
+# internal
+unilake-sql = { workspace = true }
+unilake-common = { workspace = true }
+unilake-security = { workspace = true }
+
+# crates
 xxhash-rust = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
@@ -29,10 +35,3 @@ ulid = { workspace = true }
 mysql_async = { workspace = true }
 chrono = { workspace = true }
 bigdecimal = { workspace = true }
-unilake-sql = { workspace = true }
-casbin = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-moka = { workspace = true }
-redis = { workspace = true }
-base64 = { workspace = true }

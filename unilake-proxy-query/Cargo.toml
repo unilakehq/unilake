@@ -11,16 +11,18 @@ publish = false
 resolver = "2"
 members = [
     "src/protocol",
-    "src/common/policyengine",
+    "src/common",
     "src/sql",
     "src/endpoint",
+    "src/security",
 ]
 
 [workspace.dependencies]
 # Workspace dependencies
-unilake-proxy-query-protocol = { path = "src/protocol" }
-unilake-common-policyengine = { path = "src/common/policyengine" }
+unilake-protocol = { path = "src/protocol" }
+unilake-common = { path = "src/common" }
 unilake-sql = { path = "src/sql" }
+unilake-security = { path = "src/security" }
 
 # Crates.io dependencies
 xxhash-rust = { version = "0.8.12", features = ["xxh3"] }

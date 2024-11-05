@@ -1,47 +1,8 @@
 use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::{Result, TdsTokenCodec};
 use crate::frontend::{TdsToken, TdsTokenType};
-use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-
-/// Error token [2.2.7.10]
-/// Used to send an error message to the client.
-#[derive(Clone, Debug)]
-pub struct TokenError {
-    /// ErrorCode
-    pub code: u32,
-    /// ErrorState (describing code)
-    pub state: u8,
-    /// The class (severity) of the error
-    pub class: u8,
-    /// The error message
-    pub message: String,
-    pub server: String,
-    pub procedure: String,
-    pub line: u32,
-}
-
-impl TokenError {
-    pub fn new(
-        code: u32,
-        state: u8,
-        class: u8,
-        message: String,
-        server: String,
-        procedure: String,
-        line: u32,
-    ) -> TokenError {
-        TokenError {
-            code,
-            state,
-            class,
-            message,
-            server,
-            procedure,
-            line,
-        }
-    }
-}
+use unilake_common::error::TokenError;
 
 impl TdsTokenCodec for TokenError {
     fn encode(&self, dest: &mut BytesMut) -> Result<()> {
@@ -90,16 +51,6 @@ impl TdsTokenCodec for TokenError {
         };
 
         Ok(TdsToken::Error(token))
-    }
-}
-
-impl fmt::Display for TokenError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "'{}' on server {} executing {} on line {} (code: {}, state: {}, class: {})",
-            self.message, self.server, self.procedure, self.line, self.code, self.state, self.class
-        )
     }
 }
 

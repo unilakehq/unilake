@@ -1,6 +1,5 @@
 use crate::frontend::prot::{ServerInstance, TdsSessionState};
 use crate::frontend::tds::server_context::ServerContext;
-use crate::security::context::ConnectionContext;
 use crate::session::{
     SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE,
     SESSION_VARIABLE_DIALECT,
@@ -9,6 +8,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use ulid::Ulid;
+use unilake_security::context::ConnectionContext;
 
 pub struct StarRocksSession {
     socket_addr: SocketAddr,

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+//todo(mrhamburg): check with the model we already have for the context, perhaps change to that and alter implementations
 pub struct ConnectionContext {
     pub user_id: Arc<str>,
     pub role: Option<Arc<str>>,

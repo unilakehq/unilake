@@ -11,10 +11,9 @@ use crate::frontend::{
     prot::{ServerInstance, TdsWireHandlerFactory},
     tds::server_context::ServerContext,
     BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
-    TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
-    TokenPreLoginFedAuthRequiredOption, TokenRow,
+    TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck, TokenPreLoginFedAuthRequiredOption,
+    TokenRow,
 };
-use crate::security::handler::QueryHandler;
 use crate::session::SessionInfo;
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
@@ -24,6 +23,8 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 use ulid::Ulid;
+use unilake_common::error::TokenError;
+use unilake_security::handler::QueryHandler;
 
 /// Acts like a wrapper around a mysql connection pool for StarRocks.
 struct StarRocksPool {
@@ -194,6 +195,32 @@ pub struct StarRocksTdsHandlerFactory {
     inner: StarRocksTdsHandlerFactoryInnnerState,
 }
 
+// impl From<ParserError> for TokenError {
+//     fn from(value: ParserError) -> Self {
+//         if let Some(value) = value.errors.first() {
+//             TokenError {
+//                 line: value.line as u32,
+//                 code: 0,
+//                 message: value.description.to_string(),
+//                 class: 0,
+//                 procedure: "".to_string(),
+//                 server: "".to_string(),
+//                 state: 0,
+//             }
+//         } else {
+//             TokenError {
+//                 code: 0,
+//                 state: 0,
+//                 class: 0,
+//                 message: value.message,
+//                 server: "".to_string(),
+//                 procedure: "".to_string(),
+//                 line: 0,
+//             }
+//         }
+//     }
+// }
+
 impl StarRocksTdsHandlerFactory {
     pub fn new(server_instance: Arc<ServerInstance>) -> Self {
         StarRocksTdsHandlerFactory {
@@ -214,7 +241,8 @@ impl StarRocksTdsHandlerFactory {
             "".to_string(),
             0,
         );
-        self.send_token(client, error_token).await?;
+        // todo(mrhamburg): fix this
+        // self.send_token(client, error_token).await?;
         self.send_token(client, TokenDone::new_error(0)).await?;
         Ok(())
     }
@@ -457,7 +485,8 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         let cancellation_token = CancellationToken::new();
         let mut query_handler = QueryHandler::new();
         let query = query_handler
-            .handle_query(&msg.query, client)
+            // todo(mrhamburg): properly bring back dialect, catalog and database here
+            .handle_query(&msg.query, "", "", "")
             .ok()
             // todo(mrhamburg): implement error handling, remove unwraps or oks
             .unwrap()

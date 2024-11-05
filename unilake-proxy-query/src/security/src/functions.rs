@@ -121,13 +121,13 @@ fn time_between(t: ImmutableString, from: INT, to: INT) -> INT {
 
 #[cfg(test)]
 mod tests {
-    use crate::security::functions::add_functions;
-    use crate::security::model::{
-        AccountType, GroupInstance, GroupModel, ObjectModel, SessionModel, UserModel,
-    };
+    use crate::functions::add_functions;
     use casbin::rhai;
     use casbin::rhai::serde::to_dynamic;
     use casbin::rhai::{Scope, INT};
+    use unilake_common::model::{
+        AccountType, GroupInstance, GroupModel, ObjectModel, SessionModel, UserModel,
+    };
 
     #[test]
     fn test_tag_exists_static_object() {

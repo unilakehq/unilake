@@ -1,10 +1,11 @@
 use crate::frontend::error::TdsWireResult;
 use crate::frontend::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::frontend::utils::ReadAndAdvance;
-use crate::frontend::{Error, TdsMessage, TdsMessageCodec, TokenError};
+use crate::frontend::{Error, TdsMessage, TdsMessageCodec};
 use byteorder::{ByteOrder, LittleEndian};
 use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TokenError;
 
 /// SQLBatch Message [2.2.6.7]
 #[derive(Debug)]

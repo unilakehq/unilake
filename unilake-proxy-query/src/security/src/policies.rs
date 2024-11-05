@@ -193,6 +193,7 @@ impl PolicyHitManager {
 
             let prio = match name {
                 // highly constraint
+                "hidden" => 0, // todo: technically hidden column is also a form of masking, check how to add
                 "replace_null" => 10,
                 "replace_string" => 20,
                 "replace_char" => 30,
@@ -313,7 +314,7 @@ impl Logger for PolicyLogger {
 
 #[cfg(test)]
 mod tests {
-    use crate::security::policies::{
+    use crate::policies::{
         PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
     };
     use casbin::Logger;
