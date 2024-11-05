@@ -1,6 +1,7 @@
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use casbin::{Cache, EventData, Logger};
+use std::cmp::PartialEq;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
@@ -24,9 +25,11 @@ pub(crate) struct HitRule {
     rules: Vec<String>,
 }
 
+#[derive(PartialEq)]
 pub enum PolicyType {
     MaskingRule,
     FilterRule,
+    None,
 }
 
 pub struct PolicyFound {
@@ -167,8 +170,72 @@ impl PolicyHitManager {
                 return Ok((Some(name.clone()), PolicyType::MaskingRule));
             }
             return Err("policy name is not a string".to_string());
+        } else if let Some(_) = rule_definition.get("expression") {
+            return Ok((None, PolicyType::FilterRule));
         }
-        Ok((None, PolicyType::FilterRule))
+        Ok((None, PolicyType::None))
+    }
+
+    pub fn resolve_masking_policy_conflict(
+        policies: &Vec<PolicyFound>,
+        prio_stricter: bool,
+    ) -> Option<&PolicyFound> {
+        let mut chosen = (if prio_stricter { u16::MAX } else { u16::MIN }, None);
+        for policy in policies
+            .iter()
+            .filter(|policy| policy.policy_type == PolicyType::MaskingRule)
+        {
+            let name = policy
+                .policy_name
+                .as_ref()
+                .map(|s| s.as_str())
+                .unwrap_or("");
+
+            let prio = match name {
+                // highly constraint
+                "replace_null" => 10,
+                "replace_string" => 20,
+                "replace_char" => 30,
+
+                // masking based
+                "xxhash3" => 110,
+                "mask_except_last" => 120,
+                "mask_except_first" => 130,
+
+                // Masking with preserving information
+                "ip_anonymize" => 210,
+                "mail_hash_pres" => 220,
+                "mail_mask_pres" => 230,
+                "cc_hash_pres" => 240,
+                "cc_mask_pres" => 250,
+                "cc_last_four" => 260,
+                "ip_hash_pres" => 270,
+                "ip_mask_pres" => 280,
+                "mail_mask_username" => 290,
+                "mail_mask_domain" => 291,
+
+                // Somewhat constraint
+                "left" => 310,
+                "right" => 320,
+
+                // Randomized
+                "random_number" => 410,
+                "random_multiplication" => 420,
+
+                // less constraint
+                "rounding" => 510,
+                "date_year_only" => 520,
+                "date_month_only" => 530,
+                &_ => continue,
+            };
+
+            if prio < chosen.0 && prio_stricter {
+                chosen = (prio, Some(policy));
+            } else if prio > chosen.0 && !prio_stricter {
+                chosen = (prio, Some(policy));
+            }
+        }
+        chosen.1
     }
 }
 
@@ -246,7 +313,9 @@ impl Logger for PolicyLogger {
 
 #[cfg(test)]
 mod tests {
-    use crate::security::policies::{PolicyCollectResult, PolicyHitManager, PolicyLogger};
+    use crate::security::policies::{
+        PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
+    };
     use casbin::Logger;
 
     #[test]
@@ -261,7 +330,7 @@ mod tests {
             hits.push(hit);
         }
 
-        assert_eq!(hits.len(), 4);
+        assert_eq!(hits.len(), 6);
     }
 
     #[test]
@@ -273,10 +342,33 @@ mod tests {
             send_test_data(logger);
         }
 
+        let start = std::time::Instant::now();
         let results = sut.process_hits().unwrap();
+        let end = std::time::Instant::now();
+        println!("Processing hits took: {:?}", end.duration_since(start));
         if let PolicyCollectResult::Found(policies) = results {
-            assert_eq!(policies.len(), 2);
+            assert_eq!(policies.len(), 3);
+        } else {
+            panic!("Expected PolicyCollectResult::Found");
         }
+    }
+
+    #[test]
+    fn test_policy_conflict_precedent_loosely() {
+        let items = get_test_data_policies_found();
+        let found = PolicyHitManager::resolve_masking_policy_conflict(&items, false);
+        assert!(found.is_some());
+        let found = found.unwrap();
+        assert_eq!(found.policy_id, "2");
+    }
+
+    #[test]
+    fn test_policy_conflict_precedent_strict() {
+        let items = get_test_data_policies_found();
+        let found = PolicyHitManager::resolve_masking_policy_conflict(&items, true);
+        assert!(found.is_some());
+        let found = found.unwrap();
+        assert_eq!(found.policy_id, "0");
     }
 
     fn send_test_data(mut logger: PolicyLogger) {
@@ -302,5 +394,38 @@ mod tests {
         ];
         logger.print_enforce_log(&rvals, true, false);
         logger.print_explain_log(&rvals, vec!["p, some.*, TagExists(r.user, \"Hello\") && 1 == 1 && TagExists(r.group, \"Something\"), allow, eyJleHByZXNzaW9uIjogIj8gPCAxMDAwIn0=, policy_id_2".to_string()]);
+
+        // Allow example
+        let rvals = vec![
+            r##"#{"accountType": "User", "id": "some_id", "principalName": "alice", "role": "", "tags": ["pii::username", "pii::email"]}"##.to_string(),
+            r##"#{"entityVersion": 0, "groups": [#{"id": "some_id", "tags": ["pii::username", "pii::email"]}], "userId": "some_id"}"##.to_string(),
+            r##"#{"appDriver": "", "appId": 0, "appName": "", "appType": "", "branch": "", "computeId": "", "continent": "", "countryIso2": "", "dayOfWeek": 0, "domainId": "", "id": "some_id", "policyId": "", "sourceIpv4": "", "time": 0, "timezone": "", "workspaceId": ""}"##.to_string(),
+            r##"#{"full_name": "some.schema.column", "id": "allow_object_id", "is_aggregated": false, "last_time_accessed": 0, "tags": ["pii::username", "pii::email"]}"##.to_string()
+        ];
+        logger.print_enforce_log(&rvals, true, false);
+        logger.print_explain_log(&rvals, vec!["p, some.*, TagExists(r.user, \"Hello\") && 1 == 1 && TagExists(r.group, \"Something\"), allow, e30=, policy_id_2".to_string()]);
+    }
+
+    fn get_test_data_policies_found() -> Vec<PolicyFound> {
+        vec![
+            PolicyFound {
+                policy_id: "0".to_string(),
+                policy_name: Some("xxhash3".to_string()),
+                policy_type: PolicyType::MaskingRule,
+                rule_definition: serde_json::value::Value::Null,
+            },
+            PolicyFound {
+                policy_id: "1".to_string(),
+                policy_name: Some("mail_mask_username".to_string()),
+                policy_type: PolicyType::MaskingRule,
+                rule_definition: serde_json::value::Value::Null,
+            },
+            PolicyFound {
+                policy_id: "2".to_string(),
+                policy_name: Some("random_number".to_string()),
+                policy_type: PolicyType::MaskingRule,
+                rule_definition: serde_json::value::Value::Null,
+            },
+        ]
     }
 }
