@@ -1,0 +1,25 @@
+[package]
+name = "unilake-security"
+description.workspace = true
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+# internal
+unilake-common = { workspace = true }
+unilake-sql = { workspace = true }
+
+# crates
+casbin = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+moka = { workspace = true }
+redis = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
