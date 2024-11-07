@@ -198,28 +198,6 @@ def _transform_mask(node: exp.Column, scope_id: int, rule_lookup: dict):
             node_str = exp.to_column(node_str)
             value_lit = exp.Literal(this=found["properties"]["value"], is_string=False)
             return exp.func("round", node_str, value_lit, dialect=OUTPUT_DIALECT)
-        case "random_number":
-            # floor((max-min+1) * rand()+min)
-            min_lit = exp.Literal(this=found["properties"]["min"], is_string=False)
-            max_lit = exp.Literal(this=found["properties"]["max"], is_string=False)
-            one_lit = exp.Literal(this="1", is_string=False)
-            return exp.Floor(
-                this=exp.Add(
-                    this=exp.Mul(
-                        this=exp.Paren(
-                            this=exp.Add(
-                                this=exp.Sub(this=max_lit, expression=min_lit), expression=one_lit
-                            )
-                        ),
-                        expression=exp.Rand(),
-                    ),
-                    expression=min_lit,
-                )
-            )
-        case "random_multiplication":
-            # rand()*x
-            max_lit = exp.Literal(this=found["properties"]["max"], is_string=False)
-            return exp.Mul(this=exp.Rand(), expression=max_lit, dialect=OUTPUT_DIALECT)
         case "left":
             # left('hello', 3)
             return exp.func("left", node, found["properties"]["len"], dialect=OUTPUT_DIALECT)
@@ -380,6 +358,9 @@ def _transform_mask(node: exp.Column, scope_id: int, rule_lookup: dict):
                 ],
                 dialect=OUTPUT_DIALECT,
             )
+        case "custom":
+            # todo, allow for a custom masking rule (sql function)
+            return node
         case "semi_structured":
             # TODO, would be nice to have a way to mask or hash semi-structured data
             return node

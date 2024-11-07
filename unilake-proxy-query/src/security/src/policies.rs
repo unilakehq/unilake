@@ -203,7 +203,7 @@ impl PolicyHitManager {
                 "mask_except_last" => 120,
                 "mask_except_first" => 130,
 
-                // Masking with preserving information
+                // masking with preserving information
                 "ip_anonymize" => 210,
                 "mail_hash_pres" => 220,
                 "mail_mask_pres" => 230,
@@ -215,18 +215,17 @@ impl PolicyHitManager {
                 "mail_mask_username" => 290,
                 "mail_mask_domain" => 291,
 
-                // Somewhat constraint
+                // somewhat constraint
                 "left" => 310,
                 "right" => 320,
 
-                // Randomized
-                "random_number" => 410,
-                "random_multiplication" => 420,
-
                 // less constraint
-                "rounding" => 510,
-                "date_year_only" => 520,
-                "date_month_only" => 530,
+                "rounding" => 410,
+                "date_year_only" => 420,
+                "date_month_only" => 430,
+
+                // unknown constraint level
+                "custom" => 999,
                 &_ => continue,
             };
 
