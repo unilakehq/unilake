@@ -116,6 +116,7 @@ class ScanOutputObject:
         }
 
 
+# todo: scan output can also include internal commands, we need to pass them from the scan operation (expand ScanOutput)
 @dataclass
 class ScanOutput:
     objects: list[ScanOutputObject]

@@ -4,7 +4,6 @@ from build.lib.sqlparser.data import TranspilerInput
 from sqlparser.data import ScanOutput, TranspilerOutput, ErrorMessage, ParserError
 from sqlparser.transpiler import inner_scan, inner_transpile
 
-
 def scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutput:
     try:
         return transpiler.inner_scan(sql, dialect, catalog, database)

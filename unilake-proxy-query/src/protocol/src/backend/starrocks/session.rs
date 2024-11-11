@@ -26,10 +26,17 @@ pub struct StarRocksSession {
     branch_name: Arc<str>,
     compute_id: Arc<str>,
     endpoint: Arc<str>,
+    // conn: Arc<RwLock<Conn>>,
+    // cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
 }
 
 impl StarRocksSession {
-    pub fn new(socket_addr: SocketAddr, instance: Arc<ServerInstance>) -> Self {
+    pub fn new(
+        socket_addr: SocketAddr,
+        instance: Arc<ServerInstance>,
+        // conn: Arc<RwLock<Conn>>,
+        // cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+    ) -> Self {
         StarRocksSession {
             socket_addr,
             packet_size: instance.ctx.packet_size,
@@ -46,6 +53,8 @@ impl StarRocksSession {
             branch_name: Arc::from(""),
             compute_id: Arc::from(""),
             endpoint: Arc::from(""),
+            // conn,
+            // cached_rules,
         }
     }
 

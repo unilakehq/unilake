@@ -341,6 +341,8 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         socket_addr: &SocketAddr,
         instance_info: Arc<ServerInstance>,
     ) -> Result<StarRocksSession, TdsWireError> {
+        // todo(mrhamburg): can't we store the starrocks connection here instead? So we dont have to move it around and coordinate access
+        // todo(mrhamburg): set cache for policies (Box<dyn Cache<u64, (String, HitRule)>>)
         tracing::info!("New session for: {}", socket_addr);
         Ok(StarRocksSession::new(
             socket_addr.clone(),

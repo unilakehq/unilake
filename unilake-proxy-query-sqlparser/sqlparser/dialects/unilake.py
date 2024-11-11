@@ -46,6 +46,7 @@ class Unilake(Dialect):
             "ACCESS": TokenType.DEFAULT,
             "USAGE": TokenType.DEFAULT,
             "TRANSPILE": TokenType.DEFAULT,
+            "SCAN": TokenType.DEFAULT,
         }
 
         COMMANDS = {*tokens.Tokenizer.COMMANDS, TokenType.END}
@@ -61,11 +62,23 @@ class Unilake(Dialect):
         }
 
         def _parse_default(self) -> exp.Command:
-            print("Parsing DEFAULT statement")
-            return self.expression(
-                exp.Command,
-            )
+            if self._prev.text == "TRANSPILE":
+                return self._parse_transpile()
+            if self._prev.text == "SCAN" and self._curr.text == "TAGS":
+                return self._parse_scan()
 
+        def _advance_and_consume(self) -> str:
+            start = self._curr
+            while self._curr:
+                self._advance()
+            return self._find_sql(start, self._prev)
+
+        def _parse_transpile(self) -> exp.Command:
+            return exp.Command(this="TRANSPILE", expression=self._advance_and_consume())
+
+        def _parse_scan(self):
+            self._advance()  # consume SCAN
+            return exp.Command(this="SCAN TAGS", expression=self._advance_and_consume())
 
         def _parse_describe(self) -> exp.Describe | exp.Command:
             print("Parsing DESCRIBE statement")
@@ -84,8 +97,11 @@ class Unilake(Dialect):
             if super()._match_pair(TokenType.OR, TokenType.REPLACE):
                 replace = True
             if super()._match_text_seq("MASKING", "RULESET"):
-                print("Masking Ruleset")
+                print("masking ruleset")
                 return self.expression(exp.Create, replace=replace)
+            elif super()._match_text_seq("TAG"):
+                print("CREATE TAG")
+                return exp.Create(this="TAG", name="", description="")
 
             return super()._parse_create()
 
@@ -104,6 +120,7 @@ class Unilake(Dialect):
 # DELETE TAG [category].[name]
 # DESCRIBE TAG [category].[name] (DESCRIPTION | USAGE) -- returns a table with all entities that have this tag
 # SHOW TAG (workspace) -- returns a table with all tags in the specified workspace or if not specified in any workspace
+# APPLY TAG <Tag> TO <Entity Name>
 
 # CREATE MASKING RULESET example_masking_ruleset AS
 # UPDATE MASKING RULESET example_ruleset SET description = 'Updated Example Masking Ruleset'

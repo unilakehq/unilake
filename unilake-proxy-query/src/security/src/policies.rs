@@ -20,7 +20,7 @@ pub(crate) struct HitEnforce {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct HitRule {
+pub struct HitRule {
     id: u64,
     rules: Vec<String>,
 }

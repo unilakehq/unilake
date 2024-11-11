@@ -9,3 +9,7 @@ pub mod handler;
 mod policies;
 mod repository;
 mod scanner;
+
+// re-exports
+pub use crate::policies::HitRule;
+pub use casbin::Cache;
