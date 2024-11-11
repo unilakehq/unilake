@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use unilake_common::error::TdsWireError;
+use unilake_common::error::{TdsWireError, TokenError};
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, ParserError, ScanOutput,
     TranspilerInput,
@@ -21,6 +21,47 @@ impl From<TdsWireError> for QueryHandlerError {
 impl From<ParserError> for QueryHandlerError {
     fn from(value: ParserError) -> Self {
         QueryHandlerError::QueryError(value)
+    }
+}
+
+impl From<QueryHandlerError> for TokenError {
+    fn from(value: QueryHandlerError) -> Self {
+        match value {
+            QueryHandlerError::WireError(e) => TokenError {
+                line: 0,
+                code: 0,
+                message: e.to_string(),
+                class: 0,
+                procedure: "".to_string(),
+                server: "".to_string(),
+                state: 0,
+            },
+            QueryHandlerError::QueryError(e) => {
+                if let Some(err) = e.errors.first() {
+                    return TokenError {
+                        message: format!(
+                            "{}. Line: {}, Col: {}. {}",
+                            err.start_context, err.line, err.col, err.description
+                        ),
+                        class: 0,
+                        line: err.line,
+                        procedure: "".to_string(),
+                        server: "".to_string(),
+                        state: 1,
+                        code: 0,
+                    };
+                }
+                TokenError {
+                    line: 0,
+                    code: 0,
+                    message: format!("Parser error: {}", e.message),
+                    class: 0,
+                    procedure: "".to_string(),
+                    server: "".to_string(),
+                    state: 0,
+                }
+            }
+        }
     }
 }
 
@@ -102,6 +143,10 @@ impl QueryHandler {
 
         self.input_query = Some(Arc::from(query.to_string()));
         let scan_output = self.scan(query, dialect, catalog, database)?;
+        if scan_output.error.is_some() {
+            return Err(QueryHandlerError::QueryError(scan_output.error.unwrap()));
+        }
+
         // todo(mrhamburg): pdp has state and caching and all, needs to be improved
         let pdp = QueryPolicyDecision::new();
         let transpiler_input = pdp.from_scan_output(&scan_output)?;

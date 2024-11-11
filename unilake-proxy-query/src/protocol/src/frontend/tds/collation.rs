@@ -1,4 +1,3 @@
-use crate::frontend::Error;
 ///! legacy implementation of collations (or codepages rather) for dealing with varchar's with legacy databases
 ///! references [1] which has some mappings from the katmai (SQL Server 2008) source code and is a TDS driver
 ///! directly from microsoft
@@ -7,6 +6,8 @@ use crate::frontend::Error;
 ///! [1] https://github.com/Microsoft/mssql-jdbc/blob/eb14f63077c47ef1fc1c690deb8cfab602baeb85/src/main/java/com/microsoft/sqlserver/jdbc/SQLCollation.java
 ///! [2] https://github.com/lifthrasiir/rust-encoding/blob/496823171f15d9b9446b2ec3fb7765f22346256b/src/label.rs#L282
 use encoding::{self, Encoding};
+use unilake_common::error::{Error, TdsWireResult};
+
 
 #[derive(Debug, Clone, Copy)]
 /// Collation consists of 5 bytes (codepage (2), flags (2), charset_id (1))
@@ -42,7 +43,7 @@ impl Collation {
     }
 
     /// return an encoding for a given collation
-    pub fn encoding(&self) -> crate::frontend::Result<&'static (dyn Encoding + Send + Sync)> {
+    pub fn encoding(&self) -> TdsWireResult<&'static (dyn Encoding + Send + Sync)> {
         let res = if self.codepage == 0 {
             lcid_to_encoding(self.lcid())
         } else {

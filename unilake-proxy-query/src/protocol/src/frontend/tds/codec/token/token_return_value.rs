@@ -1,7 +1,8 @@
 use super::BaseMetaDataColumn;
 use crate::frontend::tds::codec::encode;
-use crate::frontend::{ColumnData, Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::{ColumnData, TdsToken, TdsTokenCodec, TdsTokenType};
 use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// ReturnValue Token [2.2.7.19]
 /// Used to send the return value of an RPC to the client. When an RPC is executed,
@@ -19,7 +20,7 @@ pub struct TokenReturnValue {
 }
 
 impl TdsTokenCodec for TokenReturnValue {
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u8(TdsTokenType::ReturnValue as u8);
 
         dest.put_u16_le(self.param_ordinal);
@@ -32,24 +33,24 @@ impl TdsTokenCodec for TokenReturnValue {
     }
 
     /// Decode is not implemented for this token type.
-    fn decode(_src: &mut BytesMut) -> Result<TdsToken> {
+    fn decode(_src: &mut BytesMut) -> TdsWireResult<TdsToken> {
         unimplemented!()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use tokio_util::bytes::{Buf, BytesMut};
-
     use crate::frontend::{
-        ColumnData, DataFlags, FixedLenType, Result, TdsToken, TdsTokenCodec, TdsTokenType,
+        ColumnData, DataFlags, FixedLenType, TdsToken, TdsTokenCodec, TdsTokenType,
         TokenReturnValue, TypeInfo,
     };
+    use tokio_util::bytes::{Buf, BytesMut};
+    use unilake_common::error::TdsWireResult;
 
     use super::BaseMetaDataColumn;
 
     #[test]
-    fn encode_decode_token_return_value() -> Result<()> {
+    fn encode_decode_token_return_value() -> TdsWireResult<()> {
         let input = TokenReturnValue {
             param_ordinal: 0,
             param_name: "some_parm".to_string(),

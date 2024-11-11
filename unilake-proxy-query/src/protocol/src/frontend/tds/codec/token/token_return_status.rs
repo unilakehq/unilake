@@ -1,5 +1,6 @@
-use crate::frontend::{Result, TdsTokenType};
+use crate::frontend::TdsTokenType;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use unilake_common::error::TdsWireResult;
 
 /// Return Status token [2.2.7.18]
 /// Used to send the status value of an RPC to the client.
@@ -9,7 +10,7 @@ pub struct TokenReturnStatus {
 }
 
 impl TokenReturnStatus {
-    pub async fn decode<R>(src: &mut R) -> Result<Self>
+    pub async fn decode<R>(src: &mut R) -> TdsWireResult<Self>
     where
         R: AsyncRead + Unpin,
     {
@@ -18,7 +19,7 @@ impl TokenReturnStatus {
         })
     }
 
-    pub async fn encode<W>(&mut self, dest: &mut W) -> Result<()>
+    pub async fn encode<W>(&mut self, dest: &mut W) -> TdsWireResult<()>
     where
         W: AsyncWrite + Unpin,
     {
@@ -30,11 +31,12 @@ impl TokenReturnStatus {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{Result, TdsTokenType, TokenReturnStatus};
+    use crate::frontend::{TdsTokenType, TokenReturnStatus};
     use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+    use unilake_common::error::TdsWireResult;
 
     #[tokio::test]
-    async fn encode_decode_token_return_status() -> Result<()> {
+    async fn encode_decode_token_return_status() -> TdsWireResult<()> {
         let mut input = TokenReturnStatus { value: 12 };
 
         // arrange

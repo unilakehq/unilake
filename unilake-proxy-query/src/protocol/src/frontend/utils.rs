@@ -1,7 +1,6 @@
 use rand::random;
 use tokio_util::bytes::{Buf, BytesMut};
-
-use crate::frontend::error::TdsWireResult;
+use unilake_common::error::TdsWireResult;
 
 pub(crate) trait ReadAndAdvance {
     fn read_and_advance(&mut self, max_bytes: usize) -> (usize, BytesMut);

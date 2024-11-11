@@ -1,8 +1,9 @@
 use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::utils::ReadAndAdvance;
-use crate::frontend::{Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType};
 use std::fmt::{self, Debug};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 uint_enum! {
     /// Environment change token type [2.2.7.9]
@@ -98,7 +99,7 @@ impl TokenEnvChange {
 }
 
 impl TdsTokenCodec for TokenEnvChange {
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u8(TdsTokenType::EnvChange as u8);
 
         let mut buff = BytesMut::new();
@@ -159,7 +160,7 @@ impl TdsTokenCodec for TokenEnvChange {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
         let len = src.get_u16_le() as usize;
 
         // We read all the bytes now, due to whatever environment change tokens
@@ -167,8 +168,11 @@ impl TdsTokenCodec for TokenEnvChange {
         // discard.
         let mut buf = src.split_to(len);
         let ty_byte = buf.get_u8();
-        let ty = EnvChangeType::try_from(ty_byte)
-            .map_err(|_| Error::Protocol(format!("invalid envchange type {:x}", ty_byte).into()))?;
+        let ty = EnvChangeType::try_from(ty_byte).map_err(|_| {
+            unilake_common::error::Error::Protocol(
+                format!("invalid envchange type {:x}", ty_byte).into(),
+            )
+        })?;
 
         let token = match ty {
             EnvChangeType::Database | EnvChangeType::PacketSize => {
@@ -211,12 +215,12 @@ impl TdsTokenCodec for TokenEnvChange {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType, TokenEnvChange};
     use tokio_util::bytes::{Buf, BytesMut};
-
-    use crate::frontend::{Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenEnvChange};
+    use unilake_common::error::TdsWireResult;
 
     #[test]
-    fn encode_decode_token_envchange_database() -> Result<()> {
+    fn encode_decode_token_envchange_database() -> TdsWireResult<()> {
         let old_input = "old".to_string();
         let new_input = "new".to_string();
         let input = TokenEnvChange::Database(old_input.clone(), new_input.clone());

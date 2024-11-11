@@ -1,7 +1,8 @@
-use crate::frontend::{Error, Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType};
 use enumflags2::{bitflags, BitFlags};
 use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// Done Token [2.2.7.6]
 /// Indicates the completion status of a SQL statement.
@@ -143,7 +144,7 @@ impl TokenDone {
 }
 
 impl TdsTokenCodec for TokenDone {
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u8(TdsTokenType::Done as u8);
         dest.put_u16_le(self.status.bits());
         dest.put_u16_le(self.cur_cmd);
@@ -151,9 +152,10 @@ impl TdsTokenCodec for TokenDone {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
-        let status = BitFlags::from_bits(src.get_u16_le())
-            .map_err(|_| Error::Protocol("token(done): invalid status".into()))?;
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
+        let status = BitFlags::from_bits(src.get_u16_le()).map_err(|_| {
+            unilake_common::error::Error::Protocol("token(done): invalid status".into())
+        })?;
         let cur_cmd = src.get_u16_le();
         let done_rows = src.get_u64_le();
 
@@ -183,12 +185,13 @@ impl fmt::Display for TokenDone {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenDone};
+    use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType, TokenDone};
     use enumflags2::BitFlags;
     use tokio_util::bytes::{Buf, BytesMut};
+    use unilake_common::error::TdsWireResult;
 
     #[test]
-    fn encode_decode_token_done_attention() -> Result<()> {
+    fn encode_decode_token_done_attention() -> TdsWireResult<()> {
         let input = TokenDone::new_count(1, 127);
 
         // arrange
@@ -212,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_token_done_final() -> Result<()> {
+    fn encode_decode_token_done_final() -> TdsWireResult<()> {
         let input = TokenDone {
             done_rows: 128,
             cur_cmd: 1,

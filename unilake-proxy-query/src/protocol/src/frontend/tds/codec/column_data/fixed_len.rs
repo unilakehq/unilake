@@ -1,8 +1,10 @@
-use crate::frontend::{ColumnData, Result};
+use crate::frontend::ColumnData;
 use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// Fixed length token [2.2.4.2.1.2]
-pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
+// todo(mrhamburg): remove result type, we are not responding with any errors
+pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> TdsWireResult<()> {
     match data {
         ColumnData::Bit(val) => {
             dst.put_u8(*val as u8);

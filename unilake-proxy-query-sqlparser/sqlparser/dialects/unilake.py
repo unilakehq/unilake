@@ -42,10 +42,10 @@ class Unilake(Dialect):
             "POLICY": TokenType.DEFAULT,
             "CONDITION": TokenType.DEFAULT,
             "SECURITY": TokenType.DEFAULT,
-            "DATA": TokenType.DEFAULT,
-            "BUNDLE": TokenType.DEFAULT,
+            "DATASET": TokenType.DEFAULT,
             "ACCESS": TokenType.DEFAULT,
             "USAGE": TokenType.DEFAULT,
+            "TRANSPILE": TokenType.DEFAULT,
         }
 
         COMMANDS = {*tokens.Tokenizer.COMMANDS, TokenType.END}
@@ -57,7 +57,15 @@ class Unilake(Dialect):
             TokenType.UPDATE: lambda self: self._parse_update(),
             TokenType.DELETE: lambda self: self._parse_delete(),
             TokenType.DESCRIBE: lambda self: self._parse_describe(),
+            TokenType.DEFAULT: lambda self: self._parse_default(),
         }
+
+        def _parse_default(self) -> exp.Command:
+            print("Parsing DEFAULT statement")
+            return self.expression(
+                exp.Command,
+            )
+
 
         def _parse_describe(self) -> exp.Describe | exp.Command:
             print("Parsing DESCRIBE statement")
@@ -89,6 +97,8 @@ class Unilake(Dialect):
         def tag_sql(self, expression: exp.Create):
             pass
 
+# TRANSPILE <SQL STATEMENT>
+
 # CREATE TAG [category].[name] (WITH DESCRIPTION 'Example Tag');
 # UPDATE TAG [category].[name] SET description = 'Updated Example Tag'
 # DELETE TAG [category].[name]
@@ -119,11 +129,11 @@ class Unilake(Dialect):
 # DESCRIBE SECURITY POLICY example_policy (DESCRIPTION | USAGE) -- returns a table with all access policies that use this policy
 # SHOW SECURITY POLICY (workspace) -- returns a table with all policies in the specified workspace or if not specified in any workspace
 
-# CREATE DATA BUNDLE example_bundle AS
-# UPDATE DATA BUNDLE example_bundle SET description = 'Updated Example Bundle'
-# DELETE DATA BUNDLE example_bundle
-# DESCRIBE DATA BUNDLE example_bundle (DESCRIPTION | USAGE) -- returns a table with all access policies that use this bundle
-# SHOW DATA BUNDLE (workspace) -- returns a table with all data bundles in the specified workspace or if not specified in any workspace
+# CREATE DATASET example_bundle AS
+# UPDATE DATASET example_bundle SET description = 'Updated Example Bundle'
+# DELETE DATASET example_bundle
+# DESCRIBE DATASET example_bundle (DESCRIPTION | USAGE) -- returns a table with all access policies that use this bundle
+# SHOW DATASET (workspace) -- returns a table with all data bundles in the specified workspace or if not specified in any workspace
 
 # CREATE ACCESS POLICY example_policy_with_bundle AS
 # UPDATE ACCESS POLICY example_policy_with_bundle SET description = 'Updated Example Policy with Bundle'

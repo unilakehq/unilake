@@ -1,5 +1,5 @@
-use crate::frontend::error::TdsWireResult;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// Variable length-prefixed token [2.2.5.2.2]
 pub(crate) fn encode(dest: &mut BytesMut, type_length: &usize, data: Option<&String>) {

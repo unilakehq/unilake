@@ -1,9 +1,10 @@
 use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::tds::server_context::ServerContext;
-use crate::frontend::{Error, FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::{FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType};
 use std::convert::TryFrom;
 use std::sync::Arc;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// LoginAck Token [2.2.7.14]
 /// Used to send a response to a login request (LOGIN7) to the client.
@@ -33,7 +34,7 @@ impl TokenLoginAck {
 }
 
 impl TdsTokenCodec for TokenLoginAck {
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u8(TdsTokenType::LoginAck as u8);
         let mut buff = BytesMut::new();
 
@@ -49,13 +50,14 @@ impl TdsTokenCodec for TokenLoginAck {
 
         Ok(())
     }
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
         let _length = src.get_u16_le();
 
         let interface = src.get_u8();
 
-        let tds_version = FeatureLevel::try_from(src.get_u32())
-            .map_err(|_| Error::Protocol("Login ACK: Invalid TDS version".to_string()))?;
+        let tds_version = FeatureLevel::try_from(src.get_u32()).map_err(|_| {
+            unilake_common::error::Error::Protocol("Login ACK: Invalid TDS version".to_string())
+        })?;
 
         let prog_name = decode::read_b_varchar(src)?;
         let version = src.get_u32_le();
@@ -71,11 +73,9 @@ impl TdsTokenCodec for TokenLoginAck {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{
-        error::TdsWireResult, FeatureLevel, Result, TdsToken, TdsTokenCodec, TdsTokenType,
-        TokenLoginAck,
-    };
+    use crate::frontend::{FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType, TokenLoginAck};
     use tokio_util::bytes::{Buf, BytesMut};
+    use unilake_common::error::TdsWireResult;
 
     const RAW_BYTES: &[u8] = &[
         0xAD, 0x36, 0x00, 0x01, 0x74, 0x00, 0x00, 0x04, 0x16, 0x4d, 0x00, 0x69, 0x00, 0x63, 0x00,
@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_token_login_ack() -> Result<()> {
+    fn encode_decode_token_login_ack() -> TdsWireResult<()> {
         let input = TokenLoginAck {
             interface: 12,
             prog_name: "test".to_string(),

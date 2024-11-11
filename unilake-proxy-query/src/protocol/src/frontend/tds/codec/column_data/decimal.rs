@@ -1,6 +1,7 @@
-use crate::frontend::{Result, TdsTokenCodec};
+use crate::frontend::TdsTokenCodec;
 use bigdecimal::{num_bigint::Sign, BigDecimal, ToPrimitive};
 use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// Represent a sql Decimal type. It is stored in an i128 and has a
 /// maximum precision of 38 decimals.
@@ -12,6 +13,7 @@ pub struct Decimal {
 
 // todo(mrhamburg): implement serialization for mysql_async, instead of making use of BigDecimal.
 // todo(mrhamburg): check this implementation as azdatastudio is having issues with decimal precision. Query failed: Invalid numeric precision/scale.
+// the above error can be replicated using: select top 10 Amount from [FactFinance]
 impl Decimal {
     /// Creates a new Decimal value.
     ///
@@ -78,7 +80,7 @@ impl Decimal {
         }
     }
 
-    pub(crate) fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         dst.put_u8(self.len());
 
         if self.value < 0 {
@@ -104,7 +106,7 @@ impl Decimal {
 }
 
 impl TdsTokenCodec for BigDecimal {
-    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         let value = self.abs() * 10i128.pow(self.fractional_digit_count() as u32);
         let value = value.to_i128().unwrap();
 
@@ -138,7 +140,7 @@ impl TdsTokenCodec for BigDecimal {
         Ok(())
     }
 
-    fn decode(_: &mut BytesMut) -> Result<crate::frontend::TdsToken> {
+    fn decode(_: &mut BytesMut) -> TdsWireResult<crate::frontend::TdsToken> {
         unimplemented!()
     }
 }

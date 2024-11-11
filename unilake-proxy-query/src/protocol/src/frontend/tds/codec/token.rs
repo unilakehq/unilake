@@ -29,8 +29,8 @@ pub use token_session_state::*;
 pub use token_sspi::*;
 pub use token_type::*;
 
-use crate::frontend::Result;
 use tokio_util::bytes::BytesMut;
+use unilake_common::error::TdsWireResult;
 
 #[derive(Debug)]
 pub enum TdsToken {
@@ -50,8 +50,8 @@ pub enum TdsToken {
 }
 
 pub trait TdsTokenCodec {
-    fn encode(&self, dst: &mut BytesMut) -> Result<()>;
-    fn decode(src: &mut BytesMut) -> Result<TdsToken>;
+    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>;
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken>;
 }
 
 macro_rules! encode_match {
@@ -65,7 +65,7 @@ macro_rules! encode_match {
 }
 
 impl TdsToken {
-    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+    pub fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         encode_match!(
             self,
             dst,

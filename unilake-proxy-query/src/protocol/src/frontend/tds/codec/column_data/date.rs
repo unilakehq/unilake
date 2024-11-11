@@ -1,10 +1,12 @@
 use crate::frontend::ColumnData;
-use crate::frontend::Result;
 use chrono::NaiveDate;
 use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
+
 const BASE_DATE: Option<NaiveDate> = NaiveDate::from_ymd_opt(1, 1, 1);
 
-pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
+// todo(mrhamburg): we dont actually need a result, we can do without as we have no issues to respond to
+pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> TdsWireResult<()> {
     match data {
         ColumnData::Date(Some(val)) => {
             let base_date = BASE_DATE.unwrap();
@@ -24,16 +26,16 @@ pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontend::tds::codec::column_data::date;
+    use crate::frontend::ColumnData;
     use chrono::NaiveDate;
     use tokio_util::bytes::BytesMut;
-
-    use crate::frontend::tds::codec::column_data::date;
-    use crate::frontend::{ColumnData, Result};
+    use unilake_common::error::TdsWireResult;
 
     const RAW_BYTES: [u8; 4] = [0x03, 0xbb, 0x29, 0x0b];
 
     #[test]
-    fn test_encode_date() -> Result<()> {
+    fn test_encode_date() -> TdsWireResult<()> {
         let mut buf = BytesMut::new();
         let data = ColumnData::Date(Some(NaiveDate::from_ymd_opt(2003, 12, 31).unwrap()));
 

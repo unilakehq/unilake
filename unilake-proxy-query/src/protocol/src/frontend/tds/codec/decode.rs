@@ -1,10 +1,7 @@
-use crate::frontend::{
-    error::{TdsWireError, TdsWireResult},
-    Result,
-};
 use tokio_util::bytes::{Buf, BytesMut};
+use unilake_common::error::{TdsWireError, TdsWireResult};
 
-pub fn read_us_varchar(src: &mut BytesMut) -> Result<String> {
+pub fn read_us_varchar(src: &mut BytesMut) -> TdsWireResult<String> {
     let length = src.get_u16_le() as usize;
     read_string(src, length)
 }

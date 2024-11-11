@@ -6,7 +6,6 @@ use crate::backend::app::generic::FedResult;
 use crate::backend::app::{FedResultStream, FederatedFrontendHandler, FederatedRequestType};
 use crate::backend::starrocks::session::StarRocksSession;
 use crate::frontend::{
-    error::{TdsWireError, TdsWireResult},
     prot::{
         ServerInstance, ServerInstanceMessage, SessionAuditMessage, SessionUserInfo,
         TdsWireHandlerFactory,
@@ -25,8 +24,8 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 use ulid::Ulid;
-use unilake_common::error::TokenError;
-use unilake_security::handler::QueryHandler;
+use unilake_common::error::{TdsWireError, TdsWireResult, TokenError};
+use unilake_security::handler::{QueryHandler, QueryHandlerError};
 
 /// Acts like a wrapper around a mysql connection pool for StarRocks.
 struct StarRocksPool {
@@ -197,38 +196,26 @@ pub struct StarRocksTdsHandlerFactory {
     inner: StarRocksTdsHandlerFactoryInnnerState,
 }
 
-// impl From<ParserError> for TokenError {
-//     fn from(value: ParserError) -> Self {
-//         if let Some(value) = value.errors.first() {
-//             TokenError {
-//                 line: value.line as u32,
-//                 code: 0,
-//                 message: value.description.to_string(),
-//                 class: 0,
-//                 procedure: "".to_string(),
-//                 server: "".to_string(),
-//                 state: 0,
-//             }
-//         } else {
-//             TokenError {
-//                 code: 0,
-//                 state: 0,
-//                 class: 0,
-//                 message: value.message,
-//                 server: "".to_string(),
-//                 procedure: "".to_string(),
-//                 line: 0,
-//             }
-//         }
-//     }
-// }
-
 impl StarRocksTdsHandlerFactory {
     pub fn new(server_instance: Arc<ServerInstance>) -> Self {
         StarRocksTdsHandlerFactory {
             inner: StarRocksTdsHandlerFactoryInnnerState::new(server_instance),
         }
     }
+
+    async fn handle_frontend_error<C, TE>(&self, client: &mut C, e: TE) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
+        TE: Into<TokenError>,
+    {
+        //todo(mrhamburg): make sure this is also logged properly etc...
+        let mut token = e.into();
+        token.server = client.tds_server_context().server_name.clone();
+        self.send_token(client, token).await?;
+        self.send_token(client, TokenDone::new_error(0)).await?;
+        Ok(())
+    }
+
     async fn handle_backend_error<C>(&self, client: &mut C, e: Error) -> TdsWireResult<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
@@ -243,8 +230,7 @@ impl StarRocksTdsHandlerFactory {
             "".to_string(),
             0,
         );
-        // todo(mrhamburg): fix this
-        // self.send_token(client, error_token).await?;
+        self.send_token(client, error_token).await?;
         self.send_token(client, TokenDone::new_error(0)).await?;
         Ok(())
     }
@@ -279,6 +265,72 @@ impl StarRocksTdsHandlerFactory {
             }
         }
         Ok(())
+    }
+
+    async fn handle_batch_request<C>(
+        &self,
+        client: &mut C,
+        cancellation_token: CancellationToken,
+        pool: Arc<StarRocksPool>,
+        query: &str,
+    ) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send + SessionInfo,
+    {
+        // get conn from the pool
+        let conn = pool.get_conn(client.session_id()).await;
+        let mut conn = conn.write().await;
+        tracing::debug!("Connection id: {}", conn.id());
+
+        // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
+        let mut query_handler = QueryHandler::new();
+        let query = query_handler
+            // todo(mrhamburg): properly bring back dialect, catalog and database here
+            .handle_query(query, "tsql", "default_catalog", "dwh");
+        if let Err(e) = query {
+            self.handle_frontend_error(client, e).await?;
+            return Ok(());
+        }
+        let query = query.ok().unwrap().to_string();
+
+        // send query and its handler to the audit system, the handler can obfuscate sensitive data
+        // and contains all information used in the transpiling process
+        self.inner.audit_on_query(client, query_handler).await;
+
+        let query_result = tokio::select! {
+            result = conn.query_iter(query) => {
+                match result {
+                    Ok(result) => {
+                        Some(result)
+                    }
+                    Err(e) => {
+                        self.handle_backend_error(client, e).await?;
+                        return Ok(())
+                    }
+                }
+            },
+            _ = cancellation_token.cancelled() => {
+                eprintln!("Query was canceled.");
+                None
+            }
+        };
+
+        let mut result = query_result.unwrap();
+        let mut columns = TokenColMetaData::new(result.columns_ref().len());
+        for column in result.columns_ref() {
+            columns.add_column(column);
+        }
+        self.send_token(client, columns).await?;
+
+        let mut count = 0;
+        while let Ok(Some(row)) = result.next().await {
+            let token_row = TokenRow::from(row);
+            self.send_token(client, token_row).await?;
+            count += 1;
+        }
+
+        self.send_token(client, TokenDone::new_count(0, count))
+            .await
     }
 }
 
@@ -479,57 +531,8 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
             })
             .await;
 
-        let conn = pool.get_conn(client.session_id()).await;
-        let mut conn = conn.write().await;
-        tracing::debug!("Connection id: {}", conn.id());
-
-        // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
         let cancellation_token = CancellationToken::new();
-        let mut query_handler = QueryHandler::new();
-        let query = query_handler
-            // todo(mrhamburg): properly bring back dialect, catalog and database here
-            .handle_query(&msg.query, "tsql", "default_catalog", "dwh")
-            .ok()
-            // todo(mrhamburg): implement error handling, remove unwraps or oks
-            .unwrap()
-            .to_string();
-
-        // send query and its handler to the audit system, the handler can obfuscate sensitive data
-        // and contains all information used in the transpiling process
-        self.inner.audit_on_query(client, query_handler).await;
-
-        let query_result = tokio::select! {
-            result = conn.query_iter(query) => {
-                match result {
-                    Ok(result) => {
-                        Some(result)
-                    }
-                    Err(e) => {
-                        self.handle_backend_error(client, e).await?;
-                        return Ok(())
-                    }
-                }
-            },
-            _ = cancellation_token.cancelled() => {
-                eprintln!("Query was canceled.");
-                None
-            }
-        };
-        let mut result = query_result.unwrap();
-        let mut columns = TokenColMetaData::new(result.columns_ref().len());
-        for column in result.columns_ref() {
-            columns.add_column(column);
-        }
-        self.send_token(client, columns).await?;
-
-        let mut count = 0;
-        while let Ok(Some(row)) = result.next().await {
-            let token_row = TokenRow::from(row);
-            self.send_token(client, token_row).await?;
-            count += 1;
-        }
-
-        self.send_token(client, TokenDone::new_count(0, count))
+        self.handle_batch_request(client, cancellation_token, pool, &msg.query)
             .await
     }
 

@@ -1,10 +1,10 @@
 use crate::backend::app::generic::FedResult;
-use crate::frontend::error::TdsWireResult;
 use crate::frontend::BatchRequest;
 use crate::frontend::RpcRequest;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio_stream::Stream;
+use unilake_common::error::TdsWireResult;
 
 pub mod azdatastudio;
 pub mod generic;

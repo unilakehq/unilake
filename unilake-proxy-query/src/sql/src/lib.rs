@@ -130,8 +130,8 @@ pub struct ParserError {
 #[derive(FromPyObject, Debug)]
 pub struct ErrorMessage {
     pub description: String,
-    pub line: i32,
-    pub col: i32,
+    pub line: u32,
+    pub col: u32,
     pub start_context: String,
     pub highlight: String,
     pub end_context: String,

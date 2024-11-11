@@ -422,7 +422,7 @@ mod tests {
             },
             PolicyFound {
                 policy_id: "2".to_string(),
-                policy_name: Some("random_number".to_string()),
+                policy_name: Some("rounding".to_string()),
                 policy_type: PolicyType::MaskingRule,
                 rule_definition: serde_json::value::Value::Null,
             },

@@ -1,7 +1,8 @@
 use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::tds::server_context::ServerContext;
-use crate::frontend::{Result, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// Info Token [2.2.7.13]
 /// Used to send an information message to the client.
@@ -41,7 +42,7 @@ impl TokenInfo {
 }
 
 impl TdsTokenCodec for TokenInfo {
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u8(TdsTokenType::Info as u8);
         let mut buff = BytesMut::new();
 
@@ -61,7 +62,7 @@ impl TdsTokenCodec for TokenInfo {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
         let _length = src.get_u16_le();
 
         let number = src.get_u32_le();
@@ -86,12 +87,12 @@ impl TdsTokenCodec for TokenInfo {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType, TokenInfo};
     use tokio_util::bytes::{Buf, BytesMut};
-
-    use crate::frontend::{Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenInfo};
+    use unilake_common::error::TdsWireResult;
 
     #[test]
-    fn encode_decode_token_info() -> Result<()> {
+    fn encode_decode_token_info() -> TdsWireResult<()> {
         let input = TokenInfo {
             line: 12,
             class: 1,

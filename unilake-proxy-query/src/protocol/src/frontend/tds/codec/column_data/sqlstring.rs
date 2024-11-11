@@ -1,5 +1,5 @@
-use crate::frontend::Result;
 use tokio_util::bytes::BytesMut;
+use unilake_common::error::TdsWireResult;
 
 #[derive(Debug, Clone)]
 pub struct SqlString {
@@ -12,7 +12,7 @@ impl SqlString {
         SqlString { max_length, value }
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         if let Some(ref str) = self.value {
             super::plp::encode(dest, &self.max_length, Some(str));
         } else {
@@ -21,7 +21,7 @@ impl SqlString {
         Ok(())
     }
 
-    pub(crate) fn decode(src: &mut BytesMut, max_len: usize) -> Result<Self> {
+    pub(crate) fn decode(src: &mut BytesMut, max_len: usize) -> TdsWireResult<Self> {
         Ok(SqlString::from_string(
             super::plp::decode(src, &max_len)?,
             max_len,

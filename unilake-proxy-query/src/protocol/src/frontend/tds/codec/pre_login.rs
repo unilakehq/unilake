@@ -1,9 +1,9 @@
-use crate::frontend::error::TdsWireResult;
 use crate::frontend::tds::codec::guid::reorder_bytes;
+use crate::frontend::tds::EncryptionLevel;
 use crate::frontend::utils::ReadAndAdvance;
-use crate::frontend::{tds::EncryptionLevel, Error};
 use crate::frontend::{TdsMessage, TdsMessageCodec};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 use uuid::Uuid;
 
 /// Client application activity id token used for debugging purposes introduced in TDS 7.4.
@@ -115,7 +115,9 @@ impl TdsMessageCodec for PreloginMessage {
                     let encrypt = src.get_u8();
                     ret.encryption = Some(
                         crate::frontend::tds::EncryptionLevel::try_from(encrypt).map_err(|_| {
-                            Error::Protocol(format!("invalid encryption value: {}", encrypt).into())
+                            unilake_common::error::Error::Protocol(
+                                format!("invalid encryption value: {}", encrypt).into(),
+                            )
                         })?,
                     );
                     decode_offset_initial += 1;
@@ -156,7 +158,7 @@ impl TdsMessageCodec for PreloginMessage {
                     // Data is a Guid, 16 bytes and ordered the wrong way around than Uuid.
                     let (length, data) = src.read_and_advance(16);
                     if length < 16 {
-                        return Err(Error::Protocol(
+                        return Err(unilake_common::error::Error::Protocol(
                             format!("invalid trace length: {}", length).into(),
                         ));
                     }
@@ -181,7 +183,7 @@ impl TdsMessageCodec for PreloginMessage {
                 PRELOGIN_NONCEOPT => {
                     let (length, data) = src.read_and_advance(32);
                     if length != 32 {
-                        return Err(Error::Protocol(
+                        return Err(unilake_common::error::Error::Protocol(
                             format!("invalid nonce length: {}", length).into(),
                         ));
                     }

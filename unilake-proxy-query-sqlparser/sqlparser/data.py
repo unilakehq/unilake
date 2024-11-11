@@ -47,6 +47,15 @@ class ParserError:
             errors=[ErrorMessage(**error_info) for error_info in error.errors]
         )
 
+    @staticmethod
+    def from_sqlglot_optimize_error(error: sqlglot.errors.OptimizeError) -> "ParserError":
+        x = error.args
+        return ParserError(
+            error_type="PARSE_ERROR",
+            message=str(error.args),
+            errors=[]
+        )
+
 
 @dataclass
 class ScanEntity:
@@ -119,7 +128,7 @@ class ScanOutput:
     def to_json(self) -> dict:
         return {
             "objects": [obj.to_json() for obj in self.objects],
-            "dialect": self.dialect,
+            "dialects": self.dialect,
             "query": self.query,
             "type": self.type.value,
             "error": self.error.to_json() if self.error else None,

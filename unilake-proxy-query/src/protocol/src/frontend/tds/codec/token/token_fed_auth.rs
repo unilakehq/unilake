@@ -1,7 +1,6 @@
-use crate::frontend::{
-    utils::ReadAndAdvance, Error, Result, TdsToken, TdsTokenCodec, TdsTokenType,
-};
+use crate::frontend::{utils::ReadAndAdvance, TdsToken, TdsTokenCodec, TdsTokenType};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 #[derive(PartialEq, Debug)]
 pub enum TokenFedAuthOption {
@@ -24,7 +23,7 @@ pub struct TokenFedAuth {
 }
 
 impl TdsTokenCodec for TokenFedAuth {
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u8(TdsTokenType::FedAuthInfo as u8);
         let options_length = self.options.len() * 9;
         let mut token_length = 4 + options_length;
@@ -64,7 +63,7 @@ impl TdsTokenCodec for TokenFedAuth {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
+    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
         let mut options = Vec::new();
         let _token_length = src.get_u32_le();
         let count_of_ids = src.get_u32_le();
@@ -82,7 +81,11 @@ impl TdsTokenCodec for TokenFedAuth {
             let (_, buff) = src.read_and_advance(info_data_length as usize);
 
             let content = String::from_utf8(buff.to_vec())
-                .map_err(|_| Error::Protocol("Failed to convert UTF-8 to String".to_string()))
+                .map_err(|_| {
+                    unilake_common::error::Error::Protocol(
+                        "Failed to convert UTF-8 to String".to_string(),
+                    )
+                })
                 .unwrap();
 
             match ty {
@@ -107,14 +110,14 @@ impl TdsTokenCodec for TokenFedAuth {
 
 #[cfg(test)]
 mod tests {
-    use tokio_util::bytes::{Buf, BytesMut};
-
     use crate::frontend::{
-        Result, TdsToken, TdsTokenCodec, TdsTokenType, TokenFedAuth, TokenFedAuthOption,
+        TdsToken, TdsTokenCodec, TdsTokenType, TokenFedAuth, TokenFedAuthOption,
     };
+    use tokio_util::bytes::{Buf, BytesMut};
+    use unilake_common::error::TdsWireResult;
 
     #[test]
-    fn encode_decode_token_fed_auth() -> Result<()> {
+    fn encode_decode_token_fed_auth() -> TdsWireResult<()> {
         let input = TokenFedAuth {
             options: vec![
                 TokenFedAuthOption::StsUrl(String::from("https://example.com")),

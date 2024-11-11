@@ -11,6 +11,9 @@ def scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutput:
     except sqlglot.errors.ParseError as e:
         parser_error = ParserError.from_sqlglot_parse_error(e)
         return ScanOutput.from_parser_error(parser_error)
+    except sqlglot.errors.OptimizeError as e:
+        parser_error = ParserError.from_sqlglot_optimize_error(e)
+        return ScanOutput.from_parser_error(parser_error)
     except Exception as e:
         parser_error = ParserError(type="INTERNAL_ERROR", message=str(e), errors=[])
         return ScanOutput.from_parser_error(parser_error)

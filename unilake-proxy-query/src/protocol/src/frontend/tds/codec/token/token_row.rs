@@ -1,7 +1,7 @@
-use crate::frontend::{ColumnData, Result, TdsTokenType};
-use tokio_util::bytes::{BufMut, BytesMut};
-
 use super::{TdsToken, TdsTokenCodec};
+use crate::frontend::{ColumnData, TdsTokenType};
+use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// A row of data.
 #[derive(Debug, Default)]
@@ -35,7 +35,7 @@ impl TokenRow {
     }
 
     /// Write/encode a nbc row to the client. Server decides whether to send an NBC row or a normal row.
-    pub fn encode_nbc(&self, dest: &mut BytesMut) -> Result<()> {
+    pub fn encode_nbc(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u8(TdsTokenType::NbcRow as u8);
         let bm = RowBitmap::from(&self.data);
         bm.encode(dest)?;
@@ -78,7 +78,7 @@ impl TokenRow {
 }
 
 impl TdsTokenCodec for TokenRow {
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         if self.nbc_row {
             return self.encode_nbc(dest);
         }
@@ -92,7 +92,7 @@ impl TdsTokenCodec for TokenRow {
     }
 
     /// Decode is not implemented for this token type.
-    fn decode(_: &mut BytesMut) -> Result<TdsToken> {
+    fn decode(_: &mut BytesMut) -> TdsWireResult<TdsToken> {
         unimplemented!()
     }
 }
@@ -187,7 +187,7 @@ impl RowBitmap {
 
     /// Encode the bitmap data from the beginning of the row. Only doable if the
     /// type is `NbcRowToken`.
-    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.extend_from_slice(&self.data);
         Ok(())
     }

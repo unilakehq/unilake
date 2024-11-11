@@ -100,3 +100,4 @@ impl From<std::io::Error> for TdsWireError {
 }
 
 pub type TdsWireResult<T> = Result<T, TdsWireError>;
+pub type Error = TdsWireError;

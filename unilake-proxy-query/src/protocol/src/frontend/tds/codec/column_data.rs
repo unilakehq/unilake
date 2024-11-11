@@ -1,8 +1,9 @@
-use crate::frontend::{Result, TypeInfo, VarLenType};
+use crate::frontend::{TypeInfo, VarLenType};
 use bigdecimal::BigDecimal;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use sqlstring::SqlString;
 use tokio_util::bytes::BytesMut;
+use unilake_common::error::TdsWireResult;
 
 mod date;
 mod datetime2;
@@ -71,7 +72,7 @@ impl ColumnData {
     }
 
     /// Encode this value into the given destination buffer.
-    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         match self {
             ColumnData::Bit(_)
             | ColumnData::U8(_)
@@ -100,7 +101,7 @@ impl ColumnData {
     }
 
     // todo(mrhamburg): further implement these types
-    pub fn decode(src: &mut BytesMut, typeinfo: &TypeInfo) -> Result<Self> {
+    pub fn decode(src: &mut BytesMut, typeinfo: &TypeInfo) -> TdsWireResult<Self> {
         match typeinfo {
             TypeInfo::FixedLen(fl) => todo!(),
             TypeInfo::VarLenSized(vs) => match vs.r#type() {

@@ -1,12 +1,11 @@
-use crate::frontend::{
-    error::TdsWireResult, utils::ReadAndAdvance, Error, TdsMessage, TdsMessageCodec, TdsWireError,
-};
+use crate::frontend::{utils::ReadAndAdvance, TdsMessage, TdsMessageCodec};
 use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
 use std::fmt::Debug;
 use std::ops::Index;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::{TdsWireError, TdsWireResult};
 
 uint_enum! {
     #[repr(u32)]
@@ -671,8 +670,9 @@ impl TdsMessageCodec for LoginMessage {
         // fetch feature extensions
         loop {
             // get type
-            let feature_type = FeatureExt::try_from(src.get_u8())
-                .map_err(|_| Error::Protocol("Invalid FeatureExt found".into()))?;
+            let feature_type = FeatureExt::try_from(src.get_u8()).map_err(|_| {
+                unilake_common::error::Error::Protocol("Invalid FeatureExt found".into())
+            })?;
 
             if feature_type == FeatureExt::Terminator {
                 break;

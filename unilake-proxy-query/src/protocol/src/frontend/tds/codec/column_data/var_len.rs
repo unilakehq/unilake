@@ -1,10 +1,11 @@
 use crate::frontend::sqlstring::SqlString;
 use crate::frontend::tds::codec::decode::read_us_varchar;
-use crate::frontend::{ColumnData, Result, VarLenContext, VarLenType};
+use crate::frontend::{ColumnData, VarLenContext, VarLenType};
 use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 /// Variable length token [2.2.4.2.1.3]
-pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
+pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> TdsWireResult<()> {
     match data {
         ColumnData::BitN(Some(val)) => {
             dst.put_u8(1);
@@ -41,7 +42,10 @@ pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn decode(src: &mut BytesMut, context: &VarLenContext) -> Result<Option<ColumnData>> {
+pub(crate) fn decode(
+    src: &mut BytesMut,
+    context: &VarLenContext,
+) -> TdsWireResult<Option<ColumnData>> {
     // push null
     match context.r#type() {
         VarLenType::Intn => {}

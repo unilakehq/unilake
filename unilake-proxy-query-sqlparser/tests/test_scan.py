@@ -11,6 +11,16 @@ class TestScan(unittest.TestCase):
         self.assertIsNone(actual_output.error)
         self.assertEqual(actual_output.type, ScanOutputType.UNKNOWN)
 
+    def test_scan_invalid_input(self):
+        sql = "SELECT SUM(Amount( FROM Finance"
+        actual_output = scan(sql, "snowflake", "catalog", "database")
+        self.assertIsNotNone(actual_output.error)
+
+    def test_scan_malformed_input(self):
+        sql = "select a"
+        actual_output = scan(sql, "snowflake", "catalog", "database")
+        self.assertIsNotNone(actual_output.error)
+
     def test_output_select(self):
         actual_output = scan("select * from some_table", "unilake", "catalog", "database")
         self.assertIsNone(actual_output.error)

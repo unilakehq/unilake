@@ -1,10 +1,11 @@
-use crate::frontend::{ColumnData, Result};
+use crate::frontend::ColumnData;
 use chrono::{NaiveDate, Timelike};
 use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 const BASE_DATE: Option<NaiveDate> = NaiveDate::from_ymd_opt(1, 1, 1);
 
-pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
+pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> TdsWireResult<()> {
     match data {
         ColumnData::DateTime2(Some(val)) => {
             // todo(mrhamburg): we currently always assume a scale of 7 (microseconds)
@@ -54,16 +55,16 @@ pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontend::{tds::codec::column_data::datetime2, ColumnData};
     use chrono::NaiveDate;
     use tokio_util::bytes::BytesMut;
-
-    use crate::frontend::{tds::codec::column_data::datetime2, ColumnData, Result};
+    use unilake_common::error::TdsWireResult;
 
     // todo(mrhamburg): we need this to also properly work with scale 6 (Max for StarRocks afaik)!
     const RAW_BYTES_SCALE_7: [u8; 9] = [0x08, 0x80, 0xb7, 0x14, 0xab, 0x08, 0xbb, 0x29, 0x0b];
 
     #[test]
-    fn test_encode_datetime2() -> Result<()> {
+    fn test_encode_datetime2() -> TdsWireResult<()> {
         let mut buf = BytesMut::new();
         let data = ColumnData::DateTime2(Some(
             NaiveDate::from_ymd_opt(2003, 12, 31)

@@ -1,6 +1,6 @@
-use crate::frontend::Result;
 use byteorder::{ByteOrder, LittleEndian};
 use tokio_util::bytes::{BufMut, BytesMut};
+use unilake_common::error::{Error, TdsWireResult};
 
 /// A presentation of `date` type in the server.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -23,7 +23,7 @@ impl Date {
         self.0
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         let mut tmp = [0u8; 4];
         LittleEndian::write_u32(&mut tmp, self.days());
         assert_eq!(tmp[3], 0);
@@ -59,7 +59,7 @@ impl DateTime {
         self.seconds_fragments
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_i32_le(self.days);
         dest.put_u32_le(self.seconds_fragments);
 
@@ -92,7 +92,7 @@ impl SmallDateTime {
         self.seconds_fragments
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         dest.put_u16_le(self.days);
         dest.put_u16_le(self.seconds_fragments);
 
@@ -137,20 +137,20 @@ impl Time {
 
     #[inline]
     /// Length of the field in number of bytes.
-    pub(crate) fn len(self) -> Result<u8> {
+    pub(crate) fn len(self) -> TdsWireResult<u8> {
         Ok(match self.scale {
             0..=2 => 3,
             3..=4 => 4,
             5..=7 => 5,
             _ => {
-                return Err(crate::frontend::Error::Protocol(
+                return Err(Error::Protocol(
                     format!("time: invalid scale {}", self.scale).into(),
                 ))
             }
         })
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         match self.len()? {
             3 => {
                 assert_eq!(self.increments >> 24, 0);
@@ -196,7 +196,7 @@ impl DateTime2 {
         self.time
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         self.time.encode(dest)?;
 
         let mut tmp = [0u8; 4];
@@ -233,7 +233,7 @@ impl DateTimeOffset {
         self.offset
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         self.datetime2.encode(dest)?;
         dest.put_i16_le(self.offset);
 

@@ -1,11 +1,10 @@
-use crate::frontend::error::TdsWireResult;
 use crate::frontend::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::frontend::utils::ReadAndAdvance;
-use crate::frontend::{Error, TdsMessage, TdsMessageCodec};
+use crate::frontend::{TdsMessage, TdsMessageCodec};
 use byteorder::{ByteOrder, LittleEndian};
 use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TokenError;
+use unilake_common::error::{Error, TdsWireResult, TokenError};
 
 /// SQLBatch Message [2.2.6.7]
 #[derive(Debug)]
@@ -91,13 +90,13 @@ impl TdsMessageCodec for BatchRequest {
 #[cfg(test)]
 mod tests {
     use crate::frontend::tds::codec::batch_request::BatchRequest;
-    use crate::frontend::Result;
     use crate::frontend::TdsMessage;
     use crate::frontend::TdsMessageCodec;
     use tokio_util::bytes::BytesMut;
+    use unilake_common::error::TdsWireResult;
 
     #[test]
-    fn encode_decode_batchrequest() -> Result<()> {
+    fn encode_decode_batchrequest() -> TdsWireResult<()> {
         let query = String::from(
             "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
         );

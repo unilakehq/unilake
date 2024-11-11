@@ -1,5 +1,4 @@
 use crate::backend::app::{FedResultStream, FederatedRequestType};
-use crate::frontend::error::TdsWireResult;
 use crate::frontend::sqlstring::SqlString;
 use crate::frontend::{
     BaseMetaDataColumn, BatchRequest, ColumnData, DataFlags, MetaDataColumn, TokenColMetaData,
@@ -7,6 +6,7 @@ use crate::frontend::{
 };
 use async_stream::stream;
 use std::collections::VecDeque;
+use unilake_common::error::TdsWireResult;
 
 pub(crate) fn process_static(hash: u64, req: &FederatedRequestType) -> Option<FedResultStream> {
     // hash based

@@ -207,3 +207,4 @@ class TestTranspile(unittest.TestCase):
             "SELECT `b`.`firstname` AS `firstname` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`username` = '?' AND `b`.`country` IN ('?', '?') AND `b`.`age` > ?",
             output.sql_transformed,
         )
+

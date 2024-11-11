@@ -1,7 +1,7 @@
-use crate::frontend::{Error, Result};
 use enumflags2::{bitflags, BitFlags};
 use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
+use unilake_common::error::TdsWireResult;
 
 uint_enum! {
     /// the type of the packet [2.2.3.1.1]
@@ -105,7 +105,7 @@ impl PacketHeader {
         }
     }
 
-    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+    pub fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
         tracing::debug!(
             message = "Sending packet",
             message_type = self.ty.to_string(),
@@ -133,10 +133,12 @@ impl PacketHeader {
         Ok(())
     }
 
-    pub fn decode(src: &mut BytesMut) -> Result<Self> {
+    pub fn decode(src: &mut BytesMut) -> TdsWireResult<Self> {
         let raw_ty = src.get_u8();
         let ty = PacketType::try_from(raw_ty).map_err(|_| {
-            Error::Protocol(format!("header: invalid packet type: {}", raw_ty).into())
+            unilake_common::error::Error::Protocol(
+                format!("header: invalid packet type: {}", raw_ty).into(),
+            )
         })?;
 
         let status = BitFlags::from_bits_truncate(src.get_u8());
