@@ -1,20 +1,26 @@
+use crate::backend::starrocks::StarRocksBackend;
 use crate::frontend::prot::{ServerInstance, TdsSessionState};
 use crate::frontend::tds::server_context::ServerContext;
 use crate::session::{
     SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE,
     SESSION_VARIABLE_DIALECT,
 };
+use mysql_async::Conn;
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
+use tokio::sync::{Mutex, MutexGuard};
 use ulid::Ulid;
+use unilake_common::error::{TdsWireError, TdsWireResult};
 use unilake_security::context::ConnectionContext;
+use unilake_security::{Cache, HitRule};
 
 pub struct StarRocksSession {
     socket_addr: SocketAddr,
     state: TdsSessionState,
     session_id: Ulid,
-    packet_size: u16,
+    packet_size: Arc<AtomicU16>,
     sql_user_id: Option<Arc<str>>,
     database: Option<Arc<str>>,
     schema: Option<Arc<str>>,
@@ -26,20 +32,21 @@ pub struct StarRocksSession {
     branch_name: Arc<str>,
     compute_id: Arc<str>,
     endpoint: Arc<str>,
-    // conn: Arc<RwLock<Conn>>,
-    // cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+    backend: Option<Arc<StarRocksBackend>>,
+    conn: Option<Mutex<Conn>>,
+    cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
 }
 
 impl StarRocksSession {
     pub fn new(
         socket_addr: SocketAddr,
         instance: Arc<ServerInstance>,
-        // conn: Arc<RwLock<Conn>>,
-        // cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+        conn: Option<Mutex<Conn>>,
+        cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
     ) -> Self {
         StarRocksSession {
             socket_addr,
-            packet_size: instance.ctx.packet_size,
+            packet_size: Arc::new(AtomicU16::new(instance.ctx.packet_size)),
             session_id: instance.next_session_id(),
             sql_user_id: None,
             state: TdsSessionState::default(),
@@ -53,9 +60,48 @@ impl StarRocksSession {
             branch_name: Arc::from(""),
             compute_id: Arc::from(""),
             endpoint: Arc::from(""),
-            // conn,
-            // cached_rules,
+            conn,
+            cached_rules,
+            backend: None,
         }
+    }
+
+    pub fn set_conn(&mut self, conn: Mutex<Conn>) {
+        self.conn = Some(conn);
+    }
+
+    pub fn has_conn(&self) -> bool {
+        self.conn.is_some()
+    }
+
+    pub async fn register_activity(&self) {
+        if let Some(pool) = &self.backend {
+            pool.register_activity().await;
+        }
+    }
+
+    pub fn set_backend(&mut self, backend: Arc<StarRocksBackend>) {
+        self.backend = Some(backend);
+    }
+
+    pub async fn get_conn(&self) -> TdsWireResult<MutexGuard<Conn>> {
+        if let Some(conn) = &self.conn {
+            return Ok(conn.lock().await);
+        }
+        Err(TdsWireError::Protocol(
+            "No connection available".to_string(),
+        ))
+    }
+
+    pub fn set_cached_rules(&mut self, cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>) {
+        self.cached_rules = Some(cached_rules);
+    }
+
+    pub fn get_cached_rules(&self) -> Arc<Box<dyn Cache<u64, (String, HitRule)>>> {
+        if let Some(cached_rules) = &self.cached_rules {
+            return cached_rules.clone();
+        }
+        panic!("No cached rules available");
     }
 
     fn get_default_session_variable() -> HashMap<String, SessionVariable> {
@@ -69,6 +115,14 @@ impl StarRocksSession {
             SessionVariable::Default(Arc::from("tsql")),
         );
         variables
+    }
+
+    pub async fn close(&self) {
+        if let Some(pool) = &self.backend {
+            if let Some(userid) = &self.sql_user_id {
+                pool.drop_conn(userid.as_ref()).await;
+            }
+        }
     }
 }
 
@@ -91,8 +145,8 @@ impl SessionInfo for StarRocksSession {
         self.session_id
     }
 
-    fn packet_size(&self) -> u16 {
-        self.packet_size
+    fn packet_size(&self) -> Arc<AtomicU16> {
+        self.packet_size.clone()
     }
 
     fn get_sql_user_id(&self) -> Arc<str> {

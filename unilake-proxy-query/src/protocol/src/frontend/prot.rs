@@ -2,7 +2,7 @@ use crate::frontend::{
     tds::server_context::ServerContext, BatchRequest, LoginMessage, PreloginMessage,
     TdsBackendResponse, TdsMessage, TdsToken,
 };
-use crate::session::{DefaultSession, SessionInfo};
+use crate::session::SessionInfo;
 use async_trait::async_trait;
 use futures::{Sink, SinkExt};
 use std::{
@@ -16,7 +16,8 @@ use std::{
 use tokio::{sync::Semaphore, time::sleep};
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult};
-use unilake_security::handler::QueryHandler;
+use unilake_security::handler::SecurityHandler;
+use unilake_security::Adapter;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -47,10 +48,6 @@ pub enum TdsSessionState {
     Final,
 }
 
-pub struct TdsWireMessageServerCodec {
-    pub client_info: DefaultSession,
-}
-
 #[async_trait]
 pub trait TdsWireHandlerFactory<S>: Send + Sync
 where
@@ -64,21 +61,27 @@ where
     ) -> Result<S, TdsWireError>;
 
     /// Close TDS server session
-    async fn close_session(&self, session: &S);
+    async fn close_session(&self, session: &mut S);
 
     /// Called when pre-login request arrives
     async fn on_prelogin_request<C>(
         &self,
         client: &mut C,
+        session_info: &mut S,
         msg: &PreloginMessage,
     ) -> TdsWireResult<()>
     where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
+        C: Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when login request arrives
-    async fn on_login7_request<C>(&self, client: &mut C, msg: &LoginMessage) -> TdsWireResult<()>
+    async fn on_login7_request<C>(
+        &self,
+        client: &mut C,
+        session_info: &mut S,
+        msg: &LoginMessage,
+    ) -> TdsWireResult<()>
     where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
+        C: Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
@@ -89,10 +92,11 @@ where
     async fn on_sql_batch_request<C>(
         &self,
         client: &mut C,
+        session_info: &mut S,
         msg: &BatchRequest,
     ) -> TdsWireResult<()>
     where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send;
+        C: Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when attention arrives
     fn on_attention(&self, session: &S);
@@ -100,7 +104,7 @@ where
     /// Send message to the client
     async fn send_message<C, M>(&self, client: &mut C, msg: M) -> Result<(), TdsWireError>
     where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+        C: Sink<TdsBackendResponse> + Unpin + Send,
         M: Into<TdsMessage> + Send,
     {
         client
@@ -112,7 +116,7 @@ where
     /// Send token to the client
     async fn send_token<C, T>(&self, client: &mut C, token: T) -> Result<(), TdsWireError>
     where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+        C: Sink<TdsBackendResponse> + Unpin + Send,
         T: Into<TdsToken> + Send,
     {
         client
@@ -124,7 +128,7 @@ where
     /// Flush all results
     async fn flush<C>(&self, client: &mut C) -> Result<(), TdsWireError>
     where
-        C: SessionInfo + Sink<TdsBackendResponse> + Unpin + Send,
+        C: Sink<TdsBackendResponse> + Unpin + Send,
     {
         client
             .send(TdsBackendResponse::Done)
@@ -146,7 +150,7 @@ pub enum ServerInstanceMessage {
 /// todo(mrhamburg): extend and expand where needed
 pub enum SessionAuditMessage {
     /// Sql execution by a user
-    SqlQuery(SessionUserInfo, QueryHandler),
+    SqlQuery(SessionUserInfo, SecurityHandler),
     /// Login succeeded event
     LoginSucceeded(SessionUserInfo),
     /// Login failed event
@@ -285,5 +289,9 @@ impl ServerInstance {
         msg: ServerInstanceMessage,
     ) -> Result<(), tokio::sync::mpsc::error::SendError<ServerInstanceMessage>> {
         self.inner.sender.clone().send(msg)
+    }
+
+    pub fn get_policy_adapter(&self) -> Arc<Box<dyn Adapter>> {
+        todo!()
     }
 }

@@ -135,9 +135,9 @@ mod tests {
         add_functions(&mut engine);
 
         let object_model = ObjectModel {
-            id: "some_id",
-            full_name: "",
-            tags: vec!["pii:username", "pii::email"],
+            id: "some_id".to_string(),
+            full_name: "".to_string(),
+            tags: vec!["pii:username".to_string(), "pii::email".to_string()],
             last_time_accessed: 0,
             is_aggregated: false,
         };
@@ -158,10 +158,10 @@ mod tests {
         add_functions(&mut engine);
 
         let user_object = UserModel {
-            id: "some_id",
-            principal_name: "",
-            role: "",
-            tags: vec!["pii::email"],
+            id: "some_id".to_string(),
+            principal_name: "".to_string(),
+            role: "".to_string(),
+            tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
         };
 
@@ -181,10 +181,10 @@ mod tests {
         add_functions(&mut engine);
 
         let user_object = UserModel {
-            id: "some_id",
-            principal_name: "",
-            role: "",
-            tags: vec!["pii::email"],
+            id: "some_id".to_string(),
+            principal_name: "".to_string(),
+            role: "".to_string(),
+            tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
         };
 
@@ -204,11 +204,11 @@ mod tests {
         add_functions(&mut engine);
 
         let group_model = GroupModel {
-            user_id: "user_id",
+            user_id: "user_id".to_string(),
             entity_version: 0,
             groups: vec![GroupInstance {
-                id: "group_id",
-                tags: vec!["pii::email"],
+                id: "group_id".to_string(),
+                tags: vec!["pii::email".to_string()],
             }],
         };
 
@@ -228,11 +228,11 @@ mod tests {
         add_functions(&mut engine);
 
         let group_model = GroupModel {
-            user_id: "user_id",
+            user_id: "user_id".to_string(),
             entity_version: 0,
             groups: vec![GroupInstance {
-                id: "group_id",
-                tags: vec!["pii::email"],
+                id: "group_id".to_string(),
+                tags: vec!["pii::email".to_string()],
             }],
         };
 
@@ -252,11 +252,11 @@ mod tests {
         add_functions(&mut engine);
 
         let group_model = GroupModel {
-            user_id: "some_id",
+            user_id: "some_id".to_string(),
             entity_version: 0,
             groups: vec![GroupInstance {
-                id: "some_id",
-                tags: vec!["pii::email"],
+                id: "some_id".to_string(),
+                tags: vec!["pii::email".to_string()],
             }],
         };
 
@@ -276,11 +276,11 @@ mod tests {
         add_functions(&mut engine);
 
         let group_model = GroupModel {
-            user_id: "some_id",
+            user_id: "some_id".to_string(),
             entity_version: 0,
             groups: vec![GroupInstance {
-                id: "some_id",
-                tags: vec!["pii::email"],
+                id: "some_id".to_string(),
+                tags: vec!["pii::email".to_string()],
             }],
         };
 
@@ -311,7 +311,7 @@ mod tests {
         add_functions(&mut engine);
 
         let mut session_model = get_session_model();
-        session_model.domain_id = "some_correct_guid";
+        session_model.domain_id = "some_correct_guid".to_string();
 
         let mut scope = Scope::new();
         let value = to_dynamic(session_model).unwrap();
@@ -329,7 +329,7 @@ mod tests {
         add_functions(&mut engine);
 
         let mut session_model = get_session_model();
-        session_model.domain_id = "some_correct_guid";
+        session_model.domain_id = "some_correct_guid".to_string();
 
         let mut scope = Scope::new();
         let value = to_dynamic(session_model).unwrap();
@@ -347,7 +347,7 @@ mod tests {
         add_functions(&mut engine);
 
         let mut session_model = get_session_model();
-        session_model.workspace_id = "some_correct_guid";
+        session_model.workspace_id = "some_correct_guid".to_string();
 
         let mut scope = Scope::new();
         let value = to_dynamic(session_model).unwrap();
@@ -365,7 +365,7 @@ mod tests {
         add_functions(&mut engine);
 
         let mut session_model = get_session_model();
-        session_model.workspace_id = "some_incorrect_guid";
+        session_model.workspace_id = "some_incorrect_guid".to_string();
 
         let mut scope = Scope::new();
         let value = to_dynamic(session_model).unwrap();
@@ -377,24 +377,24 @@ mod tests {
         assert!(!result)
     }
 
-    fn get_session_model<'a>() -> SessionModel<'a> {
+    fn get_session_model() -> SessionModel {
         SessionModel {
-            id: "",
+            id: "".to_string(),
             app_id: 0,
-            app_name: "",
-            app_type: "",
-            app_driver: "",
-            source_ipv4: "",
-            country_iso2: "",
-            continent: "",
-            timezone: "",
-            time: &0,
-            day_of_week: &0,
-            branch: "",
-            compute_id: "",
-            policy_id: "",
-            workspace_id: "",
-            domain_id: "some_correct_guid",
+            app_name: "".to_string(),
+            app_type: "".to_string(),
+            app_driver: "".to_string(),
+            source_ipv4: "".to_string(),
+            country_iso2: "".to_string(),
+            continent: "".to_string(),
+            timezone: "".to_string(),
+            time: 0,
+            day_of_week: 0,
+            branch: "".to_string(),
+            compute_id: "".to_string(),
+            policy_id: "".to_string(),
+            workspace_id: "".to_string(),
+            domain_id: "some_correct_guid".to_string(),
         }
     }
 }

@@ -12,4 +12,6 @@ mod scanner;
 
 // re-exports
 pub use crate::policies::HitRule;
+pub use casbin::Adapter;
 pub use casbin::Cache;
+pub use casbin::DefaultCache;

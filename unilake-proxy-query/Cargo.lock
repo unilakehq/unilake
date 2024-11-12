@@ -2394,6 +2394,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "ulid",
  "unilake-common",
  "unilake-sql",
 ]

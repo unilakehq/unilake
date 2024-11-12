@@ -4,6 +4,7 @@ use casbin::{Cache, EventData, Logger};
 use std::cmp::PartialEq;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub(crate) enum PolicyHit {
@@ -21,8 +22,8 @@ pub(crate) struct HitEnforce {
 
 #[derive(Debug, Clone)]
 pub struct HitRule {
-    id: u64,
-    rules: Vec<String>,
+    pub id: u64,
+    pub rules: Vec<String>,
 }
 
 #[derive(PartialEq)]
@@ -42,18 +43,20 @@ pub struct PolicyFound {
 pub enum PolicyCollectResult {
     /// String = object_id, PolicyRule contains all hit rules
     Found(Vec<(String, Vec<PolicyFound>)>),
+    /// The current cache is invalid, clear cache and try again
     CacheInvalid,
+    /// No item found in the cache
     NotFound,
 }
 
 pub(crate) struct PolicyHitManager {
     sender: Sender<PolicyHit>,
     receiver: Receiver<PolicyHit>,
-    cached: Box<dyn Cache<u64, (String, HitRule)>>, // repo: RepoRest,
+    cached: Arc<Box<dyn Cache<u64, (String, HitRule)>>>, // repo: RepoRest,
 }
 
 impl PolicyHitManager {
-    pub fn new(cached: Box<dyn Cache<u64, (String, HitRule)>>) -> Self {
+    pub fn new(cached: Arc<Box<dyn Cache<u64, (String, HitRule)>>>) -> Self {
         let (sender, receiver) = channel::<PolicyHit>();
         PolicyHitManager {
             sender,
@@ -316,7 +319,9 @@ mod tests {
     use crate::policies::{
         PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
     };
-    use casbin::Logger;
+    use crate::HitRule;
+    use casbin::{Cache, Logger};
+    use std::sync::Arc;
 
     #[test]
     fn test_policy_logger_capture_hit_and_enforce() {
@@ -335,7 +340,8 @@ mod tests {
 
     #[test]
     fn test_policy_hit_manager_results() {
-        let cache = Box::new(casbin::DefaultCache::new(400));
+        let cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>> =
+            Arc::new(Box::new(casbin::DefaultCache::new(400)));
         let mut sut = PolicyHitManager::new(cache);
         {
             let logger = PolicyLogger::new(sut.get_sender());

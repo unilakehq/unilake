@@ -8,7 +8,6 @@
 use encoding::{self, Encoding};
 use unilake_common::error::{Error, TdsWireResult};
 
-
 #[derive(Debug, Clone, Copy)]
 /// Collation consists of 5 bytes (codepage (2), flags (2), charset_id (1))
 pub struct Collation {
