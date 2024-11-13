@@ -70,12 +70,12 @@ class ScanEntity:
 
 @dataclass
 class ScanAttribute:
-    entity: str
+    entity_alias: str
     name: str
     alias: str
 
     def to_json(self) -> dict:
-        return {"entity": self.entity, "name": self.name, "alias": self.alias}
+        return {"entity_alias": self.entity_alias, "name": self.name, "alias": self.alias}
 
 
 @dataclass

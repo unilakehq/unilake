@@ -72,7 +72,7 @@ class TestScan(unittest.TestCase):
                     "entities": [
                         {"catalog": "catalog", "db": "database", "alias": "b", "entity": "b"}
                     ],
-                    "attributes": [{"entity": "b", "name": "a", "alias": "Something"}],
+                    "attributes": [{"entity_alias": "b", "name": "a", "alias": "Something"}],
                     "is_agg": False,
                 }
             ],
@@ -92,7 +92,8 @@ class TestScan(unittest.TestCase):
                         {"catalog": "catalog", "db": "database", "entity": "b", "alias": "b"}
                     ],
                     "attributes": [
-                        {"entity": "b", "name": "a", "alias": "Something"},
+                        {"entity_alias": "b", "name": "a", "alias": "Something"},
+                        {"entity_alias": "b", "name": "a", "alias": "b"},
                     ],
                     "is_agg": True,
                 }
@@ -116,8 +117,10 @@ class TestScan(unittest.TestCase):
             [
                 {
                     "attributes": [
-                        {"alias": "a", "entity": "a", "name": "a"},
-                        {"alias": "b", "entity": "b", "name": "b"},
+                        {"alias": "a", "entity_alias": "a", "name": "a"},
+                        {"alias": "b", "entity_alias": "b", "name": "b"},
+                        {"alias": "a", "entity_alias": "a", "name": "id"},
+                        {"alias": "b", "entity_alias": "b", "name": "id"},
                     ],
                     "entities": [
                         {"alias": "a", "catalog": "catalog", "db": "database", "entity": "a"},
@@ -146,14 +149,14 @@ class TestScan(unittest.TestCase):
         actual_output = scan(sql, "tsql", "catalog", "database")
         self.assertIsNone(actual_output.error)
         self.assertEqual(actual_output.type, ScanOutputType.SELECT)
-        self.assertEqual(len(actual_output.objects[0].attributes), 1)
+        self.assertEqual(len(actual_output.objects[0].attributes), 3)
 
     def test_scan_valid_group_by(self):
         sql = "SELECT department FROM employees GROUP BY department, employee_id"
         actual_output = scan(sql, "tsql", "catalog", "database")
         self.assertIsNone(actual_output.error)
         self.assertEqual(actual_output.type, ScanOutputType.SELECT)
-        self.assertEqual(len(actual_output.objects[0].attributes), 1)
+        self.assertEqual(len(actual_output.objects[0].attributes), 3)
 
     def test_scan_get_star(self):
         sql = "SELECT departments.name, employees.* FROM employees JOIN departments ON employees.department_id = departments.department_id"
@@ -162,6 +165,17 @@ class TestScan(unittest.TestCase):
         self.assertEqual(actual_output.type, ScanOutputType.SELECT)
         self.assertEqual(len(actual_output.objects[0].entities), 2)
         self.assertEqual(actual_output.objects[0].attributes[0].name, "*")
+
+    def test_scan_get_duplicate_star(self):
+        # todo: also add this to transpile to see what happens
+        sql = "SELECT * FROM catalog.schema_1.employees, catalog.schema_2.employees WHERE catalog.schema_1.employees.id = catalog.schema_2.employees.id"
+        actual_output = scan(sql, "tsql", "catalog", "database")
+        self.assertIsNone(actual_output.error)
+        self.assertEqual(actual_output.type, ScanOutputType.SELECT)
+        self.assertEqual(len(actual_output.objects[0].entities), 2)
+        self.assertEqual(actual_output.objects[0].attributes[0].name, "*")
+        self.assertEqual(actual_output.objects[0].attributes[0].alias, "employees")
+        self.assertEqual(actual_output.objects[0].attributes[1].alias, "employees_2")
 
     def test_scan_get_star_in_function(self):
         # I believe this is only applicable for count(*), but who knows
@@ -296,7 +310,7 @@ class TestScan(unittest.TestCase):
 
         entity = result.objects[0].entities[0]
         self.assertEqual(len(result.objects[0].entities), 1)
-        self.assertEqual(len(result.objects[0].attributes), 2)
+        self.assertEqual(len(result.objects[0].attributes), 3)
         self.assertEqual(entity.catalog, "catalog")
         self.assertEqual(entity.db, "database")
         self.assertEqual(entity.name, "duplicate_table")

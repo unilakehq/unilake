@@ -113,9 +113,15 @@ pub struct ScanEntity {
     pub alias: String,
 }
 
+impl ScanEntity {
+    pub fn get_full_name(&self) -> String {
+        format!("{}.{}.{}", self.catalog, self.db, self.name)
+    }
+}
+
 #[derive(FromPyObject)]
 pub struct ScanAttribute {
-    pub entity: String,
+    pub entity_alias: String,
     pub name: String,
     pub alias: String,
 }
@@ -148,38 +154,21 @@ pub struct TranspilerInput {
     pub request_url: Option<String>,
 }
 
-struct VisibleSchemaBuilder {
+pub struct VisibleSchemaBuilder {
     pub catalog: HashMap<String, Catalog>,
 }
 
 impl VisibleSchemaBuilder {
-    fn new() -> Self {
+    pub fn new() -> Self {
         VisibleSchemaBuilder {
             catalog: HashMap::new(),
         }
     }
 
-    fn get_or_add_catalog(&mut self, name: String) -> &mut Catalog {
+    pub fn get_or_add_catalog(&mut self, name: String) -> &mut Catalog {
         self.catalog
             .entry(name)
             .or_insert(Catalog { db: HashMap::new() })
-    }
-
-    fn get_or_add_database(catalog: &mut Catalog, name: String) -> &mut Database {
-        catalog.db.entry(name).or_insert(Database {
-            table: HashMap::new(),
-        })
-    }
-
-    fn get_or_add_table(database: &mut Database, name: String) -> &mut Table {
-        database.table.entry(name).or_insert(Table {
-            columns: HashMap::new(),
-        })
-    }
-
-    fn get_or_add_column(table: &mut Table, name: String, data_type: String) -> &mut Table {
-        table.columns.entry(name).or_insert(data_type);
-        table
     }
 }
 
@@ -189,16 +178,39 @@ pub struct Catalog {
     db: HashMap<String, Database>,
 }
 
+impl Catalog {
+    pub fn get_or_add_database(&mut self, name: String) -> &mut Database {
+        self.db.entry(name).or_insert(Database {
+            table: HashMap::new(),
+        })
+    }
+}
+
 #[derive(Serialize, Debug)]
-struct Database {
+pub struct Database {
     #[serde(flatten)]
     table: HashMap<String, Table>,
 }
 
+impl Database {
+    pub fn get_or_add_table(&mut self, name: String) -> &mut Table {
+        self.table.entry(name).or_insert(Table {
+            columns: HashMap::new(),
+        })
+    }
+}
+
 #[derive(Serialize, Debug)]
-struct Table {
+pub struct Table {
     #[serde(flatten)]
     columns: HashMap<String, String>,
+}
+
+impl Table {
+    pub fn get_or_add_column(&mut self, name: String, data_type: String) -> &mut Table {
+        self.columns.entry(name).or_insert(data_type);
+        self
+    }
 }
 
 #[derive(Serialize, Debug)]
@@ -249,11 +261,11 @@ mod tests {
 
         let mut builder = VisibleSchemaBuilder::new();
         let catalog = builder.get_or_add_catalog("catalog".to_string());
-        let database = VisibleSchemaBuilder::get_or_add_database(catalog, "database".to_string());
-        let table = VisibleSchemaBuilder::get_or_add_table(database, "employees".to_string());
-        VisibleSchemaBuilder::get_or_add_column(table, "id".to_string(), "int".to_string());
-        VisibleSchemaBuilder::get_or_add_column(table, "name".to_string(), "string".to_string());
-        VisibleSchemaBuilder::get_or_add_column(table, "a".to_string(), "string".to_string());
+        let database = catalog.get_or_add_database("database".to_string());
+        let table = database.get_or_add_table("employees".to_string());
+        table.get_or_add_column("id".to_string(), "int".to_string());
+        table.get_or_add_column("name".to_string(), "string".to_string());
+        table.get_or_add_column("a".to_string(), "string".to_string());
 
         let output = run_transpile_operation(
             &TranspilerInput {

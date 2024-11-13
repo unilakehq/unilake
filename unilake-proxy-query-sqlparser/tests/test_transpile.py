@@ -2,6 +2,7 @@ import json
 import unittest
 from sqlparser import transpile, scan
 
+# todo: make sure transpiling of windows functions are supported! so order by x is also hashed(x)
 
 class TestTranspile(unittest.TestCase):
     def test_transpile_empty_input(self):

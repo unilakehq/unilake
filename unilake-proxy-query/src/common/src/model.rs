@@ -122,6 +122,30 @@ pub struct ObjectModel {
     pub is_aggregated: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct EntityModel {
+    /// The entity id
+    pub id: String,
+    /// The full name of the object (e.g., catalog.schema.table)
+    pub full_name: String,
+    /// Attribute names and types of the object [(a, INT), (b, VARCHAR)]
+    pub attributes: Vec<(String, String)>,
+}
+
+impl EntityModel {
+    pub fn get_catalog_name(&self) -> Option<String> {
+        Some(self.full_name.split('.').nth(0)?.to_string())
+    }
+
+    pub fn get_schema_name(&self) -> Option<String> {
+        Some(self.full_name.split('.').nth(1)?.to_string())
+    }
+
+    pub fn get_table_name(&self) -> Option<String> {
+        Some(self.full_name.split('.').nth(2)?.to_string())
+    }
+}
+
 impl Hash for ObjectModel {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);

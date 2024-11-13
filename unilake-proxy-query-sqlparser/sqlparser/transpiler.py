@@ -35,15 +35,23 @@ def _scan_transform(node, scope_id: int, entities, attributes, aggregates):
         entities[scope_id].append(ScanEntity(node.catalog, node.db, node.name, node.alias))
 
     # Get columns
-    elif node_type is exp.Column and node.parent.key not in ["ordered", "group"]:
+    elif node_type is exp.Column:
         alias = node.parent.alias
+        if not alias:
+            alias = node.table
         attributes[scope_id].append(ScanAttribute(node.table, node.name, alias))
 
     # Get Stars
     elif node_type is exp.Select and node.is_star:
-        found = node.find(exp.From)
-        if found is not None:
-            attributes[scope_id].append(ScanAttribute(found.this.name, "*", found.this.alias))
+        found_from = node.find(exp.From)
+
+        if found_from:
+            attributes[scope_id].append(ScanAttribute(found_from.this.name, "*", found_from.this.alias))
+
+        if "joins" in node.args:
+            joins = [join for join in node.args["joins"] if join.this.alias]
+            for join in joins:
+                attributes[scope_id].append(ScanAttribute(join.this.name, "*", join.this.alias))
 
     # Get groupBy check indicator
     elif node_type is exp.Group:

@@ -1,20 +1,24 @@
 use crate::caching::layered_cache::MultiLayeredCache;
 use crate::policies::{PolicyHitManager, PolicyLogger};
+use crate::repository::RepoRest;
 use crate::HitRule;
 use casbin::{Cache, CachedEnforcer, CoreApi};
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::vec;
 use tokio::sync::Mutex;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
-use unilake_common::model::{GroupModel, ObjectModel, SessionModel, UserModel};
+use unilake_common::model::{EntityModel, GroupModel, ObjectModel, SessionModel, UserModel};
 use unilake_sql::{
-    run_scan_operation, run_secure_operation, run_transpile_operation, ParserError, ScanAttribute,
-    ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput,
+    run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
+    ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput, VisibleSchemaBuilder,
 };
 
 pub struct CacheContainer {
     user_model_cache: Arc<Box<MultiLayeredCache<String, UserModel>>>,
     group_model_cache: Arc<Box<MultiLayeredCache<String, GroupModel>>>,
+    entity_model_cache: Arc<Box<MultiLayeredCache<String, EntityModel>>>,
     object_model_cache: Arc<Box<MultiLayeredCache<String, ObjectModel>>>,
     cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
 }
@@ -24,6 +28,7 @@ impl CacheContainer {
         user_model_cache: Arc<Box<MultiLayeredCache<String, UserModel>>>,
         group_model_cache: Arc<Box<MultiLayeredCache<String, GroupModel>>>,
         object_model_cache: Arc<Box<MultiLayeredCache<String, ObjectModel>>>,
+        entity_model_cache: Arc<Box<MultiLayeredCache<String, EntityModel>>>,
         cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
     ) -> Self {
         Self {
@@ -31,8 +36,22 @@ impl CacheContainer {
             group_model_cache,
             object_model_cache,
             cached_rules,
+            entity_model_cache,
         }
     }
+}
+
+pub enum SecurityHandlerResults {
+    /// Happens when a requested entity <catalog>.<schema>.<entity> does not exist
+    EntityNotFound(String),
+    /// Happens when a requested entity <catalog>.<schema>.<entity> exists but is not allowed to be accessed
+    EntityNotAllowed(String),
+    /// Happens when the user groups cannot be found
+    UserGroupsNotFound(String),
+    /// Happens when the user cannot be found
+    UserNotFound(String),
+    /// Happens when there are issues with the repository
+    RepositoryError(String),
 }
 
 pub enum SecurityHandlerError {
@@ -249,18 +268,35 @@ impl SecurityHandler {
     }
 }
 
-struct QueryPolicyDecision {}
+struct QueryPolicyDecision<'a> {
+    cache_container: &'a CacheContainer,
+    enforcer: Arc<Mutex<CachedEnforcer>>,
+    session_model: &'a SessionModel,
+    repo_rest: RepoRest,
+}
 
-impl QueryPolicyDecision {
-    pub async fn process(
-        scan_output: &ScanOutput,
-        cache_container: &CacheContainer,
+impl<'a> QueryPolicyDecision<'a> {
+    pub fn new(
+        cache_container: &'a CacheContainer,
         enforcer: Arc<Mutex<CachedEnforcer>>,
-        session_model: &SessionModel,
+        session_model: &'a SessionModel,
+        repo_rest: RepoRest,
+    ) -> Self {
+        QueryPolicyDecision {
+            cache_container,
+            enforcer,
+            session_model,
+            repo_rest,
+        }
+    }
+
+    pub async fn process(
+        &self,
+        scan_output: &ScanOutput,
     ) -> Result<TranspilerInput, SecurityHandlerError> {
-        let mut pm = PolicyHitManager::new(cache_container.cached_rules.clone());
+        let mut pm = PolicyHitManager::new(self.cache_container.cached_rules.clone());
         let logger = Box::new(PolicyLogger::new(pm.get_sender()));
-        let mut enforcer = enforcer.lock().await;
+        let mut enforcer = self.enforcer.lock().await;
 
         // add dependencies and reload policy
         enforcer.set_logger(logger);
@@ -277,33 +313,33 @@ impl QueryPolicyDecision {
 
         // todo: the visible schema also needs to be built, we actually need this beforehand
 
-        scan_output
-            .objects
-            .iter()
-            .map(|o| o.scope)
-            .for_each(|scope| {
-                let items = Self::get_entity_attributes(&scan_output.objects, scope);
-                for item in items {
-                    if let Some(entity) = item.0 {
-                        let object_model = Self::get_object_model(
-                            cache_container,
-                            format!(
-                                "{}.{}.{}.{}",
-                                entity.catalog, entity.db, entity.name, item.1.name
-                            ),
-                        )
-                        .await;
-                    }
-                    if let Err(err) = enforcer.enforce((
-                        QueryPolicyDecision::get_user_model(cache_container),
-                        QueryPolicyDecision::get_group_model(cache_container),
-                        session_model,
-                        QueryPolicyDecision::get_object_model(cache_container),
-                    )) {
-                        panic!("Failed to enforce policy: {}", err);
-                    }
-                }
-            });
+        // scan_output
+        //     .objects
+        //     .iter()
+        //     .map(|o| o.scope)
+        //     .for_each(|scope| {
+        //         let items = Self::get_entity_attributes(&scan_output.objects, scope);
+        //         for item in items {
+        //             if let Some(entity) = item.0 {
+        //                 let object_model = Self::get_object_model(
+        //                     cache_container,
+        //                     format!(
+        //                         "{}.{}.{}.{}",
+        //                         entity.catalog, entity.db, entity.name, item.1.name
+        //                     ),
+        //                 )
+        //                 .await;
+        //             }
+        //             if let Err(err) = enforcer.enforce((
+        //                 QueryPolicyDecision::get_user_model(cache_container),
+        //                 QueryPolicyDecision::get_group_model(cache_container),
+        //                 session_model,
+        //                 QueryPolicyDecision::get_object_model(cache_container),
+        //             )) {
+        //                 panic!("Failed to enforce policy: {}", err);
+        //             }
+        //         }
+        //     });
 
         pm.process_hits();
 
@@ -317,10 +353,12 @@ impl QueryPolicyDecision {
         })
     }
 
+    /// Extracts the combinations entity and attribute from the given scope
+    /// Returned tuple: Optional Entity, Attribute, Star flag (defaults false)
     fn get_entity_attributes(
         input: &Vec<ScanOutputObject>,
         scope: i32,
-    ) -> Vec<(Option<&ScanEntity>, &ScanAttribute)> {
+    ) -> Vec<(Option<&ScanEntity>, &ScanAttribute, bool)> {
         input
             .iter()
             .filter(|o| o.scope == scope)
@@ -330,27 +368,181 @@ impl QueryPolicyDecision {
                     .filter_map(|a| {
                         i.entities
                             .iter()
-                            .find(|e| e.name == a.entity)
-                            .map(|e| (Some(e), a))
-                            // todo: this does not work for star
-                            .or_else(|| Some((None, a)))
+                            .find(|e| e.alias == a.entity_alias)
+                            .map(|e| (Some(e), a, false))
+                            .or_else(|| Some((None, a, false)))
                     })
                     .collect::<Vec<_>>()
             })
             .collect()
     }
 
-    async fn get_object_model(cache_container: &CacheContainer, object_key: String) -> ObjectModel {
-        cache_container.object_model_cache.get(&object_key).await;
-        todo!()
+    /// Searches for star entities and replaces them with their known attributes
+    async fn fill_star_attributes<'b>(
+        items: &mut Vec<(Option<&ScanEntity>, &'b ScanAttribute, bool)>,
+        found_attributes: &'b HashMap<String, Vec<ScanAttribute>>,
+    ) -> Result<(), SecurityHandlerResults> {
+        let mut star_attributes = Vec::new();
+        for item in items.iter_mut().find(|(_, att, _)| att.name == "*") {
+            let (entity, _, _) = item;
+            // create new elements based on the matching ones
+            if let Some(entity) = entity {
+                let full_name = entity.get_full_name();
+                match found_attributes.get(&full_name) {
+                    None => {
+                        return Err(SecurityHandlerResults::EntityNotFound(full_name));
+                    }
+                    Some(found) => {
+                        star_attributes.extend(
+                            found
+                                .iter()
+                                .map(|i| (Some(*entity), i, true))
+                                .collect::<Vec<_>>(),
+                        );
+                    }
+                }
+            }
+        }
+
+        // extend the original list with the new elements
+        items.extend(star_attributes);
+
+        // remove the original elements with the "*" attribute
+        items.retain(|(_, attr, _)| attr.name != "*");
+        Ok(())
     }
 
-    fn get_group_model(cache_container: &CacheContainer) -> GroupModel {
-        todo!()
+    async fn get_star_attributes(
+        cache: &CacheContainer,
+        full_entity_name: String,
+        entity_alias: &str,
+    ) -> Result<(EntityModel, Vec<ScanAttribute>), SecurityHandlerResults> {
+        //todo: entitymodel can be used for building the schema and scanattributes is for knowing which attributes to check (casbin check)
+        if let Some(entity) = cache.entity_model_cache.get(&full_entity_name).await {
+            let mut attributes = Vec::new();
+            for attr in &entity.attributes {
+                let full_entity_name = format!("{}.{}", full_entity_name, attr.0);
+                if let Some(_) = cache.object_model_cache.get(&full_entity_name).await {
+                    attributes.push(ScanAttribute {
+                        entity_alias: entity_alias.to_owned(),
+                        name: attr.0.to_owned(),
+                        alias: attr.0.to_owned(),
+                    });
+                } else {
+                    return Err(SecurityHandlerResults::EntityNotFound(full_entity_name));
+                }
+            }
+
+            Ok((entity, attributes))
+        } else {
+            Err(SecurityHandlerResults::EntityNotFound(full_entity_name))
+        }
     }
 
-    fn get_user_model(cache_container: &CacheContainer) -> UserModel {
-        todo!()
+    fn get_visible_schema(entities: &Vec<EntityModel>) -> Option<HashMap<String, Catalog>> {
+        let mut builder = VisibleSchemaBuilder::new();
+        for model in entities {
+            let table = builder
+                .get_or_add_catalog(model.get_catalog_name()?)
+                .get_or_add_database(model.get_schema_name()?)
+                .get_or_add_table(model.get_table_name()?);
+            for (n, t) in &model.attributes {
+                table.get_or_add_column(n.to_owned(), t.to_owned());
+            }
+        }
+        Some(builder.catalog)
+    }
+
+    async fn get_object_model(
+        &self,
+        object_key: String,
+    ) -> Result<ObjectModel, SecurityHandlerResults> {
+        let mut found = self
+            .cache_container
+            .object_model_cache
+            .get(&object_key)
+            .await;
+        if found.is_none() {
+            found = Some(
+                self.repo_rest
+                    .fetch_objectmodel(object_key.as_str())
+                    .await
+                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
+            );
+        }
+        match found {
+            Some(model) => Ok(model),
+            None => Err(SecurityHandlerResults::EntityNotFound(object_key)),
+        }
+    }
+
+    async fn get_entity_model(
+        &self,
+        entity_key: String,
+    ) -> Result<EntityModel, SecurityHandlerResults> {
+        let mut found = self
+            .cache_container
+            .entity_model_cache
+            .get(&entity_key)
+            .await;
+        if found.is_none() {
+            found = Some(
+                self.repo_rest
+                    .fetch_entitymodel(entity_key.as_str())
+                    .await
+                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
+            );
+        }
+        match found {
+            Some(model) => Ok(model),
+            None => Err(SecurityHandlerResults::UserGroupsNotFound(entity_key)),
+        }
+    }
+
+    async fn get_group_model(
+        &self,
+        group_user_key: String,
+    ) -> Result<GroupModel, SecurityHandlerResults> {
+        let mut found = self
+            .cache_container
+            .group_model_cache
+            .get(&group_user_key)
+            .await;
+        if found.is_none() {
+            found = Some(
+                self.repo_rest
+                    .fetch_groupmodel(group_user_key.as_str())
+                    .await
+                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
+            );
+        }
+        match found {
+            Some(model) => Ok(model),
+            None => Err(SecurityHandlerResults::UserGroupsNotFound(group_user_key)),
+        }
+    }
+
+    async fn get_user_model(
+        &self,
+        user_object_key: String,
+    ) -> Result<UserModel, SecurityHandlerResults> {
+        let mut found = self
+            .cache_container
+            .user_model_cache
+            .get(&user_object_key)
+            .await;
+        if found.is_none() {
+            found = Some(
+                self.repo_rest
+                    .fetch_usermodel(user_object_key.as_str())
+                    .await
+                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
+            );
+        }
+        match found {
+            Some(model) => Ok(model),
+            None => Err(SecurityHandlerResults::UserGroupsNotFound(user_object_key)),
+        }
     }
 }
 
@@ -358,7 +550,7 @@ impl QueryPolicyDecision {
 mod tests {
     use crate::adapter::cached_adapter::{CacheEntity, CachedAdapter};
     use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
-    use crate::handler::{CacheContainer, QueryPolicyDecision};
+    use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerResults};
     use crate::{HitRule, ABAC_MODEL};
     use async_trait::async_trait;
     use casbin::{Cache, CachedEnforcer, CoreApi, DefaultCache, DefaultModel};
@@ -369,7 +561,7 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::Mutex;
     use unilake_common::model::{
-        AccountType, GroupInstance, GroupModel, ObjectModel, SessionModel, UserModel,
+        AccountType, EntityModel, GroupInstance, GroupModel, ObjectModel, SessionModel, UserModel,
     };
     use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject};
 
@@ -387,6 +579,98 @@ mod tests {
                 .await;
     }
 
+    #[test]
+    fn test_get_entity_attributes_found() {
+        let scan_output = get_scan_default_output();
+        let found = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 0);
+        assert_eq!(found.len(), 4);
+        assert!(found.iter().map(|(x, _, _)| x.is_some()).all(|b| b));
+        assert!(found.iter().all(|(_, _, x)| !*x));
+    }
+
+    #[test]
+    fn test_get_entity_attributes_not_found() {
+        let scan_output = get_scan_default_output();
+        let found = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 1);
+        assert_eq!(found.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_fill_star_attributes_found() {
+        let scan_output = get_scan_star_output();
+        let mut attributes = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 0);
+
+        // initially we have a star
+        assert_eq!(
+            attributes
+                .iter()
+                .find(|(_, x, _)| x.name == "*")
+                .iter()
+                .count(),
+            1
+        );
+
+        let star_attributes = vec![
+            ScanAttribute {
+                entity_alias: "customers".to_string(),
+                name: "id".to_string(),
+                alias: "a".to_string(),
+            },
+            ScanAttribute {
+                entity_alias: "customers".to_string(),
+                name: "first_name".to_string(),
+                alias: "first_name".to_string(),
+            },
+            ScanAttribute {
+                entity_alias: "customers".to_string(),
+                name: "last_name".to_string(),
+                alias: "last_name".to_string(),
+            },
+        ];
+
+        let mut star_map = HashMap::new();
+        star_map.insert("catalog.schema.customers".to_string(), star_attributes);
+        QueryPolicyDecision::fill_star_attributes(&mut attributes, &star_map).await;
+
+        assert_eq!(attributes.len(), 3);
+        // now we don't have any stars anymore
+        assert_eq!(
+            attributes
+                .iter()
+                .find(|(_, x, _)| x.name == "*")
+                .iter()
+                .count(),
+            0
+        );
+        // all stars are marked as star origins
+        assert!(attributes.iter().all(|(_, _, x)| *x));
+    }
+
+    #[tokio::test]
+    async fn test_fill_star_attributes_entry_not_found() {
+        let scan_output = get_scan_star_output();
+        let mut attributes = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 0);
+        let star_attributes = vec![ScanAttribute {
+            entity_alias: "customers".to_string(),
+            name: "id".to_string(),
+            alias: "a".to_string(),
+        }];
+
+        let mut items = HashMap::new();
+        items.insert("unknown".to_string(), star_attributes);
+        let found_star = QueryPolicyDecision::fill_star_attributes(&mut attributes, &items).await;
+        assert!(found_star.is_err());
+        if let Some(e) = found_star.err() {
+            match e {
+                SecurityHandlerResults::EntityNotFound(v) => {
+                    assert_eq!("catalog.schema.customers", v)
+                }
+                SecurityHandlerResults::EntityNotAllowed(_) => unreachable!(),
+                _ => unreachable!(), // Handle any other unexpected errors
+            }
+        }
+    }
+
     async fn get_defaults() -> (DefaultModel, ScanOutput, CacheContainer) {
         (
             DefaultModel::from_str(ABAC_MODEL).await.unwrap(),
@@ -395,6 +679,7 @@ mod tests {
                 get_user_model_cache(None),
                 get_group_model_cache(None),
                 get_object_model_cache(None),
+                get_entity_model_cache(None),
                 get_rules_cache(None),
             ),
         )
@@ -443,22 +728,22 @@ mod tests {
                 }],
                 attributes: vec![
                     ScanAttribute {
-                        entity: "customers".to_string(),
+                        entity_alias: "a".to_string(),
                         name: "user_id".to_string(),
                         alias: "uid".to_string(),
                     },
                     ScanAttribute {
-                        entity: "customers".to_string(),
+                        entity_alias: "a".to_string(),
                         name: "firstname".to_string(),
                         alias: "firstname".to_string(),
                     },
                     ScanAttribute {
-                        entity: "customers".to_string(),
+                        entity_alias: "a".to_string(),
                         name: "lastname".to_string(),
                         alias: "lastname".to_string(),
                     },
                     ScanAttribute {
-                        entity: "customers".to_string(),
+                        entity_alias: "a".to_string(),
                         name: "email".to_string(),
                         alias: "email".to_string(),
                     },
@@ -473,6 +758,31 @@ mod tests {
         }
     }
 
+    fn get_scan_star_output() -> ScanOutput {
+        ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: "catalog".to_string(),
+                    db: "schema".to_string(),
+                    name: "customers".to_string(),
+                    alias: "customers".to_string(),
+                }],
+                attributes: vec![ScanAttribute {
+                    entity_alias: "customers".to_string(),
+                    name: "*".to_string(),
+                    alias: "".to_string(),
+                }],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some("SELECT * FROM catalog.schema.customers".to_string()),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        }
+    }
+
     fn get_user_model_cache(
         items: Option<HashMap<String, UserModel>>,
     ) -> Arc<Box<MultiLayeredCache<String, UserModel>>> {
@@ -480,6 +790,20 @@ mod tests {
             items
         } else {
             get_user_model_input()
+        };
+        Arc::new(Box::new(MultiLayeredCache::new(
+            10,
+            Box::from(DummyBackendProvider::from(items)),
+        )))
+    }
+
+    fn get_entity_model_cache(
+        items: Option<HashMap<String, EntityModel>>,
+    ) -> Arc<Box<MultiLayeredCache<String, EntityModel>>> {
+        let items = if let Some(items) = items {
+            items
+        } else {
+            get_entity_model_input()
         };
         Arc::new(Box::new(MultiLayeredCache::new(
             10,
@@ -534,6 +858,19 @@ mod tests {
             domain_id: "domain_id".to_string(),
             workspace_id: "workspace_id".to_string(),
         }
+    }
+
+    fn get_entity_model_input() -> HashMap<String, EntityModel> {
+        let mut entity_model_input = HashMap::new();
+        entity_model_input.insert(
+            "entity_id".to_string(),
+            EntityModel {
+                id: "".to_string(),
+                full_name: "".to_string(),
+                attributes: vec![],
+            },
+        );
+        entity_model_input
     }
 
     fn get_user_model_input() -> HashMap<String, UserModel> {

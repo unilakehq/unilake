@@ -88,7 +88,7 @@ pub struct RedisBackendProvider {
     // Implement Redis connection logic
     client: redis::Client,
     tenant_id: String,
-    /// Can be either Policy, GroupModel, UserModel, ObjectModel
+    /// Can be either Policy, GroupModel, UserModel, ObjectModel, EntityModel
     backend_type: String,
 }
 
