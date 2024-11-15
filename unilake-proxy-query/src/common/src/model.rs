@@ -45,6 +45,8 @@ pub struct GroupInstance {
 
 #[derive(Serialize)]
 pub struct SessionModel {
+    /// Unique user id
+    pub user_id: String,
     /// Unique session id
     pub id: String,
     /// The application id

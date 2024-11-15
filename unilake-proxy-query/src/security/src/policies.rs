@@ -26,18 +26,19 @@ pub struct HitRule {
     pub rules: Vec<String>,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum PolicyType {
     MaskingRule,
     FilterRule,
     None,
 }
 
+#[derive(Clone)]
 pub struct PolicyFound {
-    rule_definition: serde_json::Value,
-    policy_name: Option<String>,
-    policy_type: PolicyType,
-    policy_id: String,
+    pub rule_definition: serde_json::Value,
+    pub policy_name: Option<String>,
+    pub policy_type: PolicyType,
+    pub policy_id: String,
 }
 
 pub enum PolicyCollectResult {

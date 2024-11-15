@@ -1,6 +1,7 @@
-use crate::caching::layered_cache::MultiLayeredCache;
-use crate::policies::{PolicyHitManager, PolicyLogger};
-use crate::repository::RepoRest;
+use crate::policies::{
+    PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
+};
+use crate::repository::RepoBackend;
 use crate::HitRule;
 use casbin::{Cache, CachedEnforcer, CoreApi};
 use std::collections::HashMap;
@@ -9,39 +10,13 @@ use std::vec;
 use tokio::sync::Mutex;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
-use unilake_common::model::{EntityModel, GroupModel, ObjectModel, SessionModel, UserModel};
+use unilake_common::model::{EntityModel, SessionModel};
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
     ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput, VisibleSchemaBuilder,
 };
 
-pub struct CacheContainer {
-    user_model_cache: Arc<Box<MultiLayeredCache<String, UserModel>>>,
-    group_model_cache: Arc<Box<MultiLayeredCache<String, GroupModel>>>,
-    entity_model_cache: Arc<Box<MultiLayeredCache<String, EntityModel>>>,
-    object_model_cache: Arc<Box<MultiLayeredCache<String, ObjectModel>>>,
-    cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
-}
-
-impl CacheContainer {
-    pub fn new(
-        user_model_cache: Arc<Box<MultiLayeredCache<String, UserModel>>>,
-        group_model_cache: Arc<Box<MultiLayeredCache<String, GroupModel>>>,
-        object_model_cache: Arc<Box<MultiLayeredCache<String, ObjectModel>>>,
-        entity_model_cache: Arc<Box<MultiLayeredCache<String, EntityModel>>>,
-        cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
-    ) -> Self {
-        Self {
-            user_model_cache,
-            group_model_cache,
-            object_model_cache,
-            cached_rules,
-            entity_model_cache,
-        }
-    }
-}
-
-pub enum SecurityHandlerResults {
+pub enum SecurityHandlerResult {
     /// Happens when a requested entity <catalog>.<schema>.<entity> does not exist
     EntityNotFound(String),
     /// Happens when a requested entity <catalog>.<schema>.<entity> exists but is not allowed to be accessed
@@ -52,6 +27,8 @@ pub enum SecurityHandlerResults {
     UserNotFound(String),
     /// Happens when there are issues with the repository
     RepositoryError(String),
+    /// Happens when there are issues with the policy being used
+    PolicyError(String),
 }
 
 pub enum SecurityHandlerError {
@@ -121,15 +98,17 @@ pub struct SecurityHandler {
     input_query_secured: Option<Arc<str>>,
     input_query: Option<Arc<str>>,
     cached_enforcer: Arc<Mutex<CachedEnforcer>>,
-    cache_container: CacheContainer,
     session_model: SessionModel,
+    repo_backend: Arc<RepoBackend>,
+    cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
 }
 
 impl SecurityHandler {
     pub fn new(
         cached_enforcer: Arc<Mutex<CachedEnforcer>>,
-        cache_container: CacheContainer,
         session_model: SessionModel,
+        repo_backend: Arc<RepoBackend>,
+        cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
     ) -> Self {
         SecurityHandler {
             query_id: Ulid::new(),
@@ -140,8 +119,9 @@ impl SecurityHandler {
             input_query_secured: None,
             input_query: None,
             cached_enforcer,
-            cache_container,
             session_model,
+            repo_backend,
+            cached_rules,
         }
     }
 
@@ -206,13 +186,13 @@ impl SecurityHandler {
             return Err(SecurityHandlerError::QueryError(scan_output.error.unwrap()));
         }
 
-        // todo(mrhamburg): pdp has state and caching and all, needs to be improved
-        let transpiler_input = QueryPolicyDecision::process(
-            &scan_output,
-            &self.cache_container,
-            self.cached_enforcer.clone(),
+        let transpiler_input = QueryPolicyDecision::new(
+            &self.repo_backend,
+            &self.cached_enforcer,
             &self.session_model,
+            &self.cached_rules,
         )
+        .process(&scan_output)
         .await
         .ok()
         .unwrap();
@@ -268,41 +248,159 @@ impl SecurityHandler {
     }
 }
 
+enum AttributeAccess {
+    Allowed,
+    Hidden,
+    Denied,
+}
+
 struct QueryPolicyDecision<'a> {
-    cache_container: &'a CacheContainer,
-    enforcer: Arc<Mutex<CachedEnforcer>>,
+    repo_backend: &'a Arc<RepoBackend>,
+    enforcer: &'a Arc<Mutex<CachedEnforcer>>,
     session_model: &'a SessionModel,
-    repo_rest: RepoRest,
+    policy_cache: &'a Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
 }
 
 impl<'a> QueryPolicyDecision<'a> {
     pub fn new(
-        cache_container: &'a CacheContainer,
-        enforcer: Arc<Mutex<CachedEnforcer>>,
+        repo_backend: &'a Arc<RepoBackend>,
+        enforcer: &'a Arc<Mutex<CachedEnforcer>>,
         session_model: &'a SessionModel,
-        repo_rest: RepoRest,
+        policy_cache: &'a Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
     ) -> Self {
         QueryPolicyDecision {
-            cache_container,
+            repo_backend,
             enforcer,
             session_model,
-            repo_rest,
+            policy_cache,
         }
     }
 
+    // todo: we also need to check the intent, do you perform a select statement, update or delete etc... based on roles
     pub async fn process(
         &self,
         scan_output: &ScanOutput,
-    ) -> Result<TranspilerInput, SecurityHandlerError> {
-        let mut pm = PolicyHitManager::new(self.cache_container.cached_rules.clone());
-        let logger = Box::new(PolicyLogger::new(pm.get_sender()));
+    ) -> Result<TranspilerInput, SecurityHandlerResult> {
+        // enforcer should only be used in a single thread
         let mut enforcer = self.enforcer.lock().await;
 
-        // add dependencies and reload policy
-        enforcer.set_logger(logger);
-        enforcer.enable_log(true);
+        // reload policy (in case of changes)
         if let Err(err) = enforcer.load_policy().await {
             panic!("Failed to load policy: {}", err);
+        }
+
+        // set input (user and group)
+        let user_model = self
+            .repo_backend
+            .get_user_model(&self.session_model.user_id)
+            .await?;
+        let group_model = self
+            .repo_backend
+            .get_group_model(&self.session_model.user_id)
+            .await?;
+
+        // walk through all scopes and attributes
+        let mut masking_rules = Vec::new();
+        let mut filter_rules = Vec::new();
+        let mut entities = Vec::new();
+        let mut exclude_attributes_visible_map = Vec::new();
+
+        // get all entity attributes by scope, for processing
+        for (scope, ref mut items) in scan_output.objects.iter().map(|objects| {
+            (
+                objects.scope,
+                Self::get_entity_attributes(&scan_output.objects),
+            )
+        }) {
+            // set new logger instance (logger is scoped to a scope)
+            let mut pm = PolicyHitManager::new(self.policy_cache.clone());
+            let logger = Box::new(PolicyLogger::new(pm.get_sender()));
+            enforcer.set_logger(logger);
+            enforcer.enable_log(true);
+
+            // unpack stars
+            let mut star_map = HashMap::new();
+            // todo: fix unwrap
+            for entity in items.iter().map(|(e, _, _)| e.unwrap()) {
+                let found = Self::get_star_attributes(
+                    &self.repo_backend,
+                    entity.get_full_name(),
+                    &entity.alias,
+                )
+                .await?;
+                star_map.insert(entity.get_full_name(), found.1);
+                entities.push(found.0);
+            }
+            Self::fill_star_attributes(items, &star_map).await?;
+
+            // process all attributes for policy enforcement
+            for (entity, attribute, is_starred) in items {
+                // formulate entity name
+                let entity = entity.unwrap();
+                let entity_name = format!(
+                    "{}.{}.{}.{}",
+                    entity.catalog, entity.db, entity.name, attribute.name
+                );
+
+                // get input object model
+                let object_model = self.repo_backend.get_object_model(&entity_name).await?;
+
+                // check access based on policy
+                match enforcer.enforce((
+                    &user_model,
+                    &group_model,
+                    self.session_model,
+                    &object_model,
+                )) {
+                    Ok(status) => {
+                        if !status && !*is_starred {
+                            return self.get_denied_access_result().await;
+                        } else if !status {
+                            exclude_attributes_visible_map.push(format!(
+                                "{}:{}",
+                                entity.get_full_name(),
+                                attribute.name
+                            ));
+                        }
+                    }
+                    Err(err) => {
+                        panic!("Failed to enforce policy: {}", err)
+                    }
+                }
+            }
+
+            let items = match pm
+                .process_hits()
+                .map_err(|e| SecurityHandlerResult::PolicyError(e))?
+            {
+                PolicyCollectResult::Found(f) => f,
+                PolicyCollectResult::CacheInvalid => {
+                    // todo: invalidate cache and retry
+                    todo!()
+                }
+                PolicyCollectResult::NotFound => {
+                    return Err(SecurityHandlerResult::PolicyError(
+                        "Could not find any policy results".to_string(),
+                    ));
+                }
+            };
+
+            for (object_id, rules) in items {
+                // todo: determine where we can get the stricter and looser rules priority from
+                let masking_rule = if let Some(rule) =
+                    PolicyHitManager::resolve_masking_policy_conflict(&rules, true)
+                {
+                    Some(rule.clone())
+                } else {
+                    None
+                };
+                let filter_rule = rules
+                    .iter()
+                    .filter(|p| p.policy_type == PolicyType::FilterRule);
+
+                masking_rules.push((scope, object_id.clone(), masking_rule));
+                filter_rule.for_each(|p| filter_rules.push((scope, object_id.clone(), p.clone())));
+            }
         }
 
         // todo: build set to iterate over (scoped, per attribute)
@@ -313,55 +411,27 @@ impl<'a> QueryPolicyDecision<'a> {
 
         // todo: the visible schema also needs to be built, we actually need this beforehand
 
-        // scan_output
-        //     .objects
-        //     .iter()
-        //     .map(|o| o.scope)
-        //     .for_each(|scope| {
-        //         let items = Self::get_entity_attributes(&scan_output.objects, scope);
-        //         for item in items {
-        //             if let Some(entity) = item.0 {
-        //                 let object_model = Self::get_object_model(
-        //                     cache_container,
-        //                     format!(
-        //                         "{}.{}.{}.{}",
-        //                         entity.catalog, entity.db, entity.name, item.1.name
-        //                     ),
-        //                 )
-        //                 .await;
-        //             }
-        //             if let Err(err) = enforcer.enforce((
-        //                 QueryPolicyDecision::get_user_model(cache_container),
-        //                 QueryPolicyDecision::get_group_model(cache_container),
-        //                 session_model,
-        //                 QueryPolicyDecision::get_object_model(cache_container),
-        //             )) {
-        //                 panic!("Failed to enforce policy: {}", err);
-        //             }
-        //         }
-        //     });
-
-        pm.process_hits();
-
         Ok(TranspilerInput {
             cause: None,
             query: scan_output.query.clone().unwrap(),
             request_url: None,
             rules: vec![],
             filters: vec![],
-            visible_schema: None,
+            visible_schema: Self::get_visible_schema(entities, exclude_attributes_visible_map),
         })
+    }
+
+    async fn get_denied_access_result(&self) -> Result<TranspilerInput, SecurityHandlerResult> {
+        todo!()
     }
 
     /// Extracts the combinations entity and attribute from the given scope
     /// Returned tuple: Optional Entity, Attribute, Star flag (defaults false)
     fn get_entity_attributes(
         input: &Vec<ScanOutputObject>,
-        scope: i32,
     ) -> Vec<(Option<&ScanEntity>, &ScanAttribute, bool)> {
         input
             .iter()
-            .filter(|o| o.scope == scope)
             .flat_map(|i| {
                 i.attributes
                     .iter()
@@ -381,7 +451,7 @@ impl<'a> QueryPolicyDecision<'a> {
     async fn fill_star_attributes<'b>(
         items: &mut Vec<(Option<&ScanEntity>, &'b ScanAttribute, bool)>,
         found_attributes: &'b HashMap<String, Vec<ScanAttribute>>,
-    ) -> Result<(), SecurityHandlerResults> {
+    ) -> Result<(), SecurityHandlerResult> {
         let mut star_attributes = Vec::new();
         for item in items.iter_mut().find(|(_, att, _)| att.name == "*") {
             let (entity, _, _) = item;
@@ -390,7 +460,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 let full_name = entity.get_full_name();
                 match found_attributes.get(&full_name) {
                     None => {
-                        return Err(SecurityHandlerResults::EntityNotFound(full_name));
+                        return Err(SecurityHandlerResult::EntityNotFound(full_name));
                     }
                     Some(found) => {
                         star_attributes.extend(
@@ -412,34 +482,10 @@ impl<'a> QueryPolicyDecision<'a> {
         Ok(())
     }
 
-    async fn get_star_attributes(
-        cache: &CacheContainer,
-        full_entity_name: String,
-        entity_alias: &str,
-    ) -> Result<(EntityModel, Vec<ScanAttribute>), SecurityHandlerResults> {
-        //todo: entitymodel can be used for building the schema and scanattributes is for knowing which attributes to check (casbin check)
-        if let Some(entity) = cache.entity_model_cache.get(&full_entity_name).await {
-            let mut attributes = Vec::new();
-            for attr in &entity.attributes {
-                let full_entity_name = format!("{}.{}", full_entity_name, attr.0);
-                if let Some(_) = cache.object_model_cache.get(&full_entity_name).await {
-                    attributes.push(ScanAttribute {
-                        entity_alias: entity_alias.to_owned(),
-                        name: attr.0.to_owned(),
-                        alias: attr.0.to_owned(),
-                    });
-                } else {
-                    return Err(SecurityHandlerResults::EntityNotFound(full_entity_name));
-                }
-            }
-
-            Ok((entity, attributes))
-        } else {
-            Err(SecurityHandlerResults::EntityNotFound(full_entity_name))
-        }
-    }
-
-    fn get_visible_schema(entities: &Vec<EntityModel>) -> Option<HashMap<String, Catalog>> {
+    fn get_visible_schema(
+        entities: Vec<EntityModel>,
+        exclude: Vec<String>,
+    ) -> Option<HashMap<String, Catalog>> {
         let mut builder = VisibleSchemaBuilder::new();
         for model in entities {
             let table = builder
@@ -447,102 +493,57 @@ impl<'a> QueryPolicyDecision<'a> {
                 .get_or_add_database(model.get_schema_name()?)
                 .get_or_add_table(model.get_table_name()?);
             for (n, t) in &model.attributes {
-                table.get_or_add_column(n.to_owned(), t.to_owned());
+                if !exclude.contains(&format!("{}.{}", model.full_name, n)) {
+                    table.get_or_add_column(n.to_owned(), t.to_owned());
+                }
             }
         }
         Some(builder.catalog)
     }
 
-    async fn get_object_model(
-        &self,
-        object_key: String,
-    ) -> Result<ObjectModel, SecurityHandlerResults> {
-        let mut found = self
-            .cache_container
-            .object_model_cache
-            .get(&object_key)
-            .await;
-        if found.is_none() {
-            found = Some(
-                self.repo_rest
-                    .fetch_objectmodel(object_key.as_str())
-                    .await
-                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
-            );
-        }
-        match found {
-            Some(model) => Ok(model),
-            None => Err(SecurityHandlerResults::EntityNotFound(object_key)),
+    /// Requires the full entity name <catalog>.<schema>.<entity> and gets all its attributes
+    /// uses these attributes to create an entity attribute mapping. Entity alias is required
+    /// since we need to know which attributes belong to which entity within a given scope
+    async fn get_star_attributes(
+        backend: &Arc<RepoBackend>,
+        full_entity_name: String,
+        entity_alias: &str,
+    ) -> Result<(EntityModel, Vec<ScanAttribute>), SecurityHandlerResult> {
+        if let Ok(entity) = backend.get_entity_model(&full_entity_name).await {
+            let mut attributes = Vec::new();
+            for attr in &entity.attributes {
+                let full_entity_name = format!("{}.{}", full_entity_name, attr.0);
+                if let Ok(_) = backend.get_object_model(&full_entity_name).await {
+                    attributes.push(ScanAttribute {
+                        entity_alias: entity_alias.to_owned(),
+                        name: attr.0.to_owned(),
+                        alias: attr.0.to_owned(),
+                    });
+                } else {
+                    return Err(SecurityHandlerResult::EntityNotFound(full_entity_name));
+                }
+            }
+
+            Ok((entity, attributes))
+        } else {
+            Err(SecurityHandlerResult::EntityNotFound(full_entity_name))
         }
     }
 
-    async fn get_entity_model(
-        &self,
-        entity_key: String,
-    ) -> Result<EntityModel, SecurityHandlerResults> {
-        let mut found = self
-            .cache_container
-            .entity_model_cache
-            .get(&entity_key)
-            .await;
-        if found.is_none() {
-            found = Some(
-                self.repo_rest
-                    .fetch_entitymodel(entity_key.as_str())
-                    .await
-                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
-            );
+    /// Check if we are allowed to access the given object attribute
+    ///
+    ///     Allowed: we can further process this attribute as is and use it in the visible schema
+    ///     Hidden: we need to hide this attribute from the visible schema
+    ///     Denied: we are trying to access an attribute we don't have access to
+    fn get_attribute_access_status(policy: PolicyFound, from_star: bool) -> AttributeAccess {
+        if policy.policy_name.is_some_and(|n| n == "hidden") {
+            return if from_star {
+                AttributeAccess::Hidden
+            } else {
+                AttributeAccess::Denied
+            };
         }
-        match found {
-            Some(model) => Ok(model),
-            None => Err(SecurityHandlerResults::UserGroupsNotFound(entity_key)),
-        }
-    }
-
-    async fn get_group_model(
-        &self,
-        group_user_key: String,
-    ) -> Result<GroupModel, SecurityHandlerResults> {
-        let mut found = self
-            .cache_container
-            .group_model_cache
-            .get(&group_user_key)
-            .await;
-        if found.is_none() {
-            found = Some(
-                self.repo_rest
-                    .fetch_groupmodel(group_user_key.as_str())
-                    .await
-                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
-            );
-        }
-        match found {
-            Some(model) => Ok(model),
-            None => Err(SecurityHandlerResults::UserGroupsNotFound(group_user_key)),
-        }
-    }
-
-    async fn get_user_model(
-        &self,
-        user_object_key: String,
-    ) -> Result<UserModel, SecurityHandlerResults> {
-        let mut found = self
-            .cache_container
-            .user_model_cache
-            .get(&user_object_key)
-            .await;
-        if found.is_none() {
-            found = Some(
-                self.repo_rest
-                    .fetch_usermodel(user_object_key.as_str())
-                    .await
-                    .map_err(|e| SecurityHandlerResults::RepositoryError(e))?,
-            );
-        }
-        match found {
-            Some(model) => Ok(model),
-            None => Err(SecurityHandlerResults::UserGroupsNotFound(user_object_key)),
-        }
+        AttributeAccess::Allowed
     }
 }
 
@@ -550,7 +551,7 @@ impl<'a> QueryPolicyDecision<'a> {
 mod tests {
     use crate::adapter::cached_adapter::{CacheEntity, CachedAdapter};
     use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
-    use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerResults};
+    use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerResult};
     use crate::{HitRule, ABAC_MODEL};
     use async_trait::async_trait;
     use casbin::{Cache, CachedEnforcer, CoreApi, DefaultCache, DefaultModel};
@@ -574,9 +575,8 @@ mod tests {
         ));
         let session_model = get_session_model_input();
 
-        let result =
-            QueryPolicyDecision::process(&scan_output, &cache_container, e.clone(), &session_model)
-                .await;
+        let sut = QueryPolicyDecision::new(&cache_container, e.clone(), &session_model, None);
+        let result = sut.process(&scan_output).await;
     }
 
     #[test]
@@ -662,10 +662,9 @@ mod tests {
         assert!(found_star.is_err());
         if let Some(e) = found_star.err() {
             match e {
-                SecurityHandlerResults::EntityNotFound(v) => {
+                SecurityHandlerResult::EntityNotFound(v) => {
                     assert_eq!("catalog.schema.customers", v)
                 }
-                SecurityHandlerResults::EntityNotAllowed(_) => unreachable!(),
                 _ => unreachable!(), // Handle any other unexpected errors
             }
         }
@@ -841,6 +840,7 @@ mod tests {
 
     fn get_session_model_input() -> SessionModel {
         SessionModel {
+            user_id: "user_id".to_string(),
             id: "session_id".to_string(),
             app_id: 0,
             app_name: "app_name".to_string(),
