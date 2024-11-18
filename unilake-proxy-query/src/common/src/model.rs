@@ -16,7 +16,7 @@ pub struct UserModel {
     #[serde(rename = "principalName")]
     pub principal_name: String,
     /// The user's role (as part of this connection)
-    pub role: String,
+    pub roles: Vec<String>,
     /// Tags associated with the user, a tag: some_category::some_tag
     pub tags: Vec<String>,
     /// The type of the user (User or Group)
@@ -132,6 +132,7 @@ pub struct EntityModel {
     pub full_name: String,
     /// Attribute names and types of the object [(a, INT), (b, VARCHAR)]
     pub attributes: Vec<(String, String)>,
+    pub objects: Vec<ObjectModel>,
 }
 
 impl EntityModel {
@@ -173,6 +174,24 @@ pub struct PolicyRule {
 }
 
 impl PolicyRule {
+    pub fn new(
+        policy_type: &str,
+        object: &str,
+        sub_rule: &str,
+        eft: &str,
+        func: &str,
+        policy_id: &str,
+    ) -> Self {
+        PolicyRule {
+            policy_type: policy_type.to_owned(),
+            object: object.to_owned(),
+            sub_rule: sub_rule.to_owned(),
+            eft: eft.to_owned(),
+            func: func.to_owned(),
+            policy_id: policy_id.to_owned(),
+        }
+    }
+
     pub fn to_vec(self) -> Vec<String> {
         vec![
             self.policy_type,

@@ -30,6 +30,7 @@ pub struct HitRule {
 pub enum PolicyType {
     MaskingRule,
     FilterRule,
+    FullAccess,
     None,
 }
 
@@ -176,6 +177,10 @@ impl PolicyHitManager {
             return Err("policy name is not a string".to_string());
         } else if let Some(_) = rule_definition.get("expression") {
             return Ok((None, PolicyType::FilterRule));
+        } else if let Some(is_full_access) = rule_definition.get("full_access") {
+            if is_full_access.as_bool().unwrap_or(false) {
+                return Ok((None, PolicyType::FullAccess));
+            }
         }
         Ok((None, PolicyType::None))
     }
@@ -184,6 +189,17 @@ impl PolicyHitManager {
         policies: &Vec<PolicyFound>,
         prio_stricter: bool,
     ) -> Option<&PolicyFound> {
+        // todo: not sure about this, I think this can be removed actually
+        // Full access policies take precedence any time
+        let full_access = policies
+            .iter()
+            .find(|policy| policy.policy_type == PolicyType::FullAccess)
+            .and_then(|i| return Some(i));
+        if full_access.is_some() {
+            return full_access;
+        }
+
+        // Check policies
         let mut chosen = (if prio_stricter { u16::MAX } else { u16::MIN }, None);
         for policy in policies
             .iter()
@@ -322,6 +338,7 @@ mod tests {
     };
     use crate::HitRule;
     use casbin::{Cache, Logger};
+    use serde_json::json;
     use std::sync::Arc;
 
     #[test]
@@ -376,6 +393,21 @@ mod tests {
         assert!(found.is_some());
         let found = found.unwrap();
         assert_eq!(found.policy_id, "0");
+    }
+
+    #[test]
+    fn test_policy_conflict_precedent_full_access() {
+        let mut items = get_test_data_policies_found();
+        items.push(PolicyFound {
+            policy_id: "99".to_string(),
+            policy_type: PolicyType::FullAccess,
+            policy_name: None,
+            rule_definition: json!({}),
+        });
+        let found = PolicyHitManager::resolve_masking_policy_conflict(&items, true);
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().policy_id, "99");
+        assert!(found.unwrap().policy_type == PolicyType::FullAccess);
     }
 
     fn send_test_data(mut logger: PolicyLogger) {

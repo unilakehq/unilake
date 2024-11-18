@@ -1,9 +1,10 @@
 use casbin::rhai;
-use casbin::rhai::{Array, ImmutableString, Map, INT};
+use casbin::rhai::{Array, Dynamic, ImmutableString, Map, INT};
 use chrono::{DateTime, Utc};
 
 #[allow(dead_code)]
 pub(crate) fn add_functions(engine: &mut rhai::Engine) {
+    engine.register_fn("HasRole", has_role);
     engine.register_fn("TagExists", tag_exists_1);
     engine.register_fn("TagExists", tag_exists_2);
     engine.register_fn("MemberOfGroup", member_of_group);
@@ -11,6 +12,22 @@ pub(crate) fn add_functions(engine: &mut rhai::Engine) {
     engine.register_fn("ConnectedDomain", connected_domain);
     engine.register_fn("ConnectedWorkspace", connected_workspace);
     engine.register_fn("TimeBetween", time_between);
+}
+
+/// See if this user has a specified role
+#[allow(dead_code)]
+fn has_role(s: Map, role_name: ImmutableString) -> bool {
+    for item in s
+        .get("roles")
+        .and_then(|v| Some(v.clone().cast::<Vec<Dynamic>>()))
+        .iter()
+        .flatten()
+    {
+        if let Some(r) = item.clone().try_cast::<ImmutableString>() {
+            return r == role_name;
+        }
+    }
+    false
 }
 
 #[allow(dead_code)]
@@ -153,6 +170,52 @@ mod tests {
     }
 
     #[test]
+    fn test_has_role_found() {
+        let mut engine = rhai::Engine::new();
+        add_functions(&mut engine);
+
+        let user_object = UserModel {
+            id: "some_id".to_string(),
+            principal_name: "".to_string(),
+            roles: vec!["role1".to_string(), "role2".to_string()],
+            tags: vec!["pii::email".to_string()],
+            account_type: AccountType::User,
+        };
+
+        let mut scope = Scope::new();
+        let value = to_dynamic(user_object).unwrap();
+        scope.push("a", value);
+
+        let result: bool = engine
+            .eval_with_scope(&mut scope, "HasRole(a, \"role1\")")
+            .unwrap();
+        assert!(result)
+    }
+
+    #[test]
+    fn test_has_role_not_found() {
+        let mut engine = rhai::Engine::new();
+        add_functions(&mut engine);
+
+        let user_object = UserModel {
+            id: "some_id".to_string(),
+            principal_name: "".to_string(),
+            roles: vec!["role1".to_string(), "role2".to_string()],
+            tags: vec!["pii::email".to_string()],
+            account_type: AccountType::User,
+        };
+
+        let mut scope = Scope::new();
+        let value = to_dynamic(user_object).unwrap();
+        scope.push("a", value);
+
+        let result: bool = engine
+            .eval_with_scope(&mut scope, "HasRole(a, \"unknown\")")
+            .unwrap();
+        assert_eq!(result, false)
+    }
+
+    #[test]
     fn test_tag_exists_static_user() {
         let mut engine = rhai::Engine::new();
         add_functions(&mut engine);
@@ -160,7 +223,7 @@ mod tests {
         let user_object = UserModel {
             id: "some_id".to_string(),
             principal_name: "".to_string(),
-            role: "".to_string(),
+            roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
         };
@@ -183,7 +246,7 @@ mod tests {
         let user_object = UserModel {
             id: "some_id".to_string(),
             principal_name: "".to_string(),
-            role: "".to_string(),
+            roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
         };
@@ -380,6 +443,7 @@ mod tests {
     fn get_session_model() -> SessionModel {
         SessionModel {
             id: "".to_string(),
+            user_id: "".to_string(),
             app_id: 0,
             app_name: "".to_string(),
             app_type: "".to_string(),

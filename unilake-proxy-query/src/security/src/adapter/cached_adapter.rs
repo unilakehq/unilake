@@ -35,7 +35,6 @@ impl CachedAdapter {
 #[async_trait]
 impl Adapter for CachedAdapter {
     async fn load_policy(&mut self, m: &mut dyn Model) -> Result<()> {
-        let start = std::time::Instant::now();
         let current_policy_id = self.get_current_policy_id().await.map_or(0, |id| id);
         let current_policy = self
             .cache
@@ -47,9 +46,8 @@ impl Adapter for CachedAdapter {
             });
 
         if current_policy.is_none() {
-            // todo: some error handling here
-            // return Err(casbin::Error::new("failed to load policy"));
-            return Ok(());
+            // return Err(casbin::Error::new("No current policy found")?);
+            todo!("Proper error handling logic here, cannot find current policy")
         }
 
         let current_policy = current_policy.unwrap();
@@ -66,13 +64,11 @@ impl Adapter for CachedAdapter {
             }
         }
 
-        let elapsed = start.elapsed();
-        println!("Load policy time: {:?}", elapsed);
         Ok(())
     }
 
     async fn load_filtered_policy<'a>(&mut self, _m: &mut dyn Model, _f: Filter<'a>) -> Result<()> {
-        todo!()
+        unreachable!("this api shouldn't implement, just for convenience")
     }
 
     async fn save_policy(&mut self, _m: &mut dyn Model) -> Result<()> {

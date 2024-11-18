@@ -92,6 +92,7 @@ pub struct ScanOutput {
     pub objects: Vec<ScanOutputObject>,
     pub dialect: String,
     pub query: Option<String>,
+    /// Expect: SELECT, UPDATE, DELETE, INSERT, ALTER
     pub query_type: String,
     pub error: Option<ParserError>,
     pub target_entity: Option<String>,
@@ -114,6 +115,7 @@ pub struct ScanEntity {
 }
 
 impl ScanEntity {
+    /// Full name <catalog>.<db>.<entity_name>
     pub fn get_full_name(&self) -> String {
         format!("{}.{}.{}", self.catalog, self.db, self.name)
     }
@@ -216,6 +218,7 @@ impl Table {
 #[derive(Serialize, Debug)]
 pub struct TranspilerInputRule {
     pub scope: i32,
+    pub attribute_id: String,
     pub attribute: String,
     pub rule_id: String,
     pub rule_definition: serde_json::Value,
@@ -224,6 +227,7 @@ pub struct TranspilerInputRule {
 #[derive(Serialize, Debug)]
 pub struct TranspilerInputFilter {
     pub scope: i32,
+    pub attribute_id: String,
     pub attribute: String,
     pub filter_id: String,
     pub filter_definition: serde_json::Value,

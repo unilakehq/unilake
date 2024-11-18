@@ -1,19 +1,21 @@
+use crate::effector::PdpEffector;
+use crate::functions::add_functions;
 use crate::policies::{
     PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
 };
-use crate::repository::RepoBackend;
+use crate::repository::CacheContainer;
 use crate::HitRule;
 use casbin::{Cache, CachedEnforcer, CoreApi};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::vec;
 use tokio::sync::Mutex;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
-use unilake_common::model::{EntityModel, SessionModel};
+use unilake_common::model::{EntityModel, ObjectModel, SessionModel};
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
-    ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput, VisibleSchemaBuilder,
+    ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput,
+    TranspilerInputFilter, TranspilerInputRule, VisibleSchemaBuilder,
 };
 
 pub enum SecurityHandlerResult {
@@ -97,18 +99,18 @@ pub struct SecurityHandler {
     output_query_secured: Option<Arc<str>>,
     input_query_secured: Option<Arc<str>>,
     input_query: Option<Arc<str>>,
-    cached_enforcer: Arc<Mutex<CachedEnforcer>>,
     session_model: SessionModel,
-    repo_backend: Arc<RepoBackend>,
+    cached_enforcer: Arc<Mutex<CachedEnforcer>>,
     cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+    cached_backend: CacheContainer,
 }
 
 impl SecurityHandler {
     pub fn new(
         cached_enforcer: Arc<Mutex<CachedEnforcer>>,
         session_model: SessionModel,
-        repo_backend: Arc<RepoBackend>,
         cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+        cached_backend: CacheContainer,
     ) -> Self {
         SecurityHandler {
             query_id: Ulid::new(),
@@ -120,8 +122,8 @@ impl SecurityHandler {
             input_query: None,
             cached_enforcer,
             session_model,
-            repo_backend,
             cached_rules,
+            cached_backend,
         }
     }
 
@@ -187,10 +189,10 @@ impl SecurityHandler {
         }
 
         let transpiler_input = QueryPolicyDecision::new(
-            &self.repo_backend,
-            &self.cached_enforcer,
+            &self.cached_backend,
+            self.cached_enforcer.clone(),
             &self.session_model,
-            &self.cached_rules,
+            self.cached_rules.clone(),
         )
         .process(&scan_output)
         .await
@@ -255,33 +257,45 @@ enum AttributeAccess {
 }
 
 struct QueryPolicyDecision<'a> {
-    repo_backend: &'a Arc<RepoBackend>,
-    enforcer: &'a Arc<Mutex<CachedEnforcer>>,
+    cached_backend: &'a CacheContainer,
+    enforcer: Arc<Mutex<CachedEnforcer>>,
     session_model: &'a SessionModel,
-    policy_cache: &'a Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+    policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
 }
 
 impl<'a> QueryPolicyDecision<'a> {
     pub fn new(
-        repo_backend: &'a Arc<RepoBackend>,
-        enforcer: &'a Arc<Mutex<CachedEnforcer>>,
+        cached_backend: &'a CacheContainer,
+        enforcer: Arc<Mutex<CachedEnforcer>>,
         session_model: &'a SessionModel,
-        policy_cache: &'a Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+        policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
     ) -> Self {
         QueryPolicyDecision {
-            repo_backend,
+            cached_backend,
             enforcer,
             session_model,
             policy_cache,
         }
     }
 
-    // todo: we also need to check the intent, do you perform a select statement, update or delete etc... based on roles
+    fn get_object_model<'b>(
+        &self,
+        entity_model: &'b EntityModel,
+        attribute_name: &str,
+    ) -> Option<&'b ObjectModel> {
+        entity_model
+            .objects
+            .iter()
+            .find(|o| o.full_name == attribute_name)
+    }
+
+    // todo: we also need to check the intent, do you perform a select statement, update or delete etc... based on roles. This is where gravitino api should help
+    // todo: PAP should generate the necessary rules, it should however also generate the regular access rules where no filtering or masking should be applied, the actions below should honor that
     pub async fn process(
         &self,
         scan_output: &ScanOutput,
     ) -> Result<TranspilerInput, SecurityHandlerResult> {
-        // enforcer should only be used in a single thread
+        // enforcer should only be used in a single thread (which should always be the case)
         let mut enforcer = self.enforcer.lock().await;
 
         // reload policy (in case of changes)
@@ -291,19 +305,27 @@ impl<'a> QueryPolicyDecision<'a> {
 
         // set input (user and group)
         let user_model = self
-            .repo_backend
-            .get_user_model(&self.session_model.user_id)
-            .await?;
+            .cached_backend
+            .user_model
+            .get(&self.session_model.user_id)
+            .await;
         let group_model = self
-            .repo_backend
-            .get_group_model(&self.session_model.user_id)
-            .await?;
+            .cached_backend
+            .group_model
+            .get(&self.session_model.user_id)
+            .await;
 
         // walk through all scopes and attributes
         let mut masking_rules = Vec::new();
         let mut filter_rules = Vec::new();
-        let mut entities = Vec::new();
+        let mut entities = HashMap::new();
         let mut exclude_attributes_visible_map = Vec::new();
+
+        // set enforcer dependencies
+        // todo(mrhamburg): would prefer that we do this only once, not every time. But this works for now (less efficient)
+        let effector = Box::new(PdpEffector);
+        enforcer.set_effector(effector);
+        add_functions(enforcer.get_mut_engine());
 
         // get all entity attributes by scope, for processing
         for (scope, ref mut items) in scan_output.objects.iter().map(|objects| {
@@ -315,6 +337,8 @@ impl<'a> QueryPolicyDecision<'a> {
             // set new logger instance (logger is scoped to a scope)
             let mut pm = PolicyHitManager::new(self.policy_cache.clone());
             let logger = Box::new(PolicyLogger::new(pm.get_sender()));
+
+            // set logger to enforcer
             enforcer.set_logger(logger);
             enforcer.enable_log(true);
 
@@ -322,28 +346,30 @@ impl<'a> QueryPolicyDecision<'a> {
             let mut star_map = HashMap::new();
             // todo: fix unwrap
             for entity in items.iter().map(|(e, _, _)| e.unwrap()) {
-                let found = Self::get_star_attributes(
-                    &self.repo_backend,
-                    entity.get_full_name(),
-                    &entity.alias,
-                )
-                .await?;
+                let found = self
+                    .get_star_attributes(
+                        &self.cached_backend,
+                        entity.get_full_name(),
+                        &entity.alias,
+                    )
+                    .await?;
                 star_map.insert(entity.get_full_name(), found.1);
-                entities.push(found.0);
+                entities.insert(entity.get_full_name(), found.0);
             }
             Self::fill_star_attributes(items, &star_map).await?;
 
             // process all attributes for policy enforcement
-            for (entity, attribute, is_starred) in items {
-                // formulate entity name
-                let entity = entity.unwrap();
-                let entity_name = format!(
-                    "{}.{}.{}.{}",
-                    entity.catalog, entity.db, entity.name, attribute.name
-                );
+            for (scan_entity, attribute, is_starred) in items {
+                // todo: check this unwrap
+                let scan_entity = scan_entity.unwrap();
+                let entity_name = scan_entity.get_full_name();
+                let entity_model = entities.get(&entity_name).unwrap();
+                let entity_attribute_name = format!("{}.{}", entity_name, attribute.name);
 
                 // get input object model
-                let object_model = self.repo_backend.get_object_model(&entity_name).await?;
+                let object_model = self
+                    .get_object_model(entity_model, entity_attribute_name.as_str())
+                    .unwrap();
 
                 // check access based on policy
                 match enforcer.enforce((
@@ -354,13 +380,13 @@ impl<'a> QueryPolicyDecision<'a> {
                 )) {
                     Ok(status) => {
                         if !status && !*is_starred {
-                            return self.get_denied_access_result().await;
+                            // explicitly requested entity attribute
+                            return self
+                                .get_denied_access_result(entity_attribute_name.as_str())
+                                .await;
                         } else if !status {
-                            exclude_attributes_visible_map.push(format!(
-                                "{}:{}",
-                                entity.get_full_name(),
-                                attribute.name
-                            ));
+                            // implicitly requested starred entity attribute
+                            exclude_attributes_visible_map.push(entity_attribute_name);
                         }
                     }
                     Err(err) => {
@@ -387,6 +413,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
             for (object_id, rules) in items {
                 // todo: determine where we can get the stricter and looser rules priority from
+                // todo: if a user has full access, this resolve should be irrelevant (someone gave you full read, so there should not be a conflict)
                 let masking_rule = if let Some(rule) =
                     PolicyHitManager::resolve_masking_policy_conflict(&rules, true)
                 {
@@ -398,35 +425,62 @@ impl<'a> QueryPolicyDecision<'a> {
                     .iter()
                     .filter(|p| p.policy_type == PolicyType::FilterRule);
 
+                // todo: get the object name for this scope, we need to return this to the transpiler
                 masking_rules.push((scope, object_id.clone(), masking_rule));
                 filter_rule.for_each(|p| filter_rules.push((scope, object_id.clone(), p.clone())));
             }
         }
 
-        // todo: build set to iterate over (scoped, per attribute)
-        // todo: take into account stars, we need to to unstar them for all schema records one is allowed to access
-        // (no need for deny except for full table deny, since a star is a request for all accessible attributes)
-
-        // todo: on failure, an access request needs to be formulated (either for access or since a deny rule has been hit)
-
-        // todo: the visible schema also needs to be built, we actually need this beforehand
-
+        let entities = entities.into_iter().map(|(_, v)| v).collect();
         Ok(TranspilerInput {
             cause: None,
             query: scan_output.query.clone().unwrap(),
             request_url: None,
-            rules: vec![],
-            filters: vec![],
+            rules: masking_rules
+                .iter_mut()
+                .map(|(scope, att_id, ref mut rule)| TranspilerInputRule {
+                    scope: *scope,
+                    attribute_id: att_id.to_owned(),
+                    attribute: "".to_owned(),
+                    rule_id: rule.take().map_or("".to_owned(), |v| v.policy_id),
+                    rule_definition: rule
+                        .take()
+                        .map_or(serde_json::json!({}), |v| v.rule_definition),
+                })
+                .collect(),
+            filters: filter_rules
+                .iter_mut()
+                .map(|(scope, att_id, ref mut rule)| TranspilerInputFilter {
+                    scope: *scope,
+                    attribute_id: att_id.to_owned(),
+                    attribute: "".to_owned(),
+                    filter_id: rule.policy_id.to_owned(),
+                    filter_definition: rule.rule_definition.clone(),
+                })
+                .collect(),
             visible_schema: Self::get_visible_schema(entities, exclude_attributes_visible_map),
         })
     }
 
-    async fn get_denied_access_result(&self) -> Result<TranspilerInput, SecurityHandlerResult> {
+    async fn check_user_access(&self, scan_output: &ScanOutput) -> () {
+        // check if user has access to the entity involved with the given intent (gravitino api, select|update|delete)
+        // we handle select, create|modify|delete intents are done by gravitino api
         todo!()
     }
 
-    /// Extracts the combinations entity and attribute from the given scope
-    /// Returned tuple: Optional Entity, Attribute, Star flag (defaults false)
+    async fn get_denied_access_result(
+        &self,
+        _entity_attribute: &str,
+    ) -> Result<TranspilerInput, SecurityHandlerResult> {
+        // generate request url, if possible
+        todo!()
+    }
+
+    /// Extracts the combinations entity and attribute from the given (ScanOutput) scope
+    /// ## Returned tuple:
+    /// - Optional Entity,
+    /// - Attribute,
+    /// - Star flag (defaults false)
     fn get_entity_attributes(
         input: &Vec<ScanOutputObject>,
     ) -> Vec<(Option<&ScanEntity>, &ScanAttribute, bool)> {
@@ -453,7 +507,7 @@ impl<'a> QueryPolicyDecision<'a> {
         found_attributes: &'b HashMap<String, Vec<ScanAttribute>>,
     ) -> Result<(), SecurityHandlerResult> {
         let mut star_attributes = Vec::new();
-        for item in items.iter_mut().find(|(_, att, _)| att.name == "*") {
+        if let Some(item) = items.iter_mut().find(|(_, att, _)| att.name == "*") {
             let (entity, _, _) = item;
             // create new elements based on the matching ones
             if let Some(entity) = entity {
@@ -505,15 +559,16 @@ impl<'a> QueryPolicyDecision<'a> {
     /// uses these attributes to create an entity attribute mapping. Entity alias is required
     /// since we need to know which attributes belong to which entity within a given scope
     async fn get_star_attributes(
-        backend: &Arc<RepoBackend>,
+        &self,
+        cached_backend: &CacheContainer,
         full_entity_name: String,
         entity_alias: &str,
     ) -> Result<(EntityModel, Vec<ScanAttribute>), SecurityHandlerResult> {
-        if let Ok(entity) = backend.get_entity_model(&full_entity_name).await {
+        if let Some(entity) = cached_backend.entity_model.get(&full_entity_name).await {
             let mut attributes = Vec::new();
             for attr in &entity.attributes {
                 let full_entity_name = format!("{}.{}", full_entity_name, attr.0);
-                if let Ok(_) = backend.get_object_model(&full_entity_name).await {
+                if let Some(_) = self.get_object_model(&entity, &full_entity_name) {
                     attributes.push(ScanAttribute {
                         entity_alias: entity_alias.to_owned(),
                         name: attr.0.to_owned(),
@@ -532,9 +587,9 @@ impl<'a> QueryPolicyDecision<'a> {
 
     /// Check if we are allowed to access the given object attribute
     ///
-    ///     Allowed: we can further process this attribute as is and use it in the visible schema
-    ///     Hidden: we need to hide this attribute from the visible schema
-    ///     Denied: we are trying to access an attribute we don't have access to
+    /// - Allowed: we can further process this attribute as is and use it in the visible schema
+    /// - Hidden: we need to hide this attribute from the visible schema
+    /// - Denied: we are trying to access an attribute we don't have access to
     fn get_attribute_access_status(policy: PolicyFound, from_star: bool) -> AttributeAccess {
         if policy.policy_name.is_some_and(|n| n == "hidden") {
             return if from_star {
@@ -562,45 +617,51 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::Mutex;
     use unilake_common::model::{
-        AccountType, EntityModel, GroupInstance, GroupModel, ObjectModel, SessionModel, UserModel,
+        AccountType, EntityModel, GroupInstance, GroupModel, ObjectModel, PolicyRule, SessionModel,
+        UserModel,
     };
     use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject};
 
     #[tokio::test]
     async fn test_query_policy_decision_single_object() {
+        // get all defaults
         let (abac_model, scan_output, cache_container) = get_defaults().await;
-        let (rules_cache, adapter) = get_default_rules_cache();
+        let (rules_cache, adapter) = get_default_policy_cache();
         let mut e = Arc::new(Mutex::new(
             CachedEnforcer::new(abac_model, adapter).await.unwrap(),
         ));
         let session_model = get_session_model_input();
+        let policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>> =
+            Arc::new(Box::new(DefaultCache::new(10)));
 
-        let sut = QueryPolicyDecision::new(&cache_container, e.clone(), &session_model, None);
+        // set sut
+        let sut = QueryPolicyDecision::new(
+            &cache_container,
+            e.clone(),
+            &session_model,
+            policy_cache.clone(),
+        );
         let result = sut.process(&scan_output).await;
+
+        // check results
+        assert!(result.is_ok());
     }
 
     #[test]
     fn test_get_entity_attributes_found() {
         let scan_output = get_scan_default_output();
-        let found = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 0);
+        let found = QueryPolicyDecision::get_entity_attributes(&scan_output.objects);
         assert_eq!(found.len(), 4);
         assert!(found.iter().map(|(x, _, _)| x.is_some()).all(|b| b));
         assert!(found.iter().all(|(_, _, x)| !*x));
     }
 
-    #[test]
-    fn test_get_entity_attributes_not_found() {
-        let scan_output = get_scan_default_output();
-        let found = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 1);
-        assert_eq!(found.len(), 0);
-    }
-
     #[tokio::test]
     async fn test_fill_star_attributes_found() {
         let scan_output = get_scan_star_output();
-        let mut attributes = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 0);
+        let mut attributes = QueryPolicyDecision::get_entity_attributes(&scan_output.objects);
 
-        // initially we have a star
+        // initially we have a star attribute
         assert_eq!(
             attributes
                 .iter()
@@ -649,7 +710,7 @@ mod tests {
     #[tokio::test]
     async fn test_fill_star_attributes_entry_not_found() {
         let scan_output = get_scan_star_output();
-        let mut attributes = QueryPolicyDecision::get_entity_attributes(&scan_output.objects, 0);
+        let mut attributes = QueryPolicyDecision::get_entity_attributes(&scan_output.objects);
         let star_attributes = vec![ScanAttribute {
             entity_alias: "customers".to_string(),
             name: "id".to_string(),
@@ -670,6 +731,17 @@ mod tests {
         }
     }
 
+    fn get_default_policy() -> Vec<PolicyRule> {
+        vec![PolicyRule::new(
+            "p",
+            "*",
+            "true",
+            "allow",
+            "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+            "no_id",
+        )]
+    }
+
     async fn get_defaults() -> (DefaultModel, ScanOutput, CacheContainer) {
         (
             DefaultModel::from_str(ABAC_MODEL).await.unwrap(),
@@ -677,16 +749,19 @@ mod tests {
             CacheContainer::new(
                 get_user_model_cache(None),
                 get_group_model_cache(None),
-                get_object_model_cache(None),
                 get_entity_model_cache(None),
-                get_rules_cache(None),
             ),
         )
     }
 
-    fn get_default_rules_cache() -> (Arc<MultiLayeredCache<u64, CacheEntity>>, CachedAdapter) {
+    fn get_default_policy_cache() -> (Arc<MultiLayeredCache<u64, CacheEntity>>, CachedAdapter) {
+        let rules = get_default_policy();
+        let mut cached = HashMap::new();
+        cached.insert(0, CacheEntity::PolicyId(100));
+        cached.insert(100, CacheEntity::Policy(rules));
         let rules_cache = Arc::new(MultiLayeredCache::new(
             10,
+            Box::new(DummyBackendProvider::from(cached)),
             Box::new(DummyBackendProvider::new()),
         ));
         let adapter = CachedAdapter::new(rules_cache.clone());
@@ -792,6 +867,7 @@ mod tests {
         };
         Arc::new(Box::new(MultiLayeredCache::new(
             10,
+            Box::from(DummyBackendProvider::from(items.clone())),
             Box::from(DummyBackendProvider::from(items)),
         )))
     }
@@ -806,6 +882,7 @@ mod tests {
         };
         Arc::new(Box::new(MultiLayeredCache::new(
             10,
+            Box::from(DummyBackendProvider::from(items.clone())),
             Box::from(DummyBackendProvider::from(items)),
         )))
     }
@@ -820,20 +897,7 @@ mod tests {
         };
         Arc::new(Box::new(MultiLayeredCache::new(
             10,
-            Box::from(DummyBackendProvider::from(items)),
-        )))
-    }
-
-    fn get_object_model_cache(
-        items: Option<HashMap<String, ObjectModel>>,
-    ) -> Arc<Box<MultiLayeredCache<String, ObjectModel>>> {
-        let items = if let Some(items) = items {
-            items
-        } else {
-            get_object_model_input()
-        };
-        Arc::new(Box::new(MultiLayeredCache::new(
-            10,
+            Box::from(DummyBackendProvider::from(items.clone())),
             Box::from(DummyBackendProvider::from(items)),
         )))
     }
@@ -863,11 +927,17 @@ mod tests {
     fn get_entity_model_input() -> HashMap<String, EntityModel> {
         let mut entity_model_input = HashMap::new();
         entity_model_input.insert(
-            "entity_id".to_string(),
+            "catalog.schema.customers".to_string(),
             EntityModel {
-                id: "".to_string(),
-                full_name: "".to_string(),
-                attributes: vec![],
+                id: "no_id".to_string(),
+                full_name: "catalog.schema.customers".to_string(),
+                attributes: vec![
+                    ("user_id".to_string(), "INT".to_string()),
+                    ("firstname".to_string(), "STRING".to_string()),
+                    ("lastname".to_string(), "STRING".to_string()),
+                    ("email".to_string(), "STRING".to_string()),
+                ],
+                objects: get_object_model_input(),
             },
         );
         entity_model_input
@@ -879,9 +949,9 @@ mod tests {
             "user_id".to_string(),
             UserModel {
                 account_type: AccountType::User,
-                id: "user_id_1".to_string(),
+                id: "user_id".to_string(),
                 principal_name: "user_principal_name_1".to_string(),
-                role: "user_role_1".to_string(),
+                roles: vec!["user_role_1".to_string()],
                 tags: vec!["pii::email".to_string()],
             },
         );
@@ -891,9 +961,9 @@ mod tests {
     fn get_group_model_input() -> HashMap<String, GroupModel> {
         let mut group_model_input = HashMap::new();
         group_model_input.insert(
-            "group_id".to_string(),
+            "user_id".to_string(),
             GroupModel {
-                user_id: "user_id_1".to_string(),
+                user_id: "user_id".to_string(),
                 entity_version: 0,
                 groups: vec![GroupInstance {
                     id: "group_id".to_string(),
@@ -904,19 +974,37 @@ mod tests {
         group_model_input
     }
 
-    fn get_object_model_input() -> HashMap<String, ObjectModel> {
-        let mut object_model_input = HashMap::new();
-        object_model_input.insert(
-            "object_id".to_string(),
+    fn get_object_model_input() -> Vec<ObjectModel> {
+        vec![
             ObjectModel {
-                id: "object_id".to_string(),
-                full_name: "object_full_name_1".to_string(),
+                id: "object_id_1".to_string(),
+                full_name: "catalog.schema.customers.user_id".to_string(),
+                is_aggregated: false,
+                last_time_accessed: 0,
+                tags: vec!["pii::id".to_string()],
+            },
+            ObjectModel {
+                id: "object_id_2".to_string(),
+                full_name: "catalog.schema.customers.firstname".to_string(),
+                is_aggregated: false,
+                last_time_accessed: 0,
+                tags: vec!["pii::firstname".to_string()],
+            },
+            ObjectModel {
+                id: "object_id_3".to_string(),
+                full_name: "catalog.schema.customers.lastname".to_string(),
                 is_aggregated: false,
                 last_time_accessed: 0,
                 tags: vec!["pii::lastname".to_string()],
             },
-        );
-        object_model_input
+            ObjectModel {
+                id: "object_id_4".to_string(),
+                full_name: "catalog.schema.customers.email".to_string(),
+                is_aggregated: false,
+                last_time_accessed: 0,
+                tags: vec!["pii::email".to_string()],
+            },
+        ]
     }
 
     struct DummyBackendProvider<K, V>

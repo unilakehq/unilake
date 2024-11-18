@@ -15,13 +15,10 @@ where
     hasher.finish()
 }
 
-pub struct MultiLayeredCache<K, V>
-where
-    K: Send + Hash + Clone + Eq + Sync + 'static,
-    V: Send + Serialize + DeserializeOwned + Sync + Clone + 'static,
-{
-    cache: MokaCache<K, V>,
-    backend: Box<dyn BackendProvider<K, V>>,
+pub struct MultiLayeredCache<K, V> {
+    local_cache: MokaCache<K, V>,
+    distributed_cache: Box<dyn BackendProvider<K, V>>,
+    backend_repo: Box<dyn BackendProvider<K, V>>,
 }
 
 impl<K, V> MultiLayeredCache<K, V>
@@ -29,23 +26,33 @@ where
     K: Send + Hash + Clone + Eq + Sync + 'static,
     V: Send + Serialize + DeserializeOwned + Sync + Clone + 'static,
 {
-    pub fn new(cap: u64, backend: Box<dyn BackendProvider<K, V>>) -> MultiLayeredCache<K, V> {
+    pub fn new(
+        local_cap: u64,
+        distributed_cache: Box<dyn BackendProvider<K, V>>,
+        backend_repo: Box<dyn BackendProvider<K, V>>,
+    ) -> MultiLayeredCache<K, V> {
         MultiLayeredCache {
-            cache: MokaCache::<K, V>::builder()
+            local_cache: MokaCache::<K, V>::builder()
                 .weigher(|_key, value| -> u32 { size_of_val(&*value) as u32 })
-                .max_capacity(cap * 1024 * 1024)
+                .max_capacity(local_cap * 1024 * 1024)
                 .time_to_live(std::time::Duration::from_secs(15 * 60)) // 15 minutes
                 .build(),
-            backend,
+            distributed_cache,
+            backend_repo,
         }
     }
 
     pub async fn get(&self, key: &K) -> Option<V> {
-        match self.cache.get(key).await {
+        match self.local_cache.get(key).await {
             Some(v) => Some(v),
             None => {
-                if let Ok(Some(v)) = self.backend.get(key).await {
-                    self.cache.insert(key.clone(), v.clone()).await;
+                // get from backend
+                if let Ok(Some(v)) = self.distributed_cache.get(key).await {
+                    self.local_cache.insert(key.clone(), v.clone()).await;
+                    return Some(v);
+                }
+                // get from repo
+                else if let Some(v) = self.get_from_repo(key).await {
                     return Some(v);
                 }
                 None
@@ -53,21 +60,39 @@ where
         }
     }
 
+    async fn get_from_repo(&self, key: &K) -> Option<V> {
+        // implement redis based stampede protection
+        // 1. acquire lock
+        // 2. get data from redis cache
+        // 3. get data from repo
+        // 4. set data in redis cache
+        // 5. release lock
+        // 6. set local cache
+        // 7. return data
+        // https://github.com/hexcowboy/rslock/tree/main
+        if let Ok(v) = self.backend_repo.get(key).await {
+            // self.backend.set(&key, &v).await;
+            // self.cache.insert(key.clone(), v.clone()).await;
+            return v;
+        }
+        todo!("implement logging and error handling")
+    }
+
     pub async fn has(&self, k: &K) -> bool {
-        let found = self.cache.contains_key(k);
+        let found = self.local_cache.contains_key(k);
         if !found {
-            return self.backend.has(k).await.unwrap_or(false);
+            return self.distributed_cache.has(k).await.unwrap_or(false);
         }
         found
     }
 
     pub async fn set(&self, key: K, value: V) {
-        let _ = self.backend.set(&key, &value).await;
-        self.cache.insert(key, value).await;
+        let _ = self.distributed_cache.set(&key, &value).await;
+        self.local_cache.insert(key, value).await;
     }
 
     pub fn clear(&self) {
-        self.cache.invalidate_all();
+        self.local_cache.invalidate_all();
     }
 }
 
@@ -88,7 +113,7 @@ pub struct RedisBackendProvider {
     // Implement Redis connection logic
     client: redis::Client,
     tenant_id: String,
-    /// Can be either Policy, GroupModel, UserModel, ObjectModel, EntityModel
+    /// Can be either Policy, GroupModel, UserModel, EntityModel
     backend_type: String,
 }
 
@@ -199,7 +224,8 @@ mod tests {
     #[tokio::test]
     async fn test_set_and_get() {
         let backend = Box::new(TestBackendProvider);
-        let cache = MultiLayeredCache::new(1, backend);
+        let repo = Box::new(TestBackendProvider);
+        let cache = MultiLayeredCache::new(1, backend, repo);
 
         cache
             .set(
