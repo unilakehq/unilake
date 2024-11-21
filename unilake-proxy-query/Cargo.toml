@@ -3,7 +3,7 @@ description = "Unilake query proxy"
 authors = ["Unilake Authors <oss@unilake.com>"]
 version = "0.1.0"
 edition = "2021"
-license = "AGPL-3.0-only"
+license = "AGPL-3.0 OR EUPL-1.2"
 repository = "https://github.com/unilakehq/unilake"
 publish = false
 
@@ -65,6 +65,7 @@ backon = { version = "1.2.0" }
 moka = { version = "0.12.8", features = ["future"] }
 redis = { version = "0.27.5", features = ["futures", "tokio", "aio", "tokio-comp"] }
 base64 = "0.22.1"
+rslock = "0.6.0"
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.

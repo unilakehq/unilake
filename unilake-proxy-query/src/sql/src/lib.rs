@@ -128,6 +128,12 @@ pub struct ScanAttribute {
     pub alias: String,
 }
 
+impl ScanAttribute {
+    pub fn get_name(&self) -> String {
+        format!("\"{}\".\"{}\"", self.entity_alias, self.name)
+    }
+}
+
 #[derive(FromPyObject, Debug)]
 pub struct ParserError {
     pub error_type: String,
@@ -277,12 +283,14 @@ mod tests {
                 query: scan_result.query.unwrap(),
                 request_url: None,
                 rules: vec![TranspilerInputRule {
+                    attribute_id: "".to_string(),
                     attribute: r#""employees"."a""#.to_string(),
                     scope: 0,
                     rule_id: "".to_string(),
                     rule_definition: json!({"name": "xxhash3", "properties": Null}),
                 }],
                 filters: vec![TranspilerInputFilter {
+                    attribute_id: "".to_string(),
                     attribute: r#""employees"."id""#.to_string(),
                     scope: 0,
                     filter_id: "".to_string(),

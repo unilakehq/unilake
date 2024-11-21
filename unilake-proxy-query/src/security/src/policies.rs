@@ -42,6 +42,12 @@ pub struct PolicyFound {
     pub policy_id: String,
 }
 
+impl PolicyFound {
+    pub fn get_name(&self) -> &str {
+        self.policy_name.as_ref().map(|s| s.as_str()).unwrap_or("")
+    }
+}
+
 pub enum PolicyCollectResult {
     /// String = object_id, PolicyRule contains all hit rules
     Found(Vec<(String, Vec<PolicyFound>)>),
@@ -136,7 +142,7 @@ impl PolicyHitManager {
                     self.get_policy_type_and_name_from_rule_definition(&rule_definition)?;
 
                 policies.push(PolicyFound {
-                    policy_id: rule[len - 1].to_string(),
+                    policy_id: rule[len - 1].trim_start().to_string(),
                     rule_definition,
                     policy_type,
                     policy_name,
@@ -185,18 +191,18 @@ impl PolicyHitManager {
         Ok((None, PolicyType::None))
     }
 
+    /// Resolves any conflicts when multiple policies are found, returns None in case no policies are provided or
+    /// when the only policies found are those that provide full access.
     pub fn resolve_masking_policy_conflict(
         policies: &Vec<PolicyFound>,
         prio_stricter: bool,
     ) -> Option<&PolicyFound> {
-        // todo: not sure about this, I think this can be removed actually
-        // Full access policies take precedence any time
-        let full_access = policies
+        // check for full access
+        if policies
             .iter()
-            .find(|policy| policy.policy_type == PolicyType::FullAccess)
-            .and_then(|i| return Some(i));
-        if full_access.is_some() {
-            return full_access;
+            .all(|p| p.policy_type == PolicyType::FullAccess)
+        {
+            return None;
         }
 
         // Check policies
@@ -397,7 +403,7 @@ mod tests {
 
     #[test]
     fn test_policy_conflict_precedent_full_access() {
-        let mut items = get_test_data_policies_found();
+        let mut items = Vec::new();
         items.push(PolicyFound {
             policy_id: "99".to_string(),
             policy_type: PolicyType::FullAccess,
@@ -408,6 +414,21 @@ mod tests {
         assert!(found.is_some());
         assert_eq!(found.unwrap().policy_id, "99");
         assert!(found.unwrap().policy_type == PolicyType::FullAccess);
+    }
+
+    #[test]
+    fn test_policy_conflict_precedent_no_full_access() {
+        let mut items = get_test_data_policies_found();
+        items.push(PolicyFound {
+            policy_id: "99".to_string(),
+            policy_type: PolicyType::FullAccess,
+            policy_name: None,
+            rule_definition: json!({}),
+        });
+        let found = PolicyHitManager::resolve_masking_policy_conflict(&items, true);
+        assert!(found.is_some());
+        assert_ne!(found.unwrap().policy_id, "99");
+        assert!(found.unwrap().policy_type != PolicyType::FullAccess);
     }
 
     fn send_test_data(mut logger: PolicyLogger) {

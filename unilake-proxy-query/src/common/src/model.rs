@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 #[derive(Serialize, Deserialize, Hash, Clone)]
@@ -118,9 +119,9 @@ pub struct ObjectModel {
     pub full_name: String,
     /// Tags associated with the object, a tag: some_category::some_tag
     pub tags: Vec<String>,
-    /// The last time this object was accessed by the current user
-    pub last_time_accessed: u64,
-    /// If true, this object is being aggregated
+    /// The last time this object was accessed by a user for this policy (needs to be updated on execution)
+    pub last_time_accessed: u32,
+    /// If true, this object is being aggregated (needs to be updated on execution)
     pub is_aggregated: bool,
 }
 
@@ -132,7 +133,18 @@ pub struct EntityModel {
     pub full_name: String,
     /// Attribute names and types of the object [(a, INT), (b, VARCHAR)]
     pub attributes: Vec<(String, String)>,
-    pub objects: Vec<ObjectModel>,
+    /// Object models for this entity (full_name, object_model)
+    pub objects: HashMap<String, ObjectModel>,
+}
+
+impl EntityModel {
+    pub fn update_last_time_accessed(&mut self, times: HashMap<String, u32>) {
+        for (object_name, time) in times {
+            if let Some(object) = self.objects.get_mut(&object_name) {
+                object.last_time_accessed = time;
+            }
+        }
+    }
 }
 
 impl EntityModel {
@@ -155,6 +167,16 @@ impl Hash for ObjectModel {
         self.tags.hash(state);
         self.is_aggregated.hash(state);
     }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AccessPolicyModel {
+    /// The access_policy id
+    pub policy_id: String,
+    /// if true, this policy priorities stricter rules when conflicting with other policies
+    pub prio_strict: bool,
+    /// Usage per this policy, by full object name (uses unix timestamp, seconds)
+    pub usage: HashMap<String, u32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

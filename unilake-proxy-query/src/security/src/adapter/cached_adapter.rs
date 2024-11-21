@@ -1,6 +1,6 @@
 use crate::caching::layered_cache::MultiLayeredCache;
 use async_trait::async_trait;
-use casbin::{Adapter, Cache, Filter, Model, Result};
+use casbin::{Adapter, Filter, Model, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use unilake_common::model::PolicyRule;

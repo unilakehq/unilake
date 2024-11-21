@@ -24,3 +24,5 @@ chrono = { workspace = true }
 async-trait = { workspace = true }
 tokio = { workspace = true }
 ulid = { workspace = true }
+rslock = { workspace = true }
+tracing = { workspace = true }

@@ -2,9 +2,11 @@ use async_trait::async_trait;
 use moka::future::Cache as MokaCache;
 use redis::aio::MultiplexedConnection;
 use redis::{AsyncCommands, RedisResult};
+use rslock::{Lock, LockManager};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::time::Duration;
 
 fn get_key_hash<H>(key: H) -> u64
 where
@@ -19,6 +21,7 @@ pub struct MultiLayeredCache<K, V> {
     local_cache: MokaCache<K, V>,
     distributed_cache: Box<dyn BackendProvider<K, V>>,
     backend_repo: Box<dyn BackendProvider<K, V>>,
+    lock_manager: Option<LockManager>,
 }
 
 impl<K, V> MultiLayeredCache<K, V>
@@ -35,11 +38,17 @@ where
             local_cache: MokaCache::<K, V>::builder()
                 .weigher(|_key, value| -> u32 { size_of_val(&*value) as u32 })
                 .max_capacity(local_cap * 1024 * 1024)
-                .time_to_live(std::time::Duration::from_secs(15 * 60)) // 15 minutes
+                .time_to_live(Duration::from_secs(15 * 60)) // 15 minutes
                 .build(),
             distributed_cache,
             backend_repo,
+            lock_manager: None,
         }
+    }
+
+    pub fn set_lock_manager(&mut self, uris: Vec<String>) {
+        let manager = LockManager::new(uris);
+        self.lock_manager = Some(manager);
     }
 
     pub async fn get(&self, key: &K) -> Option<V> {
@@ -52,30 +61,63 @@ where
                     return Some(v);
                 }
                 // get from repo
-                else if let Some(v) = self.get_from_repo(key).await {
-                    return Some(v);
+                match self.get_from_repo(key).await {
+                    Ok(v) => return v,
+                    Err(e) => tracing::error!("Error getting data from repo: {}", e),
                 }
                 None
             }
         }
     }
 
-    async fn get_from_repo(&self, key: &K) -> Option<V> {
-        // implement redis based stampede protection
-        // 1. acquire lock
-        // 2. get data from redis cache
-        // 3. get data from repo
-        // 4. set data in redis cache
-        // 5. release lock
-        // 6. set local cache
-        // 7. return data
-        // https://github.com/hexcowboy/rslock/tree/main
-        if let Ok(v) = self.backend_repo.get(key).await {
-            // self.backend.set(&key, &v).await;
-            // self.cache.insert(key.clone(), v.clone()).await;
-            return v;
+    async fn get_lock(&self, key: &K) -> Option<Lock> {
+        // acquire lock
+        if let Some(ref lm) = self.lock_manager {
+            let key = self.distributed_cache.generate_key(key);
+            let key_bytes = key.as_bytes();
+            tracing::info!("Trying to acquire lock for key: {}.", key);
+            loop {
+                if let Ok(lock) = lm.lock(key_bytes, Duration::from_millis(3000)).await {
+                    tracing::info!("Acquired lock for key: {}.", key);
+                    return Some(lock);
+                }
+            }
         }
-        todo!("implement logging and error handling")
+        None
+    }
+
+    async fn release_lock(&self, key: &K, lock: Option<Lock>) {
+        if let Some(lock) = lock {
+            let key = self.distributed_cache.generate_key(key);
+            tracing::info!("Released lock for key: {}.", key);
+
+            // unwrap since you cannot have a lock without this lock_manager
+            self.lock_manager.as_ref().unwrap().unlock(&lock).await;
+        }
+    }
+
+    async fn get_from_repo(&self, key: &K) -> Result<Option<V>, String> {
+        // acquire lock if enabled
+        let lock: Option<Lock> = self.get_lock(key).await;
+
+        // try to get from cache (just in case data has been refreshed)
+        if self.has(key).await {
+            self.release_lock(key, lock).await;
+            return Ok(self.distributed_cache.get(key).await?);
+        }
+
+        // get data from repo
+        let result = self.backend_repo.get(key).await?;
+
+        // set data in local and distributed caches
+        if let Some(ref v) = result {
+            self.set(key.clone(), v.clone()).await;
+            self.local_cache.insert(key.clone(), v.clone()).await;
+        }
+
+        // release lock, if applicable
+        self.release_lock(key, lock).await;
+        Ok(result)
     }
 
     pub async fn has(&self, k: &K) -> bool {

@@ -1,3 +1,5 @@
+// todo: https://github.com/notken12/licensesnip
+
 use crate::effector::PdpEffector;
 use crate::functions::add_functions;
 use crate::policies::{
@@ -6,7 +8,7 @@ use crate::policies::{
 use crate::repository::CacheContainer;
 use crate::HitRule;
 use casbin::{Cache, CachedEnforcer, CoreApi};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use ulid::Ulid;
@@ -18,6 +20,7 @@ use unilake_sql::{
     TranspilerInputFilter, TranspilerInputRule, VisibleSchemaBuilder,
 };
 
+#[derive(Debug)]
 pub enum SecurityHandlerResult {
     /// Happens when a requested entity <catalog>.<schema>.<entity> does not exist
     EntityNotFound(String),
@@ -250,6 +253,7 @@ impl SecurityHandler {
     }
 }
 
+#[derive(PartialEq, Clone)]
 enum AttributeAccess {
     Allowed,
     Hidden,
@@ -281,12 +285,9 @@ impl<'a> QueryPolicyDecision<'a> {
     fn get_object_model<'b>(
         &self,
         entity_model: &'b EntityModel,
-        attribute_name: &str,
+        attribute_full_path_name: &str,
     ) -> Option<&'b ObjectModel> {
-        entity_model
-            .objects
-            .iter()
-            .find(|o| o.full_name == attribute_name)
+        entity_model.objects.get(attribute_full_path_name)
     }
 
     // todo: we also need to check the intent, do you perform a select statement, update or delete etc... based on roles. This is where gravitino api should help
@@ -309,6 +310,7 @@ impl<'a> QueryPolicyDecision<'a> {
             .user_model
             .get(&self.session_model.user_id)
             .await;
+
         let group_model = self
             .cached_backend
             .group_model
@@ -319,7 +321,7 @@ impl<'a> QueryPolicyDecision<'a> {
         let mut masking_rules = Vec::new();
         let mut filter_rules = Vec::new();
         let mut entities = HashMap::new();
-        let mut exclude_attributes_visible_map = Vec::new();
+        let mut exclude_attributes_visible_map = HashSet::new();
 
         // set enforcer dependencies
         // todo(mrhamburg): would prefer that we do this only once, not every time. But this works for now (less efficient)
@@ -353,13 +355,15 @@ impl<'a> QueryPolicyDecision<'a> {
                         &entity.alias,
                     )
                     .await?;
+
+                // todo: set last time accessed (via access policy)
                 star_map.insert(entity.get_full_name(), found.1);
                 entities.insert(entity.get_full_name(), found.0);
             }
             Self::fill_star_attributes(items, &star_map).await?;
 
             // process all attributes for policy enforcement
-            for (scan_entity, attribute, is_starred) in items {
+            for (scan_entity, attribute, is_starred) in items.iter() {
                 // todo: check this unwrap
                 let scan_entity = scan_entity.unwrap();
                 let entity_name = scan_entity.get_full_name();
@@ -367,9 +371,13 @@ impl<'a> QueryPolicyDecision<'a> {
                 let entity_attribute_name = format!("{}.{}", entity_name, attribute.name);
 
                 // get input object model
-                let object_model = self
-                    .get_object_model(entity_model, entity_attribute_name.as_str())
-                    .unwrap();
+                let object_model = match self.get_object_model(entity_model, &entity_attribute_name)
+                {
+                    None => {
+                        return Err(SecurityHandlerResult::EntityNotFound(entity_attribute_name));
+                    }
+                    Some(om) => om,
+                };
 
                 // check access based on policy
                 match enforcer.enforce((
@@ -386,7 +394,7 @@ impl<'a> QueryPolicyDecision<'a> {
                                 .await;
                         } else if !status {
                             // implicitly requested starred entity attribute
-                            exclude_attributes_visible_map.push(entity_attribute_name);
+                            exclude_attributes_visible_map.insert(entity_attribute_name);
                         }
                     }
                     Err(err) => {
@@ -395,7 +403,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 }
             }
 
-            let items = match pm
+            let policies_found = match pm
                 .process_hits()
                 .map_err(|e| SecurityHandlerResult::PolicyError(e))?
             {
@@ -406,60 +414,137 @@ impl<'a> QueryPolicyDecision<'a> {
                 }
                 PolicyCollectResult::NotFound => {
                     return Err(SecurityHandlerResult::PolicyError(
-                        "Could not find any policy results".to_string(),
+                        "Could not find any policy results, are the policies loaded correctly?"
+                            .to_string(),
                     ));
                 }
             };
 
-            for (object_id, rules) in items {
-                // todo: determine where we can get the stricter and looser rules priority from
-                // todo: if a user has full access, this resolve should be irrelevant (someone gave you full read, so there should not be a conflict)
-                let masking_rule = if let Some(rule) =
-                    PolicyHitManager::resolve_masking_policy_conflict(&rules, true)
+            let object_models = entities
+                .values()
+                .flat_map(|e| &e.objects)
+                .map(|(_, v)| v)
+                .collect();
+            for (object_id, rules) in policies_found {
+                // todo: policies can also be None, we should handle that properly
+                let prio_stricter = self.check_policy_rules_prio(&rules).await?;
+                let (object_name, att_name, from_star) =
+                    Self::find_star_and_attribute_name(items, &object_models, &object_id)?;
+
+                // add masking rule
+                if let Some(rule) =
+                    PolicyHitManager::resolve_masking_policy_conflict(&rules, prio_stricter)
                 {
-                    Some(rule.clone())
-                } else {
-                    None
-                };
+                    match Self::get_attribute_access_status(rule, from_star) {
+                        AttributeAccess::Allowed => masking_rules.push((
+                            scope,
+                            object_id.clone(),
+                            att_name.clone(),
+                            rule.clone(),
+                        )),
+                        AttributeAccess::Hidden => {
+                            exclude_attributes_visible_map.insert(object_name.clone());
+                            // no need to process filters, if we are not allowed to see this item.
+                            // in case you need to filter an attribute and not allow to this attribute to be shown, you should use a different mask (replace_null, for example)
+                            continue;
+                        }
+                        AttributeAccess::Denied => {
+                            return self.get_denied_access_result(object_id.as_str()).await
+                        }
+                    }
+                }
+                // add all filter rules
                 let filter_rule = rules
                     .iter()
                     .filter(|p| p.policy_type == PolicyType::FilterRule);
 
-                // todo: get the object name for this scope, we need to return this to the transpiler
-                masking_rules.push((scope, object_id.clone(), masking_rule));
-                filter_rule.for_each(|p| filter_rules.push((scope, object_id.clone(), p.clone())));
+                filter_rule.for_each(|p| {
+                    filter_rules.push((scope, object_id.clone(), att_name.clone(), p.clone()))
+                });
             }
         }
 
+        // prepare transpiler input
         let entities = entities.into_iter().map(|(_, v)| v).collect();
         Ok(TranspilerInput {
             cause: None,
+            // todo: properly unwrap here
             query: scan_output.query.clone().unwrap(),
             request_url: None,
             rules: masking_rules
-                .iter_mut()
-                .map(|(scope, att_id, ref mut rule)| TranspilerInputRule {
+                .iter()
+                .map(|(scope, att_id, att_name, rule)| TranspilerInputRule {
                     scope: *scope,
                     attribute_id: att_id.to_owned(),
-                    attribute: "".to_owned(),
-                    rule_id: rule.take().map_or("".to_owned(), |v| v.policy_id),
-                    rule_definition: rule
-                        .take()
-                        .map_or(serde_json::json!({}), |v| v.rule_definition),
+                    attribute: att_name.to_owned(),
+                    rule_id: rule.policy_id.to_owned(),
+                    rule_definition: rule.rule_definition.clone(),
                 })
                 .collect(),
             filters: filter_rules
-                .iter_mut()
-                .map(|(scope, att_id, ref mut rule)| TranspilerInputFilter {
+                .iter()
+                .map(|(scope, att_id, att_name, rule)| TranspilerInputFilter {
                     scope: *scope,
                     attribute_id: att_id.to_owned(),
-                    attribute: "".to_owned(),
+                    attribute: att_name.to_owned(),
                     filter_id: rule.policy_id.to_owned(),
                     filter_definition: rule.rule_definition.clone(),
                 })
                 .collect(),
             visible_schema: Self::get_visible_schema(entities, exclude_attributes_visible_map),
         })
+    }
+
+    /// Checks if a stricter policy is preferred based on the policy rules found
+    async fn check_policy_rules_prio(
+        &self,
+        policies: &[PolicyFound],
+    ) -> Result<bool, SecurityHandlerResult> {
+        let ids: std::collections::HashSet<_> = policies.iter().map(|p| &p.policy_id).collect();
+        for policy_id in ids {
+            let found = self.cached_backend.access_policy_model.get(policy_id).await;
+            match found {
+                None => {
+                    return Err(SecurityHandlerResult::PolicyError(format!(
+                        "Could not find policy with id: {}",
+                        policy_id
+                    )))
+                }
+                Some(p) => {
+                    if p.prio_strict {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    /// Gets the full object name, attribute name and whether it's a starred attribute
+    fn find_star_and_attribute_name(
+        entities_and_attributes: &[(Option<&ScanEntity>, &ScanAttribute, bool)],
+        objects: &Vec<&ObjectModel>,
+        object_id: &str,
+    ) -> Result<(String, String, bool), SecurityHandlerResult> {
+        let object_model = objects
+            .iter()
+            .find(|object| object.id == object_id)
+            .ok_or_else(|| SecurityHandlerResult::PolicyError("".to_owned()))?;
+
+        let (_, attribute, star) = entities_and_attributes
+            .iter()
+            .find_map(|(entity, attr, star)| {
+                if let Some(entity) = entity {
+                    let full_name = format!("{}.{}", entity.get_full_name(), attr.name);
+                    if full_name == object_model.full_name {
+                        return Some((entity, attr, star));
+                    }
+                }
+                None
+            })
+            .ok_or_else(|| SecurityHandlerResult::PolicyError("".to_owned()))?;
+
+        Ok((object_model.full_name.clone(), attribute.get_name(), *star))
     }
 
     async fn check_user_access(&self, scan_output: &ScanOutput) -> () {
@@ -538,7 +623,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
     fn get_visible_schema(
         entities: Vec<EntityModel>,
-        exclude: Vec<String>,
+        exclude: HashSet<String>,
     ) -> Option<HashMap<String, Catalog>> {
         let mut builder = VisibleSchemaBuilder::new();
         for model in entities {
@@ -575,7 +660,10 @@ impl<'a> QueryPolicyDecision<'a> {
                         alias: attr.0.to_owned(),
                     });
                 } else {
-                    return Err(SecurityHandlerResult::EntityNotFound(full_entity_name));
+                    return Err(SecurityHandlerResult::EntityNotFound(format!(
+                        "{}.{}",
+                        full_entity_name, attr.0
+                    )));
                 }
             }
 
@@ -590,8 +678,8 @@ impl<'a> QueryPolicyDecision<'a> {
     /// - Allowed: we can further process this attribute as is and use it in the visible schema
     /// - Hidden: we need to hide this attribute from the visible schema
     /// - Denied: we are trying to access an attribute we don't have access to
-    fn get_attribute_access_status(policy: PolicyFound, from_star: bool) -> AttributeAccess {
-        if policy.policy_name.is_some_and(|n| n == "hidden") {
+    fn get_attribute_access_status(policy: &PolicyFound, from_star: bool) -> AttributeAccess {
+        if policy.get_name() == "hidden" {
             return if from_star {
                 AttributeAccess::Hidden
             } else {
@@ -617,17 +705,29 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::Mutex;
     use unilake_common::model::{
-        AccountType, EntityModel, GroupInstance, GroupModel, ObjectModel, PolicyRule, SessionModel,
-        UserModel,
+        AccessPolicyModel, AccountType, EntityModel, GroupInstance, GroupModel, ObjectModel,
+        PolicyRule, SessionModel, UserModel,
     };
-    use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject};
+    use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput};
 
-    #[tokio::test]
-    async fn test_query_policy_decision_single_object() {
+    async fn run_default_test(
+        rules: Vec<PolicyRule>,
+        scan_output: Option<ScanOutput>,
+        user_model_items: Option<HashMap<String, UserModel>>,
+        group_model_items: Option<HashMap<String, GroupModel>>,
+        entity_model_items: Option<HashMap<String, EntityModel>>,
+        policy_model_items: Option<HashMap<String, AccessPolicyModel>>,
+    ) -> Result<TranspilerInput, SecurityHandlerResult> {
         // get all defaults
-        let (abac_model, scan_output, cache_container) = get_defaults().await;
-        let (rules_cache, adapter) = get_default_policy_cache();
-        let mut e = Arc::new(Mutex::new(
+        let (abac_model, default_scan_output, cache_container) = get_defaults(
+            user_model_items,
+            group_model_items,
+            entity_model_items,
+            policy_model_items,
+        )
+        .await;
+        let (_, adapter) = get_default_policy_cache(rules);
+        let e = Arc::new(Mutex::new(
             CachedEnforcer::new(abac_model, adapter).await.unwrap(),
         ));
         let session_model = get_session_model_input();
@@ -641,10 +741,311 @@ mod tests {
             &session_model,
             policy_cache.clone(),
         );
-        let result = sut.process(&scan_output).await;
+
+        // process results
+        let scan_output = if scan_output.is_some() {
+            scan_output.unwrap()
+        } else {
+            default_scan_output
+        };
+        sut.process(&scan_output).await
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_full_access() {
+        let result = run_default_test(get_default_policy(), None, None, None, None, None).await;
 
         // check results
         assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.filters.is_empty());
+        assert_eq!(0, result.rules.len())
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_one_masked_column_access() {
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "*",
+                "true",
+                "allow",
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "no_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.*",
+                "TagExists(r.object, \"pii::id\")",
+                "allow",
+                // {"name": "replace_null"}
+                "eyJuYW1lIjogInJlcGxhY2VfbnVsbCJ9",
+                "masked_id",
+            ),
+        ];
+
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "masked_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "masked_id".to_string(),
+                prio_strict: true,
+                usage: HashMap::new(),
+            },
+        );
+
+        let result = run_default_test(policies, None, None, None, None, Some(policy_models)).await;
+
+        // check results
+        println!("{:?}", result);
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.visible_schema.is_some());
+        assert!(result.query.len() > 0);
+
+        assert!(result.filters.is_empty());
+        assert_eq!(1, result.rules.len());
+        let rule = &result.rules[0];
+        assert_eq!(rule.rule_id, "masked_id");
+        assert_eq!(rule.attribute_id, "object_id_1");
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_one_filtered_column_access() {
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "*",
+                "true",
+                "allow",
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "no_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.*",
+                "TagExists(r.object, \"pii::firstname\")",
+                "allow",
+                // {"expression": "? > 0"}
+                "eyJleHByZXNzaW9uIjogIj8gPiAwIn0=",
+                "filter_id",
+            ),
+        ];
+
+        let result = run_default_test(policies, None, None, None, None, None).await;
+
+        // check results
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.rules.is_empty());
+        assert!(result.visible_schema.is_some());
+        assert!(result.query.len() > 0);
+
+        assert_eq!(1, result.filters.len());
+        let filter = &result.filters[0];
+        assert_eq!(filter.filter_id, "filter_id");
+        assert_eq!(filter.attribute_id, "object_id_2");
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_one_deny_hidden_column_access() {
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "*",
+                "true",
+                "allow",
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "no_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.*",
+                "TagExists(r.object, \"pii::firstname\")",
+                "allow",
+                // {"name": "hidden"}
+                "eyJuYW1lIjogImhpZGRlbiJ9",
+                "hidden_id",
+            ),
+        ];
+        let result = run_default_test(policies, None, None, None, None, None).await;
+
+        // check results
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_some());
+        assert!(result.cause.is_some());
+        assert!(result.rules.is_empty());
+        assert!(result.filters.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_entity_not_found() {
+        let policies = vec![PolicyRule::new(
+            "p",
+            "catalog.schema.customers.*",
+            "true",
+            "allow",
+            "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+            "no_id",
+        )];
+
+        let mut scan_output = get_scan_default_output();
+        let objects = scan_output.objects.first_mut().unwrap();
+        objects.attributes.push(ScanAttribute {
+            entity_alias: "b".to_string(),
+            name: "id".to_string(),
+            alias: "id".to_string(),
+        });
+        objects.entities.push(ScanEntity {
+            catalog: "catalog".to_string(),
+            db: "schema".to_string(),
+            name: "orders".to_string(),
+            alias: "b".to_string(),
+        });
+        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+
+        // check results
+        assert!(result.is_err());
+        let result = result.err().unwrap();
+        match result {
+            SecurityHandlerResult::EntityNotFound(entity) => {
+                assert_eq!(entity, "catalog.schema.orders");
+            }
+            _ => panic!("Expected EntityNotFound"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_attribute_not_found() {
+        let policies = vec![PolicyRule::new(
+            "p",
+            "catalog.schema.customers.*",
+            "true",
+            "allow",
+            "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+            "no_id",
+        )];
+
+        let mut scan_output = get_scan_default_output();
+        let objects = scan_output.objects.first_mut().unwrap();
+        objects.attributes.push(ScanAttribute {
+            entity_alias: "b".to_string(),
+            name: "id".to_string(),
+            alias: "id".to_string(),
+        });
+        objects.entities.push(ScanEntity {
+            catalog: "catalog".to_string(),
+            db: "schema".to_string(),
+            name: "orders".to_string(),
+            alias: "b".to_string(),
+        });
+        let mut entities = get_entity_model_input();
+        let mut objects = HashMap::new();
+        objects.insert(
+            "catalog.schema.orders.unknown".to_owned(),
+            ObjectModel {
+                id: "unknown_id".to_string(),
+                full_name: "catalog.schema.orders.unknown".to_string(),
+                tags: vec![],
+                last_time_accessed: 0,
+                is_aggregated: false,
+            },
+        );
+
+        entities.insert(
+            "catalog.schema.orders".to_owned(),
+            EntityModel {
+                id: "extra_entity".to_string(),
+                full_name: "catalog.schema.orders".to_string(),
+                attributes: vec![("unknown".to_owned(), "INT".to_owned())],
+                objects,
+            },
+        );
+        let result = run_default_test(
+            policies,
+            Some(scan_output),
+            None,
+            None,
+            Some(entities),
+            None,
+        )
+        .await;
+
+        // check results
+        assert!(result.is_err());
+        let result = result.err().unwrap();
+        match result {
+            SecurityHandlerResult::EntityNotFound(entity) => {
+                assert_eq!(entity, "catalog.schema.orders.id");
+            }
+            _ => panic!("Expected EntityNotFound"),
+        }
+    }
+    #[tokio::test]
+    async fn test_query_policy_decision_one_deny_column_access() {
+        todo!();
+        let policies = vec![PolicyRule::new(
+            "p",
+            "catalog.schema.customers.*",
+            "true",
+            "allow",
+            "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+            "no_id",
+        )];
+
+        let mut scan_output = get_scan_default_output();
+        let objects = scan_output.objects.first_mut().unwrap();
+        objects.attributes.push(ScanAttribute {
+            entity_alias: "b".to_string(),
+            name: "id".to_string(),
+            alias: "id".to_string(),
+        });
+        objects.entities.push(ScanEntity {
+            catalog: "catalog".to_string(),
+            db: "schema".to_string(),
+            name: "orders".to_string(),
+            alias: "b".to_string(),
+        });
+        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+
+        // check results
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_some());
+        assert!(result.cause.is_some());
+        assert!(result.rules.is_empty());
+        assert!(result.filters.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_star_expand_allow_all() {
+        // test: star expand, allow all stars
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_star_expand_deny_one() {
+        // test: star expand, deny access to a single attribute
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_star_expand_hidden_attribute() {
+        // test: star expand, hide a column based on a policy (hidden)
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_deny_hidden_attribute() {
+        // test: deny access to a hidden column based on the policy (hidden)
+        todo!()
     }
 
     #[test]
@@ -691,7 +1092,7 @@ mod tests {
 
         let mut star_map = HashMap::new();
         star_map.insert("catalog.schema.customers".to_string(), star_attributes);
-        QueryPolicyDecision::fill_star_attributes(&mut attributes, &star_map).await;
+        let _ = QueryPolicyDecision::fill_star_attributes(&mut attributes, &star_map).await;
 
         assert_eq!(attributes.len(), 3);
         // now we don't have any stars anymore
@@ -742,20 +1143,27 @@ mod tests {
         )]
     }
 
-    async fn get_defaults() -> (DefaultModel, ScanOutput, CacheContainer) {
+    async fn get_defaults(
+        user_model_items: Option<HashMap<String, UserModel>>,
+        group_model_items: Option<HashMap<String, GroupModel>>,
+        entity_model_items: Option<HashMap<String, EntityModel>>,
+        policy_model_items: Option<HashMap<String, AccessPolicyModel>>,
+    ) -> (DefaultModel, ScanOutput, CacheContainer) {
         (
             DefaultModel::from_str(ABAC_MODEL).await.unwrap(),
             get_scan_default_output(),
             CacheContainer::new(
-                get_user_model_cache(None),
-                get_group_model_cache(None),
-                get_entity_model_cache(None),
+                get_user_model_cache(user_model_items),
+                get_group_model_cache(group_model_items),
+                get_entity_model_cache(entity_model_items),
+                get_policy_model_cache(policy_model_items),
             ),
         )
     }
 
-    fn get_default_policy_cache() -> (Arc<MultiLayeredCache<u64, CacheEntity>>, CachedAdapter) {
-        let rules = get_default_policy();
+    fn get_default_policy_cache(
+        rules: Vec<PolicyRule>,
+    ) -> (Arc<MultiLayeredCache<u64, CacheEntity>>, CachedAdapter) {
         let mut cached = HashMap::new();
         cached.insert(0, CacheEntity::PolicyId(100));
         cached.insert(100, CacheEntity::Policy(rules));
@@ -872,6 +1280,21 @@ mod tests {
         )))
     }
 
+    fn get_policy_model_cache(
+        items: Option<HashMap<String, AccessPolicyModel>>,
+    ) -> Arc<Box<MultiLayeredCache<String, AccessPolicyModel>>> {
+        let items = if let Some(items) = items {
+            items
+        } else {
+            get_policy_model_input()
+        };
+        Arc::new(Box::new(MultiLayeredCache::new(
+            10,
+            Box::from(DummyBackendProvider::from(items.clone())),
+            Box::from(DummyBackendProvider::from(items)),
+        )))
+    }
+
     fn get_entity_model_cache(
         items: Option<HashMap<String, EntityModel>>,
     ) -> Arc<Box<MultiLayeredCache<String, EntityModel>>> {
@@ -924,6 +1347,19 @@ mod tests {
         }
     }
 
+    fn get_policy_model_input() -> HashMap<String, AccessPolicyModel> {
+        let mut policy_model_input = HashMap::new();
+        policy_model_input.insert(
+            "no_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "no_id".to_string(),
+                prio_strict: true,
+                usage: HashMap::new(),
+            },
+        );
+        policy_model_input
+    }
+
     fn get_entity_model_input() -> HashMap<String, EntityModel> {
         let mut entity_model_input = HashMap::new();
         entity_model_input.insert(
@@ -974,8 +1410,10 @@ mod tests {
         group_model_input
     }
 
-    fn get_object_model_input() -> Vec<ObjectModel> {
-        vec![
+    fn get_object_model_input() -> HashMap<String, ObjectModel> {
+        let mut values = HashMap::new();
+        values.insert(
+            "catalog.schema.customers.user_id".to_owned(),
             ObjectModel {
                 id: "object_id_1".to_string(),
                 full_name: "catalog.schema.customers.user_id".to_string(),
@@ -983,6 +1421,10 @@ mod tests {
                 last_time_accessed: 0,
                 tags: vec!["pii::id".to_string()],
             },
+        );
+
+        values.insert(
+            "catalog.schema.customers.firstname".to_owned(),
             ObjectModel {
                 id: "object_id_2".to_string(),
                 full_name: "catalog.schema.customers.firstname".to_string(),
@@ -990,6 +1432,10 @@ mod tests {
                 last_time_accessed: 0,
                 tags: vec!["pii::firstname".to_string()],
             },
+        );
+
+        values.insert(
+            "catalog.schema.customers.lastname".to_owned(),
             ObjectModel {
                 id: "object_id_3".to_string(),
                 full_name: "catalog.schema.customers.lastname".to_string(),
@@ -997,6 +1443,10 @@ mod tests {
                 last_time_accessed: 0,
                 tags: vec!["pii::lastname".to_string()],
             },
+        );
+
+        values.insert(
+            "catalog.schema.customers.email".to_owned(),
             ObjectModel {
                 id: "object_id_4".to_string(),
                 full_name: "catalog.schema.customers.email".to_string(),
@@ -1004,7 +1454,9 @@ mod tests {
                 last_time_accessed: 0,
                 tags: vec!["pii::email".to_string()],
             },
-        ]
+        );
+
+        return values;
     }
 
     struct DummyBackendProvider<K, V>
