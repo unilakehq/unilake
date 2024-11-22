@@ -12,6 +12,12 @@ pub(crate) fn add_functions(engine: &mut rhai::Engine) {
     engine.register_fn("ConnectedDomain", connected_domain);
     engine.register_fn("ConnectedWorkspace", connected_workspace);
     engine.register_fn("TimeBetween", time_between);
+    engine.register_fn("Now", now);
+}
+
+#[allow(dead_code)]
+fn now() -> INT {
+    Utc::now().timestamp() as INT
 }
 
 /// See if this user has a specified role
@@ -133,7 +139,7 @@ fn time_between(t: ImmutableString, from: INT, to: INT) -> INT {
         _ => 0,
     };
 
-    INT::try_from(x).unwrap_or_default().abs()
+    INT::try_from(x).unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -142,8 +148,11 @@ mod tests {
     use casbin::rhai;
     use casbin::rhai::serde::to_dynamic;
     use casbin::rhai::{Scope, INT};
+    use std::collections::BTreeMap;
+    use std::hash::Hash;
     use unilake_common::model::{
-        AccountType, GroupInstance, GroupModel, ObjectModel, SessionModel, UserModel,
+        AccessPolicyModel, AccountType, GroupInstance, GroupModel, ObjectModel, SessionModel,
+        UserModel,
     };
 
     #[test]
@@ -155,7 +164,6 @@ mod tests {
             id: "some_id".to_string(),
             full_name: "".to_string(),
             tags: vec!["pii:username".to_string(), "pii::email".to_string()],
-            last_time_accessed: 0,
             is_aggregated: false,
         };
 
@@ -180,6 +188,7 @@ mod tests {
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
+            access_policy_ids: vec!["policy1".to_string()],
         };
 
         let mut scope = Scope::new();
@@ -203,6 +212,7 @@ mod tests {
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
+            access_policy_ids: vec!["policy1".to_string()],
         };
 
         let mut scope = Scope::new();
@@ -226,6 +236,7 @@ mod tests {
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
+            access_policy_ids: vec!["policy1".to_string()],
         };
 
         let mut scope = Scope::new();
@@ -249,6 +260,7 @@ mod tests {
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
             account_type: AccountType::User,
+            access_policy_ids: vec!["policy1".to_string()],
         };
 
         let mut scope = Scope::new();
@@ -438,6 +450,96 @@ mod tests {
             .eval_with_scope(&mut scope, "ConnectedWorkspace(a, \"some_correct_guid\")")
             .unwrap();
         assert!(!result)
+    }
+
+    #[test]
+    fn test_expired_policy_found() {
+        let mut engine = rhai::Engine::new();
+        add_functions(&mut engine);
+
+        let policy_model = AccessPolicyModel {
+            normalized_name: "something".to_owned(),
+            policy_id: "0d15b63b-d14a-4ba9-8eff-210fa5dc0ea5".to_string(),
+            prio_strict: false,
+            expire_datetime_utc: 1730299362,
+        };
+
+        // create input
+        let mut input = BTreeMap::new();
+        input.insert(policy_model.policy_id.to_owned(), policy_model.clone());
+        input.insert("something".to_owned(), policy_model);
+
+        let mut scope = Scope::new();
+        let value = to_dynamic(input).unwrap();
+        scope.push("a", value);
+
+        let result: bool = engine
+            .eval_with_scope(
+                &mut scope,
+                "TimeBetween(\"hours\", a.something.expire_datetime_utc, 1730302962) == 1",
+            )
+            .unwrap();
+        assert!(result);
+    }
+
+    #[test]
+    fn test_expired_policy_not_found() {
+        let mut engine = rhai::Engine::new();
+        add_functions(&mut engine);
+
+        let policy_model = AccessPolicyModel {
+            normalized_name: "something".to_owned(),
+            policy_id: "0d15b63b-d14a-4ba9-8eff-210fa5dc0ea5".to_string(),
+            prio_strict: false,
+            expire_datetime_utc: 1730299362,
+        };
+
+        // create input
+        let mut input = BTreeMap::new();
+        input.insert(policy_model.policy_id.to_owned(), policy_model.clone());
+        input.insert("something".to_owned(), policy_model);
+
+        let mut scope = Scope::new();
+        let value = to_dynamic(input).unwrap();
+        scope.push("a", value);
+
+        let result: bool = engine
+            .eval_with_scope(
+                &mut scope,
+                "TimeBetween(\"minutes\", a.something.expire_datetime_utc, 1730302962) < 45",
+            )
+            .unwrap();
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_expired_policy_current_time() {
+        let mut engine = rhai::Engine::new();
+        add_functions(&mut engine);
+
+        let policy_model = AccessPolicyModel {
+            normalized_name: "something_something".to_owned(),
+            policy_id: "0d15b63b-d14a-4ba9-8eff-210fa5dc0ea5".to_string(),
+            prio_strict: false,
+            expire_datetime_utc: 1730299362,
+        };
+
+        // create input
+        let mut input = BTreeMap::new();
+        input.insert(policy_model.policy_id.to_owned(), policy_model.clone());
+        input.insert("something_something".to_owned(), policy_model);
+
+        let mut scope = Scope::new();
+        let value = to_dynamic(input).unwrap();
+        scope.push("a", value);
+
+        let result: bool = engine
+            .eval_with_scope(
+                &mut scope,
+                "TimeBetween(\"minutes\", Now(), a.something_something.expire_datetime_utc) > 0",
+            )
+            .unwrap();
+        assert!(!result);
     }
 
     fn get_session_model() -> SessionModel {

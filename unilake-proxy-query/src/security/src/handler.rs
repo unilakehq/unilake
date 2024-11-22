@@ -8,7 +8,7 @@ use crate::policies::{
 use crate::repository::CacheContainer;
 use crate::HitRule;
 use casbin::{Cache, CachedEnforcer, CoreApi};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use ulid::Ulid;
@@ -34,6 +34,8 @@ pub enum SecurityHandlerResult {
     RepositoryError(String),
     /// Happens when there are issues with the policy being used
     PolicyError(String),
+    /// Happens when the cache is in an invalid state, retry the process. Returns the current iteration count
+    InvalidCacheError,
 }
 
 pub enum SecurityHandlerError {
@@ -191,16 +193,47 @@ impl SecurityHandler {
             return Err(SecurityHandlerError::QueryError(scan_output.error.unwrap()));
         }
 
-        let transpiler_input = QueryPolicyDecision::new(
-            &self.cached_backend,
-            self.cached_enforcer.clone(),
-            &self.session_model,
-            self.cached_rules.clone(),
-        )
-        .process(&scan_output)
-        .await
-        .ok()
-        .unwrap();
+        let mut iterations = 2;
+        let transpiler_input: Option<TranspilerInput>;
+        loop {
+            iterations -= 1;
+            if iterations == 0 {
+                // todo: handle this scenario properly
+                tracing::error!(
+                    "Failed to provide transpiler input for query with id: {}",
+                    self.query_id
+                );
+                self.output_query = Some(Arc::from("".to_string()));
+                todo!()
+            }
+
+            match QueryPolicyDecision::new(
+                &self.cached_backend,
+                self.cached_enforcer.clone(),
+                &self.session_model,
+                self.cached_rules.clone(),
+            )
+            .process(&scan_output)
+            .await
+            {
+                Ok(ti) => {
+                    transpiler_input = Some(ti);
+                    break;
+                }
+                Err(e) => {
+                    match e {
+                        SecurityHandlerResult::InvalidCacheError => {
+                            continue;
+                        }
+                        _ => {
+                            //todo: handle error properly
+                        }
+                    }
+                }
+            }
+        }
+
+        let transpiler_input = transpiler_input.unwrap();
         let output_query = self.transpile_query(&transpiler_input, false)?;
 
         self.scan_output = Some(scan_output);
@@ -315,13 +348,41 @@ impl<'a> QueryPolicyDecision<'a> {
             .cached_backend
             .user_model
             .get(&self.session_model.user_id)
-            .await;
+            .await
+            .ok_or_else(|| {
+                SecurityHandlerResult::UserNotFound(format!(
+                    "Could not find user: {}",
+                    &self.session_model.user_id
+                ))
+            })?;
 
         let group_model = self
             .cached_backend
             .group_model
             .get(&self.session_model.user_id)
-            .await;
+            .await
+            .ok_or_else(|| {
+                SecurityHandlerResult::UserGroupsNotFound(format!(
+                    "Could not find groups for user: {}",
+                    &self.session_model.user_id
+                ))
+            })?;
+
+        let mut policies = BTreeMap::new();
+        for policy_id in user_model.access_policy_ids.iter() {
+            let found = self
+                .cached_backend
+                .access_policy_model
+                .get(policy_id)
+                .await
+                .ok_or_else(|| {
+                    SecurityHandlerResult::PolicyError(format!(
+                        "Could not find policy: {}",
+                        policy_id
+                    ))
+                })?;
+            policies.insert(found.normalized_name.clone(), found);
+        }
 
         // walk through all scopes and attributes
         let mut masking_rules = Vec::new();
@@ -352,8 +413,15 @@ impl<'a> QueryPolicyDecision<'a> {
 
             // unpack stars
             let mut star_map = HashMap::new();
-            // todo: fix unwrap
-            for entity in items.iter().map(|(e, _, _)| e.unwrap()) {
+            for entity in items.iter().map(|(e, att, _)| {
+                e.ok_or_else(|| {
+                    SecurityHandlerResult::EntityNotFound(format!(
+                        "1) Could not find entity, for attribute {}",
+                        att.get_name()
+                    ))
+                })
+            }) {
+                let entity = entity?;
                 let found = self
                     .get_star_attributes(
                         &self.cached_backend,
@@ -362,7 +430,6 @@ impl<'a> QueryPolicyDecision<'a> {
                     )
                     .await?;
 
-                // todo: set last time accessed (via access policy)
                 star_map.insert(entity.get_full_name(), found.1);
                 entities.insert(entity.get_full_name(), found.0);
             }
@@ -371,8 +438,12 @@ impl<'a> QueryPolicyDecision<'a> {
             // process all attributes for policy enforcement
             let mut results: HashMap<&str, bool> = HashMap::new();
             for (scan_entity, attribute, is_starred) in items.iter() {
-                // todo: check this unwrap
-                let scan_entity = scan_entity.unwrap();
+                let scan_entity = scan_entity.ok_or_else(|| {
+                    SecurityHandlerResult::EntityNotFound(format!(
+                        "2) Could not find entity for attribute {}",
+                        attribute.get_name()
+                    ))
+                })?;
                 let entity_name = scan_entity.get_full_name();
                 let entity_model = entities.get(&entity_name).unwrap();
                 let entity_attribute_name = format!("{}.{}", entity_name, attribute.name);
@@ -392,6 +463,7 @@ impl<'a> QueryPolicyDecision<'a> {
                     &group_model,
                     self.session_model,
                     &object_model,
+                    &policies,
                 )) {
                     Ok(status) => {
                         if !status && !*is_starred {
@@ -419,8 +491,8 @@ impl<'a> QueryPolicyDecision<'a> {
             {
                 PolicyCollectResult::Found(f) => f,
                 PolicyCollectResult::CacheInvalid => {
-                    // todo: invalidate cache and retry
-                    todo!()
+                    self.policy_cache.clear();
+                    return Err(SecurityHandlerResult::InvalidCacheError);
                 }
                 PolicyCollectResult::NotFound => {
                     return Err(SecurityHandlerResult::PolicyError(
@@ -856,7 +928,8 @@ mod tests {
             AccessPolicyModel {
                 policy_id: "masked_id".to_string(),
                 prio_strict: true,
-                usage: HashMap::new(),
+                expire_datetime_utc: 0,
+                normalized_name: "masked_id".to_string(),
             },
         );
 
@@ -1018,7 +1091,6 @@ mod tests {
                 id: "unknown_id".to_string(),
                 full_name: "catalog.schema.orders.unknown".to_string(),
                 tags: vec![],
-                last_time_accessed: 0,
                 is_aggregated: false,
             },
         );
@@ -1416,9 +1488,10 @@ mod tests {
         policy_model_input.insert(
             "no_id".to_string(),
             AccessPolicyModel {
+                normalized_name: "no_name".to_string(),
                 policy_id: "no_id".to_string(),
                 prio_strict: true,
-                usage: HashMap::new(),
+                expire_datetime_utc: 0,
             },
         );
         policy_model_input
@@ -1453,6 +1526,7 @@ mod tests {
                 principal_name: "user_principal_name_1".to_string(),
                 roles: vec!["user_role_1".to_string()],
                 tags: vec!["pii::email".to_string()],
+                access_policy_ids: vec!["no_id".to_string()],
             },
         );
         user_model_input
@@ -1482,7 +1556,6 @@ mod tests {
                 id: "object_id_1".to_string(),
                 full_name: "catalog.schema.customers.user_id".to_string(),
                 is_aggregated: false,
-                last_time_accessed: 0,
                 tags: vec!["pii::id".to_string()],
             },
         );
@@ -1493,7 +1566,6 @@ mod tests {
                 id: "object_id_2".to_string(),
                 full_name: "catalog.schema.customers.firstname".to_string(),
                 is_aggregated: false,
-                last_time_accessed: 0,
                 tags: vec!["pii::firstname".to_string()],
             },
         );
@@ -1504,7 +1576,6 @@ mod tests {
                 id: "object_id_3".to_string(),
                 full_name: "catalog.schema.customers.lastname".to_string(),
                 is_aggregated: false,
-                last_time_accessed: 0,
                 tags: vec!["pii::lastname".to_string()],
             },
         );
@@ -1515,12 +1586,11 @@ mod tests {
                 id: "object_id_4".to_string(),
                 full_name: "catalog.schema.customers.email".to_string(),
                 is_aggregated: false,
-                last_time_accessed: 0,
                 tags: vec!["pii::email".to_string()],
             },
         );
 
-        return values;
+        values
     }
 
     struct DummyBackendProvider<K, V>

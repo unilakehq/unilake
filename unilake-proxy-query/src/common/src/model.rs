@@ -23,6 +23,9 @@ pub struct UserModel {
     /// The type of the user (User or Group)
     #[serde(rename = "accountType")]
     pub account_type: AccountType,
+    /// The user's access policies
+    #[serde(rename = "accessPolicyIds")]
+    pub access_policy_ids: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Hash, Clone)]
@@ -119,8 +122,6 @@ pub struct ObjectModel {
     pub full_name: String,
     /// Tags associated with the object, a tag: some_category::some_tag
     pub tags: Vec<String>,
-    /// The last time this object was accessed by a user for this policy (needs to be updated on execution)
-    pub last_time_accessed: u32,
     /// If true, this object is being aggregated (needs to be updated on execution)
     pub is_aggregated: bool,
 }
@@ -135,16 +136,6 @@ pub struct EntityModel {
     pub attributes: Vec<(String, String)>,
     /// Object models for this entity (full_name, object_model)
     pub objects: HashMap<String, ObjectModel>,
-}
-
-impl EntityModel {
-    pub fn update_last_time_accessed(&mut self, times: HashMap<String, u32>) {
-        for (object_name, time) in times {
-            if let Some(object) = self.objects.get_mut(&object_name) {
-                object.last_time_accessed = time;
-            }
-        }
-    }
 }
 
 impl EntityModel {
@@ -169,14 +160,16 @@ impl Hash for ObjectModel {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
 pub struct AccessPolicyModel {
+    /// The normalized name of the access policy
+    pub normalized_name: String,
     /// The access_policy id
     pub policy_id: String,
     /// if true, this policy priorities stricter rules when conflicting with other policies
     pub prio_strict: bool,
-    /// Usage per this policy, by full object name (uses unix timestamp, in seconds)
-    pub usage: HashMap<String, u32>,
+    /// Date and time when this policy will expire (in UTC unix timestamp)
+    pub expire_datetime_utc: i64,
 }
 
 #[derive(Serialize)]
