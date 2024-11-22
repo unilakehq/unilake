@@ -175,8 +175,24 @@ pub struct AccessPolicyModel {
     pub policy_id: String,
     /// if true, this policy priorities stricter rules when conflicting with other policies
     pub prio_strict: bool,
-    /// Usage per this policy, by full object name (uses unix timestamp, seconds)
+    /// Usage per this policy, by full object name (uses unix timestamp, in seconds)
     pub usage: HashMap<String, u32>,
+}
+
+#[derive(Serialize)]
+pub struct DataAccessRequest {
+    #[serde(rename = "userId")]
+    pub user_id: String,
+    #[serde(rename = "securityPolicyId")]
+    pub security_policy_id: Option<String>,
+    #[serde(rename = "entityAttributeId")]
+    pub entity_attribute_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct DataAccessRequestResponse {
+    pub message: String,
+    pub url: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

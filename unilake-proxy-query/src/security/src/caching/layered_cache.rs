@@ -7,6 +7,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::time::Duration;
+use unilake_common::settings::global_config;
 
 fn get_key_hash<H>(key: H) -> u64
 where
@@ -47,6 +48,7 @@ where
     }
 
     pub fn set_lock_manager(&mut self, uris: Vec<String>) {
+        // todo: we might as well set this from the global config
         let manager = LockManager::new(uris);
         self.lock_manager = Some(manager);
     }
@@ -89,10 +91,10 @@ where
     async fn release_lock(&self, key: &K, lock: Option<Lock>) {
         if let Some(lock) = lock {
             let key = self.distributed_cache.generate_key(key);
-            tracing::info!("Released lock for key: {}.", key);
-
             // unwrap since you cannot have a lock without this lock_manager
             self.lock_manager.as_ref().unwrap().unlock(&lock).await;
+
+            tracing::info!("Released lock for key: {}.", key);
         }
     }
 
@@ -103,6 +105,7 @@ where
         // try to get from cache (just in case data has been refreshed)
         if self.has(key).await {
             self.release_lock(key, lock).await;
+            // safest to get it from the distributed cache
             return Ok(self.distributed_cache.get(key).await?);
         }
 
@@ -160,7 +163,10 @@ pub struct RedisBackendProvider {
 }
 
 impl RedisBackendProvider {
-    pub fn new(host: &str, port: u16, tenant_id: &str, backend_type: &str) -> RedisBackendProvider {
+    pub fn new(tenant_id: &str, backend_type: &str) -> RedisBackendProvider {
+        let host = global_config().get::<String>("redis_host").unwrap();
+        let port = global_config().get::<i32>("redis_port").unwrap();
+
         RedisBackendProvider {
             client: redis::Client::open(format!("redis://{}:{}", host, port)).unwrap(),
             tenant_id: tenant_id.to_owned(),

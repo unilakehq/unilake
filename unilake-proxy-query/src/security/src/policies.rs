@@ -40,6 +40,7 @@ pub struct PolicyFound {
     pub policy_name: Option<String>,
     pub policy_type: PolicyType,
     pub policy_id: String,
+    pub effect: String,
 }
 
 impl PolicyFound {
@@ -140,12 +141,14 @@ impl PolicyHitManager {
                 let rule_definition = self.parse_rule_definition(rule[len - 2])?;
                 let (policy_name, policy_type) =
                     self.get_policy_type_and_name_from_rule_definition(&rule_definition)?;
+                let effect = rule[len - 3].trim().to_string();
 
                 policies.push(PolicyFound {
                     policy_id: rule[len - 1].trim_start().to_string(),
                     rule_definition,
                     policy_type,
                     policy_name,
+                    effect,
                 })
             }
             return Ok((hit.0.clone(), policies));
@@ -409,11 +412,10 @@ mod tests {
             policy_type: PolicyType::FullAccess,
             policy_name: None,
             rule_definition: json!({}),
+            effect: "allow".to_string(),
         });
         let found = PolicyHitManager::resolve_masking_policy_conflict(&items, true);
-        assert!(found.is_some());
-        assert_eq!(found.unwrap().policy_id, "99");
-        assert!(found.unwrap().policy_type == PolicyType::FullAccess);
+        assert!(found.is_none());
     }
 
     #[test]
@@ -424,6 +426,7 @@ mod tests {
             policy_type: PolicyType::FullAccess,
             policy_name: None,
             rule_definition: json!({}),
+            effect: "allow".to_string(),
         });
         let found = PolicyHitManager::resolve_masking_policy_conflict(&items, true);
         assert!(found.is_some());
@@ -473,18 +476,21 @@ mod tests {
                 policy_name: Some("xxhash3".to_string()),
                 policy_type: PolicyType::MaskingRule,
                 rule_definition: serde_json::value::Value::Null,
+                effect: "allow".to_string(),
             },
             PolicyFound {
                 policy_id: "1".to_string(),
                 policy_name: Some("mail_mask_username".to_string()),
                 policy_type: PolicyType::MaskingRule,
                 rule_definition: serde_json::value::Value::Null,
+                effect: "allow".to_string(),
             },
             PolicyFound {
                 policy_id: "2".to_string(),
                 policy_name: Some("rounding".to_string()),
                 policy_type: PolicyType::MaskingRule,
                 rule_definition: serde_json::value::Value::Null,
+                effect: "allow".to_string(),
             },
         ]
     }

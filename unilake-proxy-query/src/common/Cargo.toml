@@ -11,3 +11,4 @@ publish.workspace = true
 [dependencies]
 thiserror = { workspace = true }
 serde = { workspace = true }
+config = { workspace = true }

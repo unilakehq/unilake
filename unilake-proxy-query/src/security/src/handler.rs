@@ -16,7 +16,7 @@ use unilake_common::error::{TdsWireError, TokenError};
 use unilake_common::model::{EntityModel, ObjectModel, SessionModel};
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
-    ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput,
+    ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerDenyCause, TranspilerInput,
     TranspilerInputFilter, TranspilerInputRule, VisibleSchemaBuilder,
 };
 
@@ -292,17 +292,23 @@ impl<'a> QueryPolicyDecision<'a> {
 
     // todo: we also need to check the intent, do you perform a select statement, update or delete etc... based on roles. This is where gravitino api should help
     // todo: PAP should generate the necessary rules, it should however also generate the regular access rules where no filtering or masking should be applied, the actions below should honor that
+    // todo: in order to cover both the cases above, we might as well use a select permission as a full transparent access approach and the below for consuming data via this security layer,
+    // this will have to be checked before executing this part as no policies are applicable in a full access scenario
     pub async fn process(
         &self,
         scan_output: &ScanOutput,
     ) -> Result<TranspilerInput, SecurityHandlerResult> {
-        // enforcer should only be used in a single thread (which should always be the case)
+        // enforcer should only be used in a single thread (which normally should be the case)
         let mut enforcer = self.enforcer.lock().await;
 
         // reload policy (in case of changes)
         if let Err(err) = enforcer.load_policy().await {
             panic!("Failed to load policy: {}", err);
         }
+
+        // set possible output
+        let mut cause: Option<Vec<TranspilerDenyCause>> = None;
+        let mut request_url: Option<String> = None;
 
         // set input (user and group)
         let user_model = self
@@ -363,6 +369,7 @@ impl<'a> QueryPolicyDecision<'a> {
             Self::fill_star_attributes(items, &star_map).await?;
 
             // process all attributes for policy enforcement
+            let mut results: HashMap<&str, bool> = HashMap::new();
             for (scan_entity, attribute, is_starred) in items.iter() {
                 // todo: check this unwrap
                 let scan_entity = scan_entity.unwrap();
@@ -389,12 +396,14 @@ impl<'a> QueryPolicyDecision<'a> {
                     Ok(status) => {
                         if !status && !*is_starred {
                             // explicitly requested entity attribute
-                            return self
-                                .get_denied_access_result(entity_attribute_name.as_str())
-                                .await;
+                            // will be handled later (when processing policies found)
+                            results.insert(object_model.id.as_ref(), false);
                         } else if !status {
                             // implicitly requested starred entity attribute
                             exclude_attributes_visible_map.insert(entity_attribute_name);
+                            results.insert(object_model.id.as_ref(), true);
+                        } else {
+                            results.insert(object_model.id.as_ref(), true);
                         }
                     }
                     Err(err) => {
@@ -403,6 +412,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 }
             }
 
+            // this will process the results and gather their associated policies
             let policies_found = match pm
                 .process_hits()
                 .map_err(|e| SecurityHandlerResult::PolicyError(e))?
@@ -426,10 +436,16 @@ impl<'a> QueryPolicyDecision<'a> {
                 .map(|(_, v)| v)
                 .collect();
             for (object_id, rules) in policies_found {
-                // todo: policies can also be None, we should handle that properly
                 let prio_stricter = self.check_policy_rules_prio(&rules).await?;
                 let (object_name, att_name, from_star) =
                     Self::find_star_and_attribute_name(items, &object_models, &object_id)?;
+
+                // check if there are any deny rules
+                if !results.get(object_id.as_str()).unwrap_or(&false) {
+                    let policy_id = Self::get_causing_policy(&rules).map(|r| r.policy_id.as_str());
+                    self.set_deny_access_cause(&mut cause, scope, object_id.as_str(), policy_id);
+                    continue;
+                }
 
                 // add masking rule
                 if let Some(rule) =
@@ -449,10 +465,16 @@ impl<'a> QueryPolicyDecision<'a> {
                             continue;
                         }
                         AttributeAccess::Denied => {
-                            return self.get_denied_access_result(object_id.as_str()).await
+                            self.set_deny_access_cause(
+                                &mut cause,
+                                scope,
+                                object_id.as_str(),
+                                Some(rule.policy_id.as_str()),
+                            );
                         }
                     }
                 }
+
                 // add all filter rules
                 let filter_rule = rules
                     .iter()
@@ -464,20 +486,31 @@ impl<'a> QueryPolicyDecision<'a> {
             }
         }
 
+        // get request url
+        if cause.is_some() {
+            request_url = Some(self.get_deny_access_url().await?);
+        }
+
         // prepare transpiler input
         let entities = entities.into_iter().map(|(_, v)| v).collect();
+        let query = if scan_output.query.is_some() {
+            scan_output.query.clone().unwrap()
+        } else {
+            return Err(SecurityHandlerResult::PolicyError(
+                "Query not found".to_owned(),
+            ));
+        };
         Ok(TranspilerInput {
-            cause: None,
-            // todo: properly unwrap here
-            query: scan_output.query.clone().unwrap(),
-            request_url: None,
+            cause,
+            request_url,
+            query,
             rules: masking_rules
                 .iter()
                 .map(|(scope, att_id, att_name, rule)| TranspilerInputRule {
                     scope: *scope,
                     attribute_id: att_id.to_owned(),
                     attribute: att_name.to_owned(),
-                    rule_id: rule.policy_id.to_owned(),
+                    policy_id: rule.policy_id.to_owned(),
                     rule_definition: rule.rule_definition.clone(),
                 })
                 .collect(),
@@ -487,7 +520,7 @@ impl<'a> QueryPolicyDecision<'a> {
                     scope: *scope,
                     attribute_id: att_id.to_owned(),
                     attribute: att_name.to_owned(),
-                    filter_id: rule.policy_id.to_owned(),
+                    policy_id: rule.policy_id.to_owned(),
                     filter_definition: rule.rule_definition.clone(),
                 })
                 .collect(),
@@ -500,7 +533,7 @@ impl<'a> QueryPolicyDecision<'a> {
         &self,
         policies: &[PolicyFound],
     ) -> Result<bool, SecurityHandlerResult> {
-        let ids: std::collections::HashSet<_> = policies.iter().map(|p| &p.policy_id).collect();
+        let ids: HashSet<_> = policies.iter().map(|p| &p.policy_id).collect();
         for policy_id in ids {
             let found = self.cached_backend.access_policy_model.get(policy_id).await;
             match found {
@@ -529,7 +562,11 @@ impl<'a> QueryPolicyDecision<'a> {
         let object_model = objects
             .iter()
             .find(|object| object.id == object_id)
-            .ok_or_else(|| SecurityHandlerResult::PolicyError("".to_owned()))?;
+            .ok_or_else(|| {
+                SecurityHandlerResult::PolicyError(
+                    "Could not find object in entity object model".to_owned(),
+                )
+            })?;
 
         let (_, attribute, star) = entities_and_attributes
             .iter()
@@ -542,7 +579,11 @@ impl<'a> QueryPolicyDecision<'a> {
                 }
                 None
             })
-            .ok_or_else(|| SecurityHandlerResult::PolicyError("".to_owned()))?;
+            .ok_or_else(|| {
+                SecurityHandlerResult::PolicyError(
+                    "Could not find object attributes in entity object model".to_owned(),
+                )
+            })?;
 
         Ok((object_model.full_name.clone(), attribute.get_name(), *star))
     }
@@ -553,11 +594,26 @@ impl<'a> QueryPolicyDecision<'a> {
         todo!()
     }
 
-    async fn get_denied_access_result(
+    fn set_deny_access_cause(
         &self,
-        _entity_attribute: &str,
-    ) -> Result<TranspilerInput, SecurityHandlerResult> {
-        // generate request url, if possible
+        cause: &mut Option<Vec<TranspilerDenyCause>>,
+        scope: i32,
+        attribute: &str,
+        policy_id: Option<&str>,
+    ) -> () {
+        if cause.is_none() {
+            cause.replace(Vec::new());
+        }
+
+        // unwrap is safe here because we've made sure the vector exists (see above)
+        cause.as_mut().unwrap().push(TranspilerDenyCause {
+            scope,
+            attribute: attribute.to_owned(),
+            policy_id: policy_id.map(|a| a.to_owned()),
+        });
+    }
+
+    async fn get_deny_access_url(&self) -> Result<String, SecurityHandlerResult> {
         todo!()
     }
 
@@ -640,7 +696,7 @@ impl<'a> QueryPolicyDecision<'a> {
         Some(builder.catalog)
     }
 
-    /// Requires the full entity name <catalog>.<schema>.<entity> and gets all its attributes
+    /// Requires the full entity name <catalog>.<schema>.<entity>/<fileset> and gets all its attributes
     /// uses these attributes to create an entity attribute mapping. Entity alias is required
     /// since we need to know which attributes belong to which entity within a given scope
     async fn get_star_attributes(
@@ -687,6 +743,14 @@ impl<'a> QueryPolicyDecision<'a> {
             };
         }
         AttributeAccess::Allowed
+    }
+
+    /// Based on policies found, returns the most likely cause for denying access
+    fn get_causing_policy(policies_found: &[PolicyFound]) -> Option<&PolicyFound> {
+        policies_found
+            .iter()
+            .find(|p| p.effect == "deny")
+            .or_else(|| policies_found.iter().find(|p| p.effect == "approve"))
     }
 }
 
@@ -810,7 +874,7 @@ mod tests {
         assert!(result.filters.is_empty());
         assert_eq!(1, result.rules.len());
         let rule = &result.rules[0];
-        assert_eq!(rule.rule_id, "masked_id");
+        assert_eq!(rule.policy_id, "masked_id");
         assert_eq!(rule.attribute_id, "object_id_1");
     }
 
@@ -849,7 +913,7 @@ mod tests {
 
         assert_eq!(1, result.filters.len());
         let filter = &result.filters[0];
-        assert_eq!(filter.filter_id, "filter_id");
+        assert_eq!(filter.policy_id, "filter_id");
         assert_eq!(filter.attribute_id, "object_id_2");
     }
 

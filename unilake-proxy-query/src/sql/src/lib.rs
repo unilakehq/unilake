@@ -152,14 +152,27 @@ pub struct ErrorMessage {
     pub into_expression: Option<String>,
 }
 
+#[derive(Serialize, Clone, Debug)]
+pub struct TranspilerDenyCause {
+    pub scope: i32,
+    pub attribute: String,
+    pub policy_id: Option<String>,
+}
+
 #[derive(Serialize, Debug)]
 pub struct TranspilerInput {
     pub rules: Vec<TranspilerInputRule>,
     pub filters: Vec<TranspilerInputFilter>,
     pub visible_schema: Option<HashMap<String, Catalog>>,
-    pub cause: Option<serde_json::Value>,
+    pub cause: Option<Vec<TranspilerDenyCause>>,
     pub query: String,
     pub request_url: Option<String>,
+}
+
+impl TranspilerInput {
+    pub fn is_approved(&self) -> bool {
+        self.cause.is_none() && self.request_url.is_none()
+    }
 }
 
 pub struct VisibleSchemaBuilder {
@@ -226,7 +239,7 @@ pub struct TranspilerInputRule {
     pub scope: i32,
     pub attribute_id: String,
     pub attribute: String,
-    pub rule_id: String,
+    pub policy_id: String,
     pub rule_definition: serde_json::Value,
 }
 
@@ -235,7 +248,7 @@ pub struct TranspilerInputFilter {
     pub scope: i32,
     pub attribute_id: String,
     pub attribute: String,
-    pub filter_id: String,
+    pub policy_id: String,
     pub filter_definition: serde_json::Value,
 }
 
@@ -286,14 +299,14 @@ mod tests {
                     attribute_id: "".to_string(),
                     attribute: r#""employees"."a""#.to_string(),
                     scope: 0,
-                    rule_id: "".to_string(),
+                    policy_id: "".to_string(),
                     rule_definition: json!({"name": "xxhash3", "properties": Null}),
                 }],
                 filters: vec![TranspilerInputFilter {
                     attribute_id: "".to_string(),
                     attribute: r#""employees"."id""#.to_string(),
                     scope: 0,
-                    filter_id: "".to_string(),
+                    policy_id: "".to_string(),
                     filter_definition: json!({"expression": "? > 100"}),
                 }],
                 visible_schema: Some(builder.catalog),

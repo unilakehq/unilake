@@ -151,15 +151,14 @@ class ScanOutput:
 class TranspilerInputRules:
     scope: int
     attribute: str
-    rule_id: str
+    policy_id: str
     rule_definition: dict
-
 
 @dataclass
 class TranspilerInputFilters:
     scope: int
     attribute: str
-    filter_id: str
+    policy_id: str
     filter_definition: dict
 
 @dataclass

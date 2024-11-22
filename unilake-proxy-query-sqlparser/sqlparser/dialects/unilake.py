@@ -158,5 +158,7 @@ class Unilake(Dialect):
 # DESCRIBE ACCESS POLICY example_policy_with_bundle (DESCRIPTION | USAGE) -- returns a table with all access policies that are in use and their status
 # SHOW ACCESS POLICY (workspace) -- returns a table with all access policies in the specified workspace or if not specified in any workspace
 
+# ANALYZE ACCESS (SELECT * FROM TABLE) -- returns information about any security policies applied to the given query, this can be used for the split between local execution and sql flight. Should not trigger activity update
+
 # TODO(mrhamburg): this also needs functions for handling files
 # TODO(mrhamburg): this also needs to check for statements we will not support?
