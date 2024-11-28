@@ -296,7 +296,7 @@ impl Logger for PolicyLogger {
         rvals.hash(&mut hasher);
 
         let object = rvals
-            .last()
+            .get(rvals.len() - 2)
             .unwrap_or(&",,unknown".to_string())
             .split(',')
             .skip(1)
@@ -343,12 +343,32 @@ impl Logger for PolicyLogger {
 #[cfg(test)]
 mod tests {
     use crate::policies::{
-        PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
+        PolicyCollectResult, PolicyFound, PolicyHit, PolicyHitManager, PolicyLogger, PolicyType,
     };
     use crate::HitRule;
     use casbin::{Cache, Logger};
     use serde_json::json;
     use std::sync::Arc;
+
+    #[test]
+    fn test_policy_hit_evals_extract_object_id() {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let sut = PolicyLogger::new(sender);
+        send_test_data(sut);
+
+        // check captured logs
+        let mut hits = Vec::new();
+        while let Ok(hit) = receiver.recv() {
+            hits.push(hit);
+        }
+
+        let testcase = hits.first().unwrap();
+        if let PolicyHit::HitEnforce(hit) = testcase {
+            assert_eq!(hit.object_id, "some_object_id".to_string());
+        } else {
+            panic!("Expected HitEnforce")
+        }
+    }
 
     #[test]
     fn test_policy_logger_capture_hit_and_enforce() {
@@ -443,7 +463,8 @@ mod tests {
             r##"#{"accountType": "User", "id": "some_id", "principalName": "alice", "role": "", "tags": ["pii::username", "pii::email"]}"##.to_string(),
             r##"#{"entityVersion": 0, "groups": [#{"id": "some_id", "tags": ["pii::username", "pii::email"]}], "userId": "some_id"}"##.to_string(),
             r##"#{"appDriver": "", "appId": 0, "appName": "", "appType": "", "branch": "", "computeId": "", "continent": "", "countryIso2": "", "dayOfWeek": 0, "domainId": "", "id": "some_id", "policyId": "", "sourceIpv4": "", "time": 0, "timezone": "", "workspaceId": ""}"##.to_string(),
-            r##"#{"full_name": "some.schema.column", "id": "some_object_id", "is_aggregated": false, "last_time_accessed": 0, "tags": ["pii::username", "pii::email"]}"##.to_string()
+            r##"#{"full_name": "some.schema.column", "id": "some_object_id", "is_aggregated": false, "last_time_accessed": 0, "tags": ["pii::username", "pii::email"]}"##.to_string(),
+            r##"#{"no_name": #{"expire_datetime_utc": 0, "normalized_name": "no_name", "policy_id_1": "policy_id", "prio_strict": true}}"##.to_string()
         ];
         logger.print_enforce_log(&rvals, true, false);
         logger.print_explain_log(&rvals, vec!["p, some.*, TagExists(r.user, \"Hello\") && 1 == 1 && TagExists(r.group, \"Something\"), allow, eyJuYW1lIjogInh4aGFzaDMiLCAicHJvcGVydGllcyI6IG51bGx9, policy_id_1".to_string()]);
@@ -453,7 +474,8 @@ mod tests {
             r##"#{"accountType": "User", "id": "some_id", "principalName": "alice", "role": "", "tags": ["pii::username", "pii::email"]}"##.to_string(),
             r##"#{"entityVersion": 0, "groups": [#{"id": "some_id", "tags": ["pii::username", "pii::email"]}], "userId": "some_id"}"##.to_string(),
             r##"#{"appDriver": "", "appId": 0, "appName": "", "appType": "", "branch": "", "computeId": "", "continent": "", "countryIso2": "", "dayOfWeek": 0, "domainId": "", "id": "some_id", "policyId": "", "sourceIpv4": "", "time": 0, "timezone": "", "workspaceId": ""}"##.to_string(),
-            r##"#{"full_name": "some.schema.column", "id": "another_object_id", "is_aggregated": false, "last_time_accessed": 0, "tags": ["pii::username", "pii::email"]}"##.to_string()
+            r##"#{"full_name": "some.schema.column", "id": "another_object_id", "is_aggregated": false, "last_time_accessed": 0, "tags": ["pii::username", "pii::email"]}"##.to_string(),
+            r##"#{"no_name": #{"expire_datetime_utc": 0, "normalized_name": "no_name", "policy_id_2": "policy_id", "prio_strict": true}}"##.to_string()
         ];
         logger.print_enforce_log(&rvals, true, false);
         logger.print_explain_log(&rvals, vec!["p, some.*, TagExists(r.user, \"Hello\") && 1 == 1 && TagExists(r.group, \"Something\"), allow, eyJleHByZXNzaW9uIjogIj8gPCAxMDAwIn0=, policy_id_2".to_string()]);
@@ -463,7 +485,8 @@ mod tests {
             r##"#{"accountType": "User", "id": "some_id", "principalName": "alice", "role": "", "tags": ["pii::username", "pii::email"]}"##.to_string(),
             r##"#{"entityVersion": 0, "groups": [#{"id": "some_id", "tags": ["pii::username", "pii::email"]}], "userId": "some_id"}"##.to_string(),
             r##"#{"appDriver": "", "appId": 0, "appName": "", "appType": "", "branch": "", "computeId": "", "continent": "", "countryIso2": "", "dayOfWeek": 0, "domainId": "", "id": "some_id", "policyId": "", "sourceIpv4": "", "time": 0, "timezone": "", "workspaceId": ""}"##.to_string(),
-            r##"#{"full_name": "some.schema.column", "id": "allow_object_id", "is_aggregated": false, "last_time_accessed": 0, "tags": ["pii::username", "pii::email"]}"##.to_string()
+            r##"#{"full_name": "some.schema.column", "id": "allow_object_id", "is_aggregated": false, "last_time_accessed": 0, "tags": ["pii::username", "pii::email"]}"##.to_string(),
+            r##"#{"no_name": #{"expire_datetime_utc": 0, "normalized_name": "no_name", "policy_id_2": "policy_id", "prio_strict": true}}"##.to_string()
         ];
         logger.print_enforce_log(&rvals, true, false);
         logger.print_explain_log(&rvals, vec!["p, some.*, TagExists(r.user, \"Hello\") && 1 == 1 && TagExists(r.group, \"Something\"), allow, e30=, policy_id_2".to_string()]);

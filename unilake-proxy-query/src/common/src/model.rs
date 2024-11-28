@@ -23,7 +23,9 @@ pub struct UserModel {
     /// The type of the user (User or Group)
     #[serde(rename = "accountType")]
     pub account_type: AccountType,
-    /// The user's access policies
+    /// The user's access policies. These are the access policies this user has.
+    /// This can be used for checking the last accessed time and date for a policy
+    /// so policies can be expired
     #[serde(rename = "accessPolicyIds")]
     pub access_policy_ids: Vec<String>,
 }
@@ -162,13 +164,15 @@ impl Hash for ObjectModel {
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash)]
 pub struct AccessPolicyModel {
-    /// The normalized name of the access policy
+    /// The normalized name of the access policy (tenant_name + workspace_name + policy_name).
+    /// Used as an attribute name when evaluating policy access times
     pub normalized_name: String,
     /// The access_policy id
     pub policy_id: String,
     /// if true, this policy priorities stricter rules when conflicting with other policies
     pub prio_strict: bool,
-    /// Date and time when this policy will expire (in UTC unix timestamp)
+    /// Date and time when this policy will expire (in UTC unix timestamp).
+    /// This value is maintained by the PIP endpoint (every time this object is updated, so will this value)
     pub expire_datetime_utc: i64,
 }
 

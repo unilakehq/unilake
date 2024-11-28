@@ -48,7 +48,6 @@ where
     }
 
     pub fn set_lock_manager(&mut self, uris: Vec<String>) {
-        // todo: we might as well set this from the global config
         let manager = LockManager::new(uris);
         self.lock_manager = Some(manager);
     }
@@ -102,11 +101,17 @@ where
         // acquire lock if enabled
         let lock: Option<Lock> = self.get_lock(key).await;
 
-        // try to get from cache (just in case data has been refreshed)
-        if self.has(key).await {
-            self.release_lock(key, lock).await;
-            // safest to get it from the distributed cache
-            return Ok(self.distributed_cache.get(key).await?);
+        // try to get from cache
+        match self.inner_has(key).await {
+            InnerHas::Local => {
+                self.release_lock(key, lock).await;
+                return Ok(self.local_cache.get(key).await);
+            }
+            InnerHas::Distributed => {
+                self.release_lock(key, lock).await;
+                return Ok(self.distributed_cache.get(key).await?);
+            }
+            _ => {}
         }
 
         // get data from repo
@@ -124,11 +129,19 @@ where
     }
 
     pub async fn has(&self, k: &K) -> bool {
-        let found = self.local_cache.contains_key(k);
-        if !found {
-            return self.distributed_cache.has(k).await.unwrap_or(false);
+        match self.inner_has(k).await {
+            InnerHas::NotFound => false,
+            _ => true,
         }
-        found
+    }
+
+    async fn inner_has(&self, k: &K) -> InnerHas {
+        if self.local_cache.contains_key(k) {
+            return InnerHas::Local;
+        } else if self.distributed_cache.has(k).await.unwrap_or(false) {
+            return InnerHas::Distributed;
+        }
+        InnerHas::NotFound
     }
 
     pub async fn set(&self, key: K, value: V) {
@@ -139,6 +152,12 @@ where
     pub fn clear(&self) {
         self.local_cache.invalidate_all();
     }
+}
+
+enum InnerHas {
+    NotFound,
+    Local,
+    Distributed,
 }
 
 #[async_trait]
@@ -293,16 +312,5 @@ mod tests {
             ])
             .await;
         assert_eq!(result, Some(true));
-    }
-
-    #[test]
-    fn test_has_and_clear() {
-        // let channel = channel::<(String, Option<bool>)>();
-        // let cache = MultiLayeredCache::new(1, TestBackendProvider, channel.0);
-        //
-        // cache.set(vec!["alice", "/data1", "read"], false);
-        // assert!(cache.has(&vec!["alice", "/data1", "read"]));
-        // cache.clear();
-        // assert!(!cache.has(&vec!["alice", "/data1", "read"]));
     }
 }

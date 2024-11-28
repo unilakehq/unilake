@@ -15,6 +15,7 @@ pub(crate) fn add_functions(engine: &mut rhai::Engine) {
     engine.register_fn("Now", now);
 }
 
+/// Get the current (UTC) timestamp
 #[allow(dead_code)]
 fn now() -> INT {
     Utc::now().timestamp() as INT

@@ -1,3 +1,5 @@
+// this will probably also need a rest endpoint for front-end connections
+
 use std::env;
 use std::error::Error;
 use std::sync::Arc;

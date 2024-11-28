@@ -198,7 +198,7 @@ impl SecurityHandler {
         loop {
             iterations -= 1;
             if iterations == 0 {
-                // todo: handle this scenario properly
+                // todo: handle this scenario properly (cache has been rejected multiple times, need to check the iteration results)
                 tracing::error!(
                     "Failed to provide transpiler input for query with id: {}",
                     self.query_id
@@ -660,10 +660,14 @@ impl<'a> QueryPolicyDecision<'a> {
         Ok((object_model.full_name.clone(), attribute.get_name(), *star))
     }
 
-    async fn check_user_access(&self, scan_output: &ScanOutput) -> () {
-        // check if user has access to the entity involved with the given intent (gravitino api, select|update|delete)
-        // we handle select, create|modify|delete intents are done by gravitino api
-        todo!()
+    async fn check_user_access(&self, scan_output: &ScanOutput) -> bool {
+        if scan_output.query_type == "SELECT" {
+            return true;
+        }
+        // todo: execute request to gravitino api to check user access to the given entity
+        false
+        // check if user has access to the entity involved with the given intent (gravitino api, select|update|delete|create|modify)
+        // we handle select, create|update|modify|delete intents are done by gravitino api
     }
 
     fn set_deny_access_cause(
@@ -892,6 +896,9 @@ mod tests {
         let result = run_default_test(get_default_policy(), None, None, None, None, None).await;
 
         // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
         let result = result.ok().unwrap();
         assert!(result.request_url.is_none());
@@ -909,7 +916,7 @@ mod tests {
                 "true",
                 "allow",
                 "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-                "no_id",
+                "policy_id",
             ),
             PolicyRule::new(
                 "p",
@@ -936,7 +943,9 @@ mod tests {
         let result = run_default_test(policies, None, None, None, None, Some(policy_models)).await;
 
         // check results
-        println!("{:?}", result);
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
         let result = result.ok().unwrap();
         assert!(result.request_url.is_none());
@@ -960,7 +969,7 @@ mod tests {
                 "true",
                 "allow",
                 "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-                "no_id",
+                "policy_id",
             ),
             PolicyRule::new(
                 "p",
@@ -973,9 +982,23 @@ mod tests {
             ),
         ];
 
-        let result = run_default_test(policies, None, None, None, None, None).await;
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "masked_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "filter_id".to_string(),
+                prio_strict: true,
+                expire_datetime_utc: 0,
+                normalized_name: "filter_name".to_string(),
+            },
+        );
+
+        let result = run_default_test(policies, None, None, None, None, Some(policy_models)).await;
 
         // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
         let result = result.ok().unwrap();
         assert!(result.request_url.is_none());
@@ -999,7 +1022,7 @@ mod tests {
                 "true",
                 "allow",
                 "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-                "no_id",
+                "policy_id",
             ),
             PolicyRule::new(
                 "p",
@@ -1011,9 +1034,24 @@ mod tests {
                 "hidden_id",
             ),
         ];
-        let result = run_default_test(policies, None, None, None, None, None).await;
+
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "hidden_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "hidden_id".to_string(),
+                prio_strict: true,
+                expire_datetime_utc: 0,
+                normalized_name: "hidden_name".to_string(),
+            },
+        );
+
+        let result = run_default_test(policies, None, None, None, None, Some(policy_models)).await;
 
         // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
         let result = result.ok().unwrap();
         assert!(result.request_url.is_some());
@@ -1030,7 +1068,7 @@ mod tests {
             "true",
             "allow",
             "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-            "no_id",
+            "policy_id",
         )];
 
         let mut scan_output = get_scan_default_output();
@@ -1067,7 +1105,7 @@ mod tests {
             "true",
             "allow",
             "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-            "no_id",
+            "policy_id",
         )];
 
         let mut scan_output = get_scan_default_output();
@@ -1133,7 +1171,7 @@ mod tests {
             "true",
             "allow",
             "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-            "no_id",
+            "policy_id",
         )];
 
         let mut scan_output = get_scan_default_output();
@@ -1275,7 +1313,7 @@ mod tests {
             "true",
             "allow",
             "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-            "no_id",
+            "policy_id",
         )]
     }
 
@@ -1486,10 +1524,10 @@ mod tests {
     fn get_policy_model_input() -> HashMap<String, AccessPolicyModel> {
         let mut policy_model_input = HashMap::new();
         policy_model_input.insert(
-            "no_id".to_string(),
+            "policy_id".to_string(),
             AccessPolicyModel {
                 normalized_name: "no_name".to_string(),
-                policy_id: "no_id".to_string(),
+                policy_id: "policy_id".to_string(),
                 prio_strict: true,
                 expire_datetime_utc: 0,
             },
@@ -1502,7 +1540,7 @@ mod tests {
         entity_model_input.insert(
             "catalog.schema.customers".to_string(),
             EntityModel {
-                id: "no_id".to_string(),
+                id: "entity_model_id".to_string(),
                 full_name: "catalog.schema.customers".to_string(),
                 attributes: vec![
                     ("user_id".to_string(), "INT".to_string()),
@@ -1526,7 +1564,7 @@ mod tests {
                 principal_name: "user_principal_name_1".to_string(),
                 roles: vec!["user_role_1".to_string()],
                 tags: vec!["pii::email".to_string()],
-                access_policy_ids: vec!["no_id".to_string()],
+                access_policy_ids: vec!["policy_id".to_string()],
             },
         );
         user_model_input
