@@ -89,7 +89,7 @@ impl ColumnData {
             | ColumnData::F32N(_)
             | ColumnData::F64N(_) => var_len::encode(dest, &self)?,
             ColumnData::String(s) => s.encode(dest)?,
-            ColumnData::Date(_) => date::encode(dest, &self)?,
+            ColumnData::Date(_) => date::encode(dest, &self),
             ColumnData::DateTime2(_) => datetime2::encode(dest, &self)?,
             ColumnData::Numeric(n) => {
                 numeric::encode(dest, &n)?;

@@ -40,7 +40,7 @@ pub(crate) struct StarRocksBackend {
     cached_rules: Mutex<HashMap<String, Arc<Box<dyn Cache<u64, (String, HitRule)>>>>>,
     session_count: Mutex<HashMap<String, u64>>,
     // todo: multiple cache instances are needed here for model information, and we need a single server instance based adapter for loading policy files
-    // todo: the above also requires a handler for cache changes (redis mq)
+    // todo: the above also requires a handler for cache changes (redis mq/kafka) -> caching.rs will handle this.
 }
 
 impl StarRocksBackend {

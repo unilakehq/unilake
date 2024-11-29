@@ -2,8 +2,7 @@ use crate::backend::starrocks::StarRocksBackend;
 use crate::frontend::prot::{ServerInstance, TdsSessionState};
 use crate::frontend::tds::server_context::ServerContext;
 use crate::session::{
-    SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE,
-    SESSION_VARIABLE_DIALECT,
+    SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DIALECT,
 };
 use mysql_async::Conn;
 use std::collections::HashMap;
@@ -13,7 +12,6 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult};
-use unilake_security::context::ConnectionContext;
 use unilake_security::{Cache, HitRule};
 
 pub struct StarRocksSession {
@@ -216,35 +214,5 @@ impl SessionInfo for StarRocksSession {
             .iter()
             .map(|(k, v)| (k.as_ref(), v))
             .collect()
-    }
-}
-
-impl From<&StarRocksSession> for ConnectionContext {
-    fn from(value: &StarRocksSession) -> Self {
-        ConnectionContext {
-            branch_name: value
-                .get_session_variable("branch_name")
-                .get_value_or_default(),
-            source_ip: Arc::from(value.socket_addr().ip().to_string()),
-            compute_id: value
-                .get_session_variable("compute_id")
-                .get_value_or_default(),
-            user_id: value.get_sql_user_id(),
-            default_catalog: value
-                .get_session_variable(SESSION_VARIABLE_CATALOG)
-                .get_value_or_default(),
-            default_database: value
-                .get_session_variable(SESSION_VARIABLE_DATABASE)
-                .get_value_or_default(),
-            dialect: value
-                .get_session_variable(SESSION_VARIABLE_DIALECT)
-                .get_value_or_default(),
-            role: None,
-            session_id: Arc::from(value.session_id().to_string()),
-            connection_timestamp: Arc::from(""),
-            endpoint: value.endpoint.clone(),
-            source_application: Arc::from("".to_string()),
-            workspace_id: Arc::from("".to_string()),
-        }
     }
 }

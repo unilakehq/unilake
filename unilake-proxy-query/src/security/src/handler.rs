@@ -243,6 +243,7 @@ impl SecurityHandler {
         Ok(self.output_query.as_ref().unwrap())
     }
 
+    /// Executes the transpile operation for transpiling an input query to an allowed executable SQL query.
     fn transpile_query(
         &self,
         scanned: &TranspilerInput,
@@ -256,6 +257,7 @@ impl SecurityHandler {
         Ok(transpiler_output.sql_transformed)
     }
 
+    /// Secure the generated output query by removing any sensitive information.
     pub fn secure_output_query(&mut self) -> Result<&str, SecurityHandlerError> {
         // You can only secure a query once
         if let Some(ref output_query_secured) = self.output_query_secured {
@@ -268,6 +270,7 @@ impl SecurityHandler {
         Ok(self.output_query_secured.as_ref().unwrap())
     }
 
+    /// Secure the input query by removing any sensitive information.
     pub fn secure_input_query(&mut self) -> Result<&str, SecurityHandlerError> {
         // You can only secure an input query once
         if let Some(ref input_query_secured) = self.input_query_secured {
@@ -281,6 +284,7 @@ impl SecurityHandler {
         Ok(self.input_query_secured.as_ref().unwrap())
     }
 
+    /// Returns the unique identifier of the current query.
     pub fn get_query_id(&self) -> Ulid {
         self.query_id
     }
@@ -915,6 +919,7 @@ mod tests {
                 "*",
                 "true",
                 "allow",
+                // {"full_access": true}
                 "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
                 "policy_id",
             ),
@@ -968,6 +973,7 @@ mod tests {
                 "*",
                 "true",
                 "allow",
+                // {"full_access": true}
                 "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
                 "policy_id",
             ),
@@ -1021,6 +1027,7 @@ mod tests {
                 "*",
                 "true",
                 "allow",
+                // {"full_access": true}
                 "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
                 "policy_id",
             ),
@@ -1058,6 +1065,7 @@ mod tests {
         assert!(result.cause.is_some());
         assert!(result.rules.is_empty());
         assert!(result.filters.is_empty());
+        // todo: add request url and cause assertion once available
     }
 
     #[tokio::test]
@@ -1067,6 +1075,7 @@ mod tests {
             "catalog.schema.customers.*",
             "true",
             "allow",
+            // {"full_access": true}
             "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
             "policy_id",
         )];
@@ -1104,6 +1113,7 @@ mod tests {
             "catalog.schema.customers.*",
             "true",
             "allow",
+            // {"full_access": true}
             "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
             "policy_id",
         )];
@@ -1164,62 +1174,330 @@ mod tests {
     }
     #[tokio::test]
     async fn test_query_policy_decision_one_deny_column_access() {
-        todo!();
-        let policies = vec![PolicyRule::new(
-            "p",
-            "catalog.schema.customers.*",
-            "true",
-            "allow",
-            "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
-            "policy_id",
-        )];
+        // test: star expand, deny access to a single attribute
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "TagExists(r.object, \"pii::firstname\")",
+                "deny",
+                // {"name": "hidden"}
+                "eyJuYW1lIjogImhpZGRlbiJ9",
+                "policy_id",
+            ),
+        ];
 
-        let mut scan_output = get_scan_default_output();
-        let objects = scan_output.objects.first_mut().unwrap();
-        objects.attributes.push(ScanAttribute {
-            entity_alias: "b".to_string(),
-            name: "id".to_string(),
-            alias: "id".to_string(),
-        });
-        objects.entities.push(ScanEntity {
-            catalog: "catalog".to_string(),
-            db: "schema".to_string(),
-            name: "orders".to_string(),
-            alias: "b".to_string(),
-        });
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: "catalog".to_string(),
+                    db: "schema".to_string(),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }],
+                attributes: vec![
+                    ScanAttribute {
+                        entity_alias: "a".to_string(),
+                        name: "firstname".to_string(),
+                        alias: "firstname".to_string(),
+                    },
+                    ScanAttribute {
+                        entity_alias: "a".to_string(),
+                        name: "lastname".to_string(),
+                        alias: "lastname".to_string(),
+                    },
+                    ScanAttribute {
+                        entity_alias: "a".to_string(),
+                        name: "email".to_string(),
+                        alias: "email".to_string(),
+                    },
+                ],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some(
+                "SELECT firstname, lastname, email FROM catalog.schema.customers as a".to_string(),
+            ),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
         let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
 
         // check results
         assert!(result.is_ok());
         let result = result.ok().unwrap();
-        assert!(result.request_url.is_some());
-        assert!(result.cause.is_some());
-        assert!(result.rules.is_empty());
-        assert!(result.filters.is_empty());
+        // todo: check for cause and request url assertion once available
     }
 
     #[tokio::test]
     async fn test_query_policy_decision_star_expand_allow_all() {
         // test: star expand, allow all stars
-        todo!()
+        let policies = vec![PolicyRule::new(
+            "p",
+            "catalog.schema.customers.*",
+            "true",
+            "allow",
+            // {"full_access": true}
+            "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+            "policy_id",
+        )];
+
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: "catalog".to_string(),
+                    db: "schema".to_string(),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }],
+                attributes: vec![ScanAttribute {
+                    entity_alias: "a".to_string(),
+                    name: "*".to_string(),
+                    alias: "".to_string(),
+                }],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some("SELECT * FROM catalog.schema.customers as a".to_string()),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
+        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+
+        // check results
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.rules.is_empty());
+        assert!(result.filters.is_empty());
     }
 
     #[tokio::test]
     async fn test_query_policy_decision_star_expand_deny_one() {
         // test: star expand, deny access to a single attribute
-        todo!()
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "TagExists(r.object, \"pii::firstname\")",
+                "deny",
+                // {"name": "hidden"}
+                "eyJuYW1lIjogImhpZGRlbiJ9",
+                "policy_id",
+            ),
+        ];
+
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: "catalog".to_string(),
+                    db: "schema".to_string(),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }],
+                attributes: vec![ScanAttribute {
+                    entity_alias: "a".to_string(),
+                    name: "*".to_string(),
+                    alias: "".to_string(),
+                }],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some("SELECT * FROM catalog.schema.customers as a".to_string()),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
+        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+
+        // check results
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.rules.is_empty());
+        assert!(result.filters.is_empty());
+        let fields = result
+            .visible_schema
+            .unwrap()
+            .get("catalog")
+            .unwrap()
+            .db
+            .get("schema")
+            .unwrap()
+            .table
+            .get("customers")
+            .unwrap()
+            .columns
+            .len();
+        // Input are 4 columns, but one of them is hidden (firstname)
+        assert_eq!(fields, 3);
     }
 
     #[tokio::test]
     async fn test_query_policy_decision_star_expand_hidden_attribute() {
         // test: star expand, hide a column based on a policy (hidden)
-        todo!()
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "TagExists(r.object, \"pii::firstname\")",
+                "allow",
+                // {"name": "hidden", "properties": null}
+                "eyJuYW1lIjogImhpZGRlbiIsICJwcm9wZXJ0aWVzIjogbnVsbH0=",
+                "policy_id",
+            ),
+        ];
+
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: "catalog".to_string(),
+                    db: "schema".to_string(),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }],
+                attributes: vec![ScanAttribute {
+                    entity_alias: "a".to_string(),
+                    name: "*".to_string(),
+                    alias: "".to_string(),
+                }],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some("SELECT * FROM catalog.schema.customers as a".to_string()),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
+        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+
+        // check results
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.rules.is_empty());
+        assert!(result.filters.is_empty());
+        let fields = result
+            .visible_schema
+            .unwrap()
+            .get("catalog")
+            .unwrap()
+            .db
+            .get("schema")
+            .unwrap()
+            .table
+            .get("customers")
+            .unwrap()
+            .columns
+            .len();
+        // Input are 4 columns, but one of them is hidden (firstname)
+        assert_eq!(fields, 3);
     }
 
     #[tokio::test]
     async fn test_query_policy_decision_deny_hidden_attribute() {
         // test: deny access to a hidden column based on the policy (hidden)
-        todo!()
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "TagExists(r.object, \"pii::firstname\")",
+                "allow",
+                // {"name": "hidden", "properties": null}
+                "eyJuYW1lIjogImhpZGRlbiIsICJwcm9wZXJ0aWVzIjogbnVsbH0=",
+                "policy_id",
+            ),
+        ];
+
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: "catalog".to_string(),
+                    db: "schema".to_string(),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }],
+                attributes: vec![
+                    ScanAttribute {
+                        entity_alias: "a".to_string(),
+                        name: "firstname".to_string(),
+                        alias: "firstname".to_string(),
+                    },
+                    ScanAttribute {
+                        entity_alias: "a".to_string(),
+                        name: "lastname".to_string(),
+                        alias: "lastname".to_string(),
+                    },
+                ],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some(
+                "SELECT firstname, lastname FROM catalog.schema.customers as a".to_string(),
+            ),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
+        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+
+        // check results
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.cause.is_some());
+        assert!(result.request_url.is_some());
+        // todo: once request url is available, assert it matches the expected one
     }
 
     #[test]

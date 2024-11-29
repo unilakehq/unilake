@@ -196,7 +196,7 @@ impl VisibleSchemaBuilder {
 #[derive(Serialize, Debug)]
 pub struct Catalog {
     #[serde(flatten)]
-    db: HashMap<String, Database>,
+    pub db: HashMap<String, Database>,
 }
 
 impl Catalog {
@@ -210,7 +210,7 @@ impl Catalog {
 #[derive(Serialize, Debug)]
 pub struct Database {
     #[serde(flatten)]
-    table: HashMap<String, Table>,
+    pub table: HashMap<String, Table>,
 }
 
 impl Database {
@@ -224,7 +224,7 @@ impl Database {
 #[derive(Serialize, Debug)]
 pub struct Table {
     #[serde(flatten)]
-    columns: HashMap<String, String>,
+    pub columns: HashMap<String, String>,
 }
 
 impl Table {

@@ -3212,7 +3212,6 @@ dependencies = [
  "futures",
  "mysql_async",
  "rand",
- "thiserror 1.0.63",
  "tokio",
  "tokio-rustls",
  "tokio-stream",

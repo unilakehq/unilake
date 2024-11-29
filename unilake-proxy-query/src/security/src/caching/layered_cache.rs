@@ -152,6 +152,10 @@ where
     pub fn clear(&self) {
         self.local_cache.invalidate_all();
     }
+
+    pub async fn remove_local(&self, key: &K) {
+        self.local_cache.remove(key).await;
+    }
 }
 
 enum InnerHas {
