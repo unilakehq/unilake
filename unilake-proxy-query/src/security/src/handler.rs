@@ -668,6 +668,7 @@ impl<'a> QueryPolicyDecision<'a> {
         if scan_output.query_type == "SELECT" {
             return true;
         }
+        // todo: make sure this function is called once
         // todo: execute request to gravitino api to check user access to the given entity
         false
         // check if user has access to the entity involved with the given intent (gravitino api, select|update|delete|create|modify)
