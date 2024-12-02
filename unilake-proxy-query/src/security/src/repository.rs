@@ -151,7 +151,7 @@ where
 }
 
 #[async_trait]
-trait RepoBackend: Send + Sync {
+pub trait RepoBackend: Send + Sync {
     async fn get_entity_model(&self, name: String) -> Result<Option<EntityModel>, String>;
     async fn get_access_policy_model(
         &self,
@@ -162,9 +162,15 @@ trait RepoBackend: Send + Sync {
     async fn generate_access_request(
         &self,
         user_id: String,
-        security_policy_id: Option<String>,
-        entity_attribute_id: Option<String>,
+        security_policy_id: String,
     ) -> Result<DataAccessRequestResponse, String>;
+    async fn get_access_by_action(
+        &self,
+        catalog: String,
+        schema: String,
+        entity: Option<String>,
+        action: String,
+    ) -> Result<bool, String>;
 }
 
 // todo: add auth (service account)
@@ -176,6 +182,7 @@ pub struct RepoRest {
 }
 
 impl RepoRest {
+    #[allow(dead_code)]
     pub fn new(tenant_id: String, workspace_id: String) -> Self {
         let api_endpoint = global_config().get::<String>("api_endpoint").unwrap();
         RepoRest {
@@ -269,17 +276,30 @@ impl RepoBackend for RepoRest {
     async fn generate_access_request(
         &self,
         user_id: String,
-        security_policy_id: Option<String>,
-        entity_attribute_id: Option<String>,
+        security_policy_id: String,
     ) -> Result<DataAccessRequestResponse, String> {
         self.post_request(
             "security/access-requests/generate",
             DataAccessRequest {
                 user_id,
                 security_policy_id,
-                entity_attribute_id,
             },
         )
         .await
+    }
+
+    async fn get_access_by_action(
+        &self,
+        catalog: String,
+        schema: String,
+        entity: Option<String>,
+        action: String,
+    ) -> Result<bool, String> {
+        let mut url = format!("determine/path/{}/{}", catalog, schema);
+        if let Some(entity) = entity {
+            url = format!("{}/{}", url, entity);
+        }
+        url = format!("{}/{}", url, action);
+        self.get_request(url.as_str()).await
     }
 }

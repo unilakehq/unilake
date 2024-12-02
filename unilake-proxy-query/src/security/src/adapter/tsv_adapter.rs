@@ -12,6 +12,7 @@ impl<P> TsvFileAdapter<P>
 where
     P: AsRef<Path> + Send + Sync,
 {
+    #[allow(dead_code)]
     pub fn new(p: P) -> TsvFileAdapter<P> {
         TsvFileAdapter {
             file_path: p,

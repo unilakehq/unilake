@@ -1,11 +1,12 @@
 // todo: https://github.com/notken12/licensesnip
+// todo: when auditing, we also need number of records processed, processing time and total time in proxy
 
 use crate::effector::PdpEffector;
 use crate::functions::add_functions;
 use crate::policies::{
     PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
 };
-use crate::repository::CacheContainer;
+use crate::repository::{CacheContainer, RepoBackend};
 use crate::HitRule;
 use casbin::{Cache, CachedEnforcer, CoreApi};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -16,12 +17,16 @@ use unilake_common::error::{TdsWireError, TokenError};
 use unilake_common::model::{EntityModel, ObjectModel, SessionModel};
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
-    ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerDenyCause, TranspilerInput,
-    TranspilerInputFilter, TranspilerInputRule, VisibleSchemaBuilder,
+    PolicyAccessRequestUrl, ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject,
+    TranspilerDenyCause, TranspilerInput, TranspilerInputFilter, TranspilerInputRule,
+    VisibleSchemaBuilder,
 };
 
+// Todo: best for any of these errors to make use of error codes, easier for logging many items. We also need these when logging the results, so need to check where to put them
 #[derive(Debug)]
 pub enum SecurityHandlerResult {
+    /// In case we cannot find an entity from the attribute
+    EntityNotFoundFromAttribute(String),
     /// Happens when a requested entity <catalog>.<schema>.<entity> does not exist
     EntityNotFound(String),
     /// Happens when a requested entity <catalog>.<schema>.<entity> exists but is not allowed to be accessed
@@ -30,28 +35,43 @@ pub enum SecurityHandlerResult {
     UserGroupsNotFound(String),
     /// Happens when the user cannot be found
     UserNotFound(String),
-    /// Happens when there are issues with the repository
-    RepositoryError(String),
     /// Happens when there are issues with the policy being used
     PolicyError(String),
     /// Happens when the cache is in an invalid state, retry the process. Returns the current iteration count
     InvalidCacheError,
+    /// Happens when the iteration limit is reached for processing the security checks
+    IterationLimitReached(usize),
+}
+
+impl SecurityHandlerResult {
+    fn status_code(&self) -> u32 {
+        match self {
+            SecurityHandlerResult::EntityNotFoundFromAttribute(_) => 90101,
+            SecurityHandlerResult::EntityNotFound(_) => 90102,
+            SecurityHandlerResult::EntityNotAllowed(_) => 90103,
+            SecurityHandlerResult::UserGroupsNotFound(_) => 90104,
+            SecurityHandlerResult::UserNotFound(_) => 90105,
+            SecurityHandlerResult::PolicyError(_) => 90106,
+            SecurityHandlerResult::InvalidCacheError => 90107,
+            SecurityHandlerResult::IterationLimitReached(_) => 90108,
+        }
+    }
+}
+
+pub struct SecurityError {
+    message: String,
+    audit_only: bool,
 }
 
 pub enum SecurityHandlerError {
     WireError(TdsWireError),
-    QueryError(ParserError),
+    QueryError(String, ParserError),
+    SecurityError(String, SecurityError),
 }
 
 impl From<TdsWireError> for SecurityHandlerError {
     fn from(value: TdsWireError) -> Self {
         SecurityHandlerError::WireError(value)
-    }
-}
-
-impl From<ParserError> for SecurityHandlerError {
-    fn from(value: ParserError) -> Self {
-        SecurityHandlerError::QueryError(value)
     }
 }
 
@@ -67,12 +87,12 @@ impl From<SecurityHandlerError> for TokenError {
                 server: "".to_string(),
                 state: 0,
             },
-            SecurityHandlerError::QueryError(e) => {
+            SecurityHandlerError::QueryError(id, e) => {
                 if let Some(err) = e.errors.first() {
                     return TokenError {
                         message: format!(
-                            "{}. Line: {}, Col: {}. {}",
-                            err.start_context, err.line, err.col, err.description
+                            "{}. Line: {}, Col: {}. {}. Query Id: {}",
+                            err.start_context, err.line, err.col, err.description, id
                         ),
                         class: 0,
                         line: err.line,
@@ -85,13 +105,36 @@ impl From<SecurityHandlerError> for TokenError {
                 TokenError {
                     line: 0,
                     code: 0,
-                    message: format!("Parser error: {}", e.message),
+                    message: format!("Parser error: {}. Query Id: {}", e.message, id),
                     class: 0,
                     procedure: "".to_string(),
                     server: "".to_string(),
                     state: 0,
                 }
             }
+            SecurityHandlerError::SecurityError(id, s) => match s.audit_only {
+                true => TokenError {
+                    line: 0,
+                    code: 0,
+                    message: format!(
+                        "Unable to process query, check logs for more details. Query Id: {}",
+                        id
+                    ),
+                    class: 0,
+                    procedure: "".to_string(),
+                    server: "".to_string(),
+                    state: 0,
+                },
+                false => TokenError {
+                    line: 0,
+                    code: 0,
+                    message: format!("{}. Query Id: {}", s.message, id),
+                    class: 0,
+                    procedure: "".to_string(),
+                    server: "".to_string(),
+                    state: 0,
+                },
+            },
         }
     }
 }
@@ -108,6 +151,7 @@ pub struct SecurityHandler {
     cached_enforcer: Arc<Mutex<CachedEnforcer>>,
     cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
     cached_backend: CacheContainer,
+    repo_backend: Arc<dyn RepoBackend>,
 }
 
 impl SecurityHandler {
@@ -116,6 +160,7 @@ impl SecurityHandler {
         session_model: SessionModel,
         cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
         cached_backend: CacheContainer,
+        repo_backend: Arc<dyn RepoBackend>,
     ) -> Self {
         SecurityHandler {
             query_id: Ulid::new(),
@@ -129,6 +174,7 @@ impl SecurityHandler {
             session_model,
             cached_rules,
             cached_backend,
+            repo_backend,
         }
     }
 
@@ -190,7 +236,19 @@ impl SecurityHandler {
         self.input_query = Some(Arc::from(query.to_string()));
         let scan_output = self.scan(query, dialect, catalog, database)?;
         if scan_output.error.is_some() {
-            return Err(SecurityHandlerError::QueryError(scan_output.error.unwrap()));
+            self.close_handler();
+
+            return Err(SecurityHandlerError::QueryError(
+                self.query_id.to_string(),
+                scan_output.error.unwrap(),
+            ));
+        }
+
+        // check access on entity and action level
+        if !self.check_user_access(&scan_output).await {
+            // todo: return information on user, entity and action combination not being allowed
+            // make use of entitynotallowed?
+            // Something like: Access to entity {} with action {} not allowed. Query ID: {}
         }
 
         let mut iterations = 2;
@@ -198,13 +256,15 @@ impl SecurityHandler {
         loop {
             iterations -= 1;
             if iterations == 0 {
-                // todo: handle this scenario properly (cache has been rejected multiple times, need to check the iteration results)
                 tracing::error!(
                     "Failed to provide transpiler input for query with id: {}",
                     self.query_id
                 );
-                self.output_query = Some(Arc::from("".to_string()));
-                todo!()
+
+                self.close_handler();
+                return Err(
+                    self.handle_error(SecurityHandlerResult::IterationLimitReached(iterations))
+                );
             }
 
             match QueryPolicyDecision::new(
@@ -212,6 +272,7 @@ impl SecurityHandler {
                 self.cached_enforcer.clone(),
                 &self.session_model,
                 self.cached_rules.clone(),
+                self.repo_backend.clone(),
             )
             .process(&scan_output)
             .await
@@ -220,20 +281,30 @@ impl SecurityHandler {
                     transpiler_input = Some(ti);
                     break;
                 }
-                Err(e) => {
-                    match e {
-                        SecurityHandlerResult::InvalidCacheError => {
-                            continue;
-                        }
-                        _ => {
-                            //todo: handle error properly
-                        }
+                Err(e) => match e {
+                    SecurityHandlerResult::InvalidCacheError => {
+                        continue;
                     }
-                }
+                    _ => {
+                        tracing::error!(
+                            "Error occurred while processing query policy decision: {:?}",
+                            e
+                        );
+
+                        self.close_handler();
+                        return Err(self.handle_error(e));
+                    }
+                },
             }
         }
 
         let transpiler_input = transpiler_input.unwrap();
+        // check for any security violations
+        if transpiler_input.cause.is_some() {
+            // todo: send a response where we explain the cause of the security violation and present the message with the url as well
+            // todo: how are we going to handle multiple violations?
+            self.close_handler();
+        }
         let output_query = self.transpile_query(&transpiler_input, false)?;
 
         self.scan_output = Some(scan_output);
@@ -241,6 +312,49 @@ impl SecurityHandler {
         self.output_query = Some(Arc::from(output_query));
 
         Ok(self.output_query.as_ref().unwrap())
+    }
+
+    /// Closes this queryhandler making sure that it cannot be reused.
+    fn close_handler(&mut self) {
+        self.output_query = Some(Arc::from("".to_string()));
+    }
+
+    /// Properly handle the security handler error
+    fn handle_error(&mut self, error: SecurityHandlerResult) -> SecurityHandlerError {
+        SecurityHandlerError::SecurityError(self.query_id.to_string(), match error {
+            SecurityHandlerResult::EntityNotFoundFromAttribute(e) => SecurityError {
+                message: format!("Could not find entity from attribute: {}.", e),
+                audit_only: false,
+            },
+            SecurityHandlerResult::EntityNotFound(e) => SecurityError {
+                message: format!("Could not find requested entity: {}", e),
+                audit_only: false,
+            },
+            SecurityHandlerResult::EntityNotAllowed(e) => SecurityError {
+                message: format!("Access to entity {} not allowed", e),
+                audit_only: false,
+            },
+            SecurityHandlerResult::UserGroupsNotFound(e) => SecurityError {
+                message: format!("Could not find user groups for user: {}", e),
+                audit_only: true,
+            },
+            SecurityHandlerResult::UserNotFound(e) => SecurityError {
+                message: format!("Could not find user: {}", e),
+                audit_only: true,
+            },
+            SecurityHandlerResult::PolicyError(e) => SecurityError {
+                message: format!("Policy error: {}", e),
+                audit_only: true,
+            },
+            SecurityHandlerResult::InvalidCacheError => SecurityError {
+                message: "Invalid cache error, corrupted cache?".to_string(),
+                audit_only: true,
+            },
+            SecurityHandlerResult::IterationLimitReached(e) => SecurityError {
+                message: format!("Iteration limit of {} reached. Could not processes query correctly, please check logs.", e),
+                audit_only: true,
+            },
+        })
     }
 
     /// Executes the transpile operation for transpiling an input query to an allowed executable SQL query.
@@ -252,7 +366,10 @@ impl SecurityHandler {
         let transpiler_output = run_transpile_operation(scanned, secure_output)
             .map_err(|e| TdsWireError::Protocol(e.to_string()))?;
         if let Some(error) = transpiler_output.error {
-            return Err(SecurityHandlerError::QueryError(error));
+            return Err(SecurityHandlerError::QueryError(
+                self.query_id.to_string(),
+                error,
+            ));
         }
         Ok(transpiler_output.sql_transformed)
     }
@@ -288,6 +405,45 @@ impl SecurityHandler {
     pub fn get_query_id(&self) -> Ulid {
         self.query_id
     }
+
+    /// Checks if the current user has access to the entity involved with the given intent.
+    async fn check_user_access(&self, scan_output: &ScanOutput) -> bool {
+        if scan_output.query_type == "SELECT" {
+            return true;
+        }
+
+        let (catalog, schema, table) = scan_output.get_full_path_names();
+        let table = if table.is_some() {
+            Some(table.unwrap().to_owned())
+        } else {
+            None
+        };
+
+        // check if user has access to the entity involved with the given intent (gravitino api, select|update|delete|create|modify)
+        // we handle select, create|update|modify|delete intents are done by gravitino api
+        let result = self
+            .repo_backend
+            .get_access_by_action(
+                catalog.unwrap_or("").to_string(),
+                schema.unwrap_or("").to_string(),
+                table.clone(),
+                scan_output.query_type.clone(),
+            )
+            .await;
+
+        result.unwrap_or_else(|e| {
+            tracing::error!(
+                e = e,
+                action = scan_output.query_type,
+                catalog = catalog,
+                schema = schema,
+                table = table,
+                "Failed to check user access: {}",
+                e
+            );
+            false
+        })
+    }
 }
 
 #[derive(PartialEq, Clone)]
@@ -302,6 +458,7 @@ struct QueryPolicyDecision<'a> {
     enforcer: Arc<Mutex<CachedEnforcer>>,
     session_model: &'a SessionModel,
     policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+    repo_backend: Arc<dyn RepoBackend>,
 }
 
 impl<'a> QueryPolicyDecision<'a> {
@@ -310,12 +467,14 @@ impl<'a> QueryPolicyDecision<'a> {
         enforcer: Arc<Mutex<CachedEnforcer>>,
         session_model: &'a SessionModel,
         policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+        repo_backend: Arc<dyn RepoBackend>,
     ) -> Self {
         QueryPolicyDecision {
             cached_backend,
             enforcer,
             session_model,
             policy_cache,
+            repo_backend,
         }
     }
 
@@ -345,7 +504,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
         // set possible output
         let mut cause: Option<Vec<TranspilerDenyCause>> = None;
-        let mut request_url: Option<String> = None;
+        let mut request_url: Option<Vec<PolicyAccessRequestUrl>> = None;
 
         // set input (user and group)
         let user_model = self
@@ -354,10 +513,7 @@ impl<'a> QueryPolicyDecision<'a> {
             .get(&self.session_model.user_id)
             .await
             .ok_or_else(|| {
-                SecurityHandlerResult::UserNotFound(format!(
-                    "Could not find user: {}",
-                    &self.session_model.user_id
-                ))
+                SecurityHandlerResult::UserNotFound(self.session_model.user_id.to_owned())
             })?;
 
         let group_model = self
@@ -366,10 +522,7 @@ impl<'a> QueryPolicyDecision<'a> {
             .get(&self.session_model.user_id)
             .await
             .ok_or_else(|| {
-                SecurityHandlerResult::UserGroupsNotFound(format!(
-                    "Could not find groups for user: {}",
-                    &self.session_model.user_id
-                ))
+                SecurityHandlerResult::UserGroupsNotFound(self.session_model.user_id.to_owned())
             })?;
 
         let mut policies = BTreeMap::new();
@@ -419,10 +572,7 @@ impl<'a> QueryPolicyDecision<'a> {
             let mut star_map = HashMap::new();
             for entity in items.iter().map(|(e, att, _)| {
                 e.ok_or_else(|| {
-                    SecurityHandlerResult::EntityNotFound(format!(
-                        "1) Could not find entity, for attribute {}",
-                        att.get_name()
-                    ))
+                    SecurityHandlerResult::EntityNotFoundFromAttribute(att.get_name().to_owned())
                 })
             }) {
                 let entity = entity?;
@@ -443,10 +593,9 @@ impl<'a> QueryPolicyDecision<'a> {
             let mut results: HashMap<&str, bool> = HashMap::new();
             for (scan_entity, attribute, is_starred) in items.iter() {
                 let scan_entity = scan_entity.ok_or_else(|| {
-                    SecurityHandlerResult::EntityNotFound(format!(
-                        "2) Could not find entity for attribute {}",
-                        attribute.get_name()
-                    ))
+                    SecurityHandlerResult::EntityNotFoundFromAttribute(
+                        attribute.get_name().to_owned(),
+                    )
                 })?;
                 let entity_name = scan_entity.get_full_name();
                 let entity_model = entities.get(&entity_name).unwrap();
@@ -563,8 +712,8 @@ impl<'a> QueryPolicyDecision<'a> {
         }
 
         // get request url
-        if cause.is_some() {
-            request_url = Some(self.get_deny_access_url().await?);
+        if let Some(ref cause) = cause {
+            request_url = Some(self.get_deny_access_url(cause).await?);
         }
 
         // prepare transpiler input
@@ -576,6 +725,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 "Query not found".to_owned(),
             ));
         };
+
         Ok(TranspilerInput {
             cause,
             request_url,
@@ -664,17 +814,6 @@ impl<'a> QueryPolicyDecision<'a> {
         Ok((object_model.full_name.clone(), attribute.get_name(), *star))
     }
 
-    async fn check_user_access(&self, scan_output: &ScanOutput) -> bool {
-        if scan_output.query_type == "SELECT" {
-            return true;
-        }
-        // todo: make sure this function is called once
-        // todo: execute request to gravitino api to check user access to the given entity
-        false
-        // check if user has access to the entity involved with the given intent (gravitino api, select|update|delete|create|modify)
-        // we handle select, create|update|modify|delete intents are done by gravitino api
-    }
-
     fn set_deny_access_cause(
         &self,
         cause: &mut Option<Vec<TranspilerDenyCause>>,
@@ -694,8 +833,36 @@ impl<'a> QueryPolicyDecision<'a> {
         });
     }
 
-    async fn get_deny_access_url(&self) -> Result<String, SecurityHandlerResult> {
-        todo!()
+    /// Gets the request urls for each deny access cause policy (1 request url per policy)
+    async fn get_deny_access_url(
+        &self,
+        cause: &Vec<TranspilerDenyCause>,
+    ) -> Result<Vec<PolicyAccessRequestUrl>, SecurityHandlerResult> {
+        let policy_ids: HashSet<_> = cause
+            .iter()
+            .map(|c| &c.policy_id)
+            .filter_map(|i| i.as_ref())
+            .collect();
+        let mut requests = Vec::new();
+        for policy_id in policy_ids {
+            let found = self
+                .repo_backend
+                .generate_access_request(self.session_model.user_id.clone(), policy_id.clone())
+                .await
+                .map_err(|e| {
+                    SecurityHandlerResult::PolicyError(format!(
+                        "Could not get policy access request due to error: {}",
+                        e
+                    ))
+                })?;
+
+            requests.push(PolicyAccessRequestUrl {
+                url: found.url,
+                message: found.message,
+            })
+        }
+
+        Ok(requests)
     }
 
     /// Extracts the combinations entity and attribute from the given (ScanOutput) scope
@@ -840,6 +1007,7 @@ mod tests {
     use crate::adapter::cached_adapter::{CacheEntity, CachedAdapter};
     use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
     use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerResult};
+    use crate::repository::RepoBackend;
     use crate::{HitRule, ABAC_MODEL};
     use async_trait::async_trait;
     use casbin::{Cache, CachedEnforcer, CoreApi, DefaultCache, DefaultModel};
@@ -850,8 +1018,8 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::Mutex;
     use unilake_common::model::{
-        AccessPolicyModel, AccountType, EntityModel, GroupInstance, GroupModel, ObjectModel,
-        PolicyRule, SessionModel, UserModel,
+        AccessPolicyModel, AccountType, DataAccessRequestResponse, EntityModel, GroupInstance,
+        GroupModel, ObjectModel, PolicyRule, SessionModel, UserModel,
     };
     use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput};
 
@@ -879,12 +1047,16 @@ mod tests {
         let policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>> =
             Arc::new(Box::new(DefaultCache::new(10)));
 
+        // set repo backend
+        let fake_backend = Arc::new(FakeRepoBackend {});
+
         // set sut
         let sut = QueryPolicyDecision::new(
             &cache_container,
             e.clone(),
             &session_model,
             policy_cache.clone(),
+            fake_backend,
         );
 
         // process results
@@ -991,7 +1163,7 @@ mod tests {
 
         let mut policy_models = get_policy_model_input();
         policy_models.insert(
-            "masked_id".to_string(),
+            "filter_id".to_string(),
             AccessPolicyModel {
                 policy_id: "filter_id".to_string(),
                 prio_strict: true,
@@ -1066,7 +1238,6 @@ mod tests {
         assert!(result.cause.is_some());
         assert!(result.rules.is_empty());
         assert!(result.filters.is_empty());
-        // todo: add request url and cause assertion once available
     }
 
     #[tokio::test]
@@ -1239,7 +1410,8 @@ mod tests {
         // check results
         assert!(result.is_ok());
         let result = result.ok().unwrap();
-        // todo: check for cause and request url assertion once available
+        assert!(result.request_url.is_some());
+        assert!(result.cause.is_some());
     }
 
     #[tokio::test]
@@ -1498,7 +1670,6 @@ mod tests {
         let result = result.ok().unwrap();
         assert!(result.cause.is_some());
         assert!(result.request_url.is_some());
-        // todo: once request url is available, assert it matches the expected one
     }
 
     #[test]
@@ -1627,28 +1798,6 @@ mod tests {
         ));
         let adapter = CachedAdapter::new(rules_cache.clone());
         (rules_cache, adapter)
-    }
-
-    fn get_rules_cache(
-        items: Option<HashMap<u64, (String, HitRule)>>,
-    ) -> Arc<Box<dyn Cache<u64, (String, HitRule)>>> {
-        let items = if let Some(items) = items {
-            items
-        } else {
-            let mut input = HashMap::new();
-            input.insert(
-                0,
-                (
-                    "".to_string(),
-                    HitRule {
-                        id: 0,
-                        rules: vec![],
-                    },
-                ),
-            );
-            input
-        };
-        Arc::new(Box::new(DefaultCache::new(10)))
     }
 
     fn get_scan_default_output() -> ScanOutput {
@@ -1932,12 +2081,6 @@ mod tests {
         fn from(items: HashMap<K, V>) -> Self {
             DummyBackendProvider { items }
         }
-
-        fn set_items(&mut self, items: Vec<(K, V)>) {
-            for (key, value) in items {
-                self.items.insert(key.clone(), value.clone());
-            }
-        }
     }
 
     #[async_trait]
@@ -1950,20 +2093,65 @@ mod tests {
             Ok(self.items.get(key).cloned())
         }
 
-        async fn set(&self, key: &K, value: &V) -> Result<(), String> {
-            todo!()
+        async fn set(&self, _: &K, _: &V) -> Result<(), String> {
+            unreachable!()
         }
 
         async fn has(&self, key: &K) -> Result<bool, String> {
             Ok(self.items.contains_key(key))
         }
 
-        async fn evict(&self, key: &K) -> Result<(), String> {
-            todo!()
+        async fn evict(&self, _: &K) -> Result<(), String> {
+            unreachable!()
         }
 
-        fn generate_key(&self, key: &K) -> String {
-            todo!()
+        fn generate_key(&self, _: &K) -> String {
+            unreachable!()
+        }
+    }
+
+    struct FakeRepoBackend {}
+
+    #[async_trait]
+    impl RepoBackend for FakeRepoBackend {
+        async fn get_entity_model(&self, _: String) -> Result<Option<EntityModel>, String> {
+            unreachable!()
+        }
+
+        async fn get_access_policy_model(
+            &self,
+            _: String,
+        ) -> Result<Option<AccessPolicyModel>, String> {
+            unreachable!()
+        }
+
+        async fn get_user_model(&self, _: String) -> Result<Option<UserModel>, String> {
+            unreachable!()
+        }
+
+        async fn get_group_model(&self, _: String) -> Result<Option<GroupModel>, String> {
+            unreachable!()
+        }
+
+        async fn generate_access_request(
+            &self,
+            _: String,
+            _: String,
+        ) -> Result<DataAccessRequestResponse, String> {
+            Ok(DataAccessRequestResponse {
+                message: "Some message".to_string(),
+                url: "https://unilake.com".to_string(),
+            })
+        }
+
+        async fn get_access_by_action(
+            &self,
+            _: String,
+            _: String,
+            _: Option<String>,
+            _: String,
+        ) -> Result<bool, String> {
+            unreachable!()
         }
     }
 }

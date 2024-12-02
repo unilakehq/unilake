@@ -95,7 +95,23 @@ pub struct ScanOutput {
     /// Expect: SELECT, UPDATE, DELETE, INSERT, ALTER
     pub query_type: String,
     pub error: Option<ParserError>,
+    /// Full target entity path, expressed in: "some_catalog"."some_schema"."some_table"
     pub target_entity: Option<String>,
+}
+
+impl ScanOutput {
+    pub fn get_full_path_names(&self) -> (Option<&str>, Option<&str>, Option<&str>) {
+        if let Some(entity) = &self.target_entity {
+            let parts: Vec<&str> = entity.split('"').collect();
+            return match parts.len() {
+                1 => todo!(),
+                2 => todo!(),
+                3 => (Some(parts[0]), Some(parts[1]), Some(parts[2])),
+                _ => (None, None, None),
+            };
+        }
+        (None, None, None)
+    }
 }
 
 #[derive(FromPyObject)]
@@ -160,13 +176,19 @@ pub struct TranspilerDenyCause {
 }
 
 #[derive(Serialize, Debug)]
+pub struct PolicyAccessRequestUrl {
+    pub url: String,
+    pub message: String,
+}
+
+#[derive(Serialize, Debug)]
 pub struct TranspilerInput {
     pub rules: Vec<TranspilerInputRule>,
     pub filters: Vec<TranspilerInputFilter>,
     pub visible_schema: Option<HashMap<String, Catalog>>,
     pub cause: Option<Vec<TranspilerDenyCause>>,
     pub query: String,
-    pub request_url: Option<String>,
+    pub request_url: Option<Vec<PolicyAccessRequestUrl>>,
 }
 
 impl TranspilerInput {

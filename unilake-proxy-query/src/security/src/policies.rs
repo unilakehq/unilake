@@ -16,7 +16,9 @@ pub(crate) enum PolicyHit {
 pub(crate) struct HitEnforce {
     id: u64,
     object_id: String,
+    #[allow(dead_code)]
     authorized: bool,
+    #[allow(dead_code)]
     cached: bool,
 }
 

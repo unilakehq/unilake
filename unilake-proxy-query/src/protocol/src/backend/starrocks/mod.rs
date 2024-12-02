@@ -338,14 +338,14 @@ impl StarRocksTdsHandlerFactory {
         let query = security_handler
             // todo(mrhamburg): properly bring back dialect, catalog and database here
             .handle_query(query, "tsql", "default_catalog", "dwh");
+
+        self.inner.audit_on_query(session, security_handler).await;
         let query = match query {
             Ok(query) => {
                 let query = query.to_string();
-                self.inner.audit_on_query(session, security_handler).await;
                 query
             }
             Err(e) => {
-                self.inner.audit_on_query(session, security_handler).await;
                 self.inner.query_event(ulid, QueryEventType::Failed).await;
                 self.handle_frontend_error(client, session, e).await?;
                 return Ok(());

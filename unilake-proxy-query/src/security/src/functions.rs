@@ -150,7 +150,6 @@ mod tests {
     use casbin::rhai::serde::to_dynamic;
     use casbin::rhai::{Scope, INT};
     use std::collections::BTreeMap;
-    use std::hash::Hash;
     use unilake_common::model::{
         AccessPolicyModel, AccountType, GroupInstance, GroupModel, ObjectModel, SessionModel,
         UserModel,

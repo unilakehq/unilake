@@ -186,6 +186,7 @@ pub struct RedisBackendProvider {
 }
 
 impl RedisBackendProvider {
+    #[allow(dead_code)]
     pub fn new(tenant_id: &str, backend_type: &str) -> RedisBackendProvider {
         let host = global_config().get::<String>("redis_host").unwrap();
         let port = global_config().get::<i32>("redis_port").unwrap();
@@ -239,7 +240,7 @@ where
         conn.set(&key_str, serde_json::to_string(value).unwrap())
             .await
             .map_err(|_| "Failed to set".to_string())?;
-        conn.expire(&key_str, 60 * 60)
+        conn.expire(&key_str, 60 * 60) // todo: get from global config instead
             .await
             .map_err(|_| "Failed to set expire".to_string()) // 1 hour
     }

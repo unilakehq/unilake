@@ -181,9 +181,7 @@ pub struct DataAccessRequest {
     #[serde(rename = "userId")]
     pub user_id: String,
     #[serde(rename = "securityPolicyId")]
-    pub security_policy_id: Option<String>,
-    #[serde(rename = "entityAttributeId")]
-    pub entity_attribute_id: Option<String>,
+    pub security_policy_id: String,
 }
 
 #[derive(Deserialize)]
