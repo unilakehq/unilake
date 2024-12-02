@@ -168,7 +168,7 @@ class TranspilerInput:
     visible_schema: dict
     cause: dict | None
     query: str
-    request_url: str | None
+    request_url: dict | None
 
     @staticmethod
     def from_json(json_data: str | dict) -> "TranspilerInput":
@@ -187,9 +187,9 @@ class TranspilerInput:
             rules,
             filters,
             json_data.get("visible_schema"),
-            json_data.get("cause"),
+            json_data.get("cause") if "cause" in json_data else None,
             json.loads(json_data.get("query")),
-            json_data.get("request_url") if "request_url" else None,
+            json_data.get("request_url") if "request_url" in json_data else None,
         )
 
 

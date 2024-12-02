@@ -26,6 +26,18 @@ class TestScan(unittest.TestCase):
         self.assertIsNone(actual_output.error)
         self.assertEqual(actual_output.type.value, "SELECT")
 
+    def test_output_entity(self):
+        actual_output = scan("create table some_catalog.some_schema.some_table as select * from some_other_catalog.some_schema.some_table", "unilake", "catalog", "database")
+        self.assertIsNone(actual_output.error)
+        self.assertEqual(actual_output.type.value, "CREATE")
+        self.assertEqual(actual_output.target_entity, "\"some_catalog\".\"some_schema\".\"some_table\"")
+
+    def test_output_set_command(self):
+        actual_output = scan("set some_var=10", "unilake", "catalog", "database")
+        self.assertIsNone(actual_output.error)
+        self.assertEqual(actual_output.type.value, "SET")
+        self.assertEqual(actual_output.target_entity, None)
+
     def test_output_insert(self):
         actual_output = scan(
             "insert into some_table select * from another_table", "unilake", "catalog", "database"
