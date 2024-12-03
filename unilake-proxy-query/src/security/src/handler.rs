@@ -1,5 +1,5 @@
 // todo: https://github.com/notken12/licensesnip
-// todo: when auditing, we also need number of records processed, processing time and total time in proxy
+// todo: when auditing, we also need number of records processed, processing time and total time in proxy. We will do this as a seperate message (QueryTelemetry and use query id to link to this event)
 
 use crate::effector::PdpEffector;
 use crate::functions::add_functions;
@@ -14,7 +14,10 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
-use unilake_common::model::{EntityModel, ObjectModel, SessionModel};
+use unilake_common::model::{
+    AccessPolicyModel, EntityModel, GroupModel, ObjectModel, SessionModel, UserModel,
+};
+use unilake_common::settings::server_name;
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
     PolicyAccessRequestUrl, ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject,
@@ -22,7 +25,18 @@ use unilake_sql::{
     VisibleSchemaBuilder,
 };
 
-// Todo: best for any of these errors to make use of error codes, easier for logging many items. We also need these when logging the results, so need to check where to put them
+const SELECT: &str = "SELECT";
+
+pub enum HandleResult {
+    /// The query that should be executed
+    Query(Arc<str>),
+    /// Contains causes and request urls
+    AccessDenied(
+        Vec<TranspilerDenyCause>,
+        Option<Vec<PolicyAccessRequestUrl>>,
+    ),
+}
+
 #[derive(Debug)]
 pub enum SecurityHandlerResult {
     /// In case we cannot find an entity from the attribute
@@ -43,53 +57,36 @@ pub enum SecurityHandlerResult {
     IterationLimitReached(usize),
 }
 
-impl SecurityHandlerResult {
-    fn status_code(&self) -> u32 {
-        match self {
-            SecurityHandlerResult::EntityNotFoundFromAttribute(_) => 90101,
-            SecurityHandlerResult::EntityNotFound(_) => 90102,
-            SecurityHandlerResult::EntityNotAllowed(_) => 90103,
-            SecurityHandlerResult::UserGroupsNotFound(_) => 90104,
-            SecurityHandlerResult::UserNotFound(_) => 90105,
-            SecurityHandlerResult::PolicyError(_) => 90106,
-            SecurityHandlerResult::InvalidCacheError => 90107,
-            SecurityHandlerResult::IterationLimitReached(_) => 90108,
-        }
-    }
-}
-
 pub struct SecurityError {
     message: String,
     audit_only: bool,
 }
 
 pub enum SecurityHandlerError {
-    WireError(TdsWireError),
-    QueryError(String, ParserError),
-    SecurityError(String, SecurityError),
-}
-
-impl From<TdsWireError> for SecurityHandlerError {
-    fn from(value: TdsWireError) -> Self {
-        SecurityHandlerError::WireError(value)
-    }
+    /// Error code, TdsWireError
+    WireError(u32, TdsWireError),
+    /// Error code, Query Id, ParserError
+    QueryError(u32, String, ParserError),
+    /// Error code, Query Id, SecurityError
+    SecurityError(u32, String, SecurityError),
 }
 
 impl From<SecurityHandlerError> for TokenError {
     fn from(value: SecurityHandlerError) -> Self {
         match value {
-            SecurityHandlerError::WireError(e) => TokenError {
+            SecurityHandlerError::WireError(code, e) => TokenError {
+                code,
                 line: 0,
-                code: 0,
                 message: e.to_string(),
                 class: 0,
                 procedure: "".to_string(),
-                server: "".to_string(),
+                server: server_name(),
                 state: 0,
             },
-            SecurityHandlerError::QueryError(id, e) => {
+            SecurityHandlerError::QueryError(code, id, e) => {
                 if let Some(err) = e.errors.first() {
                     return TokenError {
+                        code,
                         message: format!(
                             "{}. Line: {}, Col: {}. {}. Query Id: {}",
                             err.start_context, err.line, err.col, err.description, id
@@ -97,41 +94,40 @@ impl From<SecurityHandlerError> for TokenError {
                         class: 0,
                         line: err.line,
                         procedure: "".to_string(),
-                        server: "".to_string(),
+                        server: server_name(),
                         state: 1,
-                        code: 0,
                     };
                 }
                 TokenError {
+                    code,
                     line: 0,
-                    code: 0,
                     message: format!("Parser error: {}. Query Id: {}", e.message, id),
                     class: 0,
                     procedure: "".to_string(),
-                    server: "".to_string(),
+                    server: server_name(),
                     state: 0,
                 }
             }
-            SecurityHandlerError::SecurityError(id, s) => match s.audit_only {
+            SecurityHandlerError::SecurityError(code, id, s) => match s.audit_only {
                 true => TokenError {
+                    code,
                     line: 0,
-                    code: 0,
                     message: format!(
                         "Unable to process query, check logs for more details. Query Id: {}",
                         id
                     ),
                     class: 0,
                     procedure: "".to_string(),
-                    server: "".to_string(),
+                    server: server_name(),
                     state: 0,
                 },
                 false => TokenError {
+                    code,
                     line: 0,
-                    code: 0,
                     message: format!("{}. Query Id: {}", s.message, id),
                     class: 0,
                     procedure: "".to_string(),
-                    server: "".to_string(),
+                    server: server_name(),
                     state: 0,
                 },
             },
@@ -200,8 +196,11 @@ impl SecurityHandler {
         catalog: &str,
         database: &str,
     ) -> Result<ScanOutput, SecurityHandlerError> {
-        Ok(run_scan_operation(query, dialect, catalog, database)
-            .map_err(|e| TdsWireError::Protocol(e.to_string()))?)
+        Ok(
+            run_scan_operation(query, dialect, catalog, database).map_err(|e| {
+                SecurityHandlerError::WireError(90102, TdsWireError::Input(e.to_string()))
+            })?,
+        )
     }
 
     /// Handles a query by applying all necessary transformations and rules to the query.
@@ -227,10 +226,10 @@ impl SecurityHandler {
         dialect: &str,
         catalog: &str,
         database: &str,
-    ) -> Result<&str, SecurityHandlerError> {
+    ) -> Result<HandleResult, SecurityHandlerError> {
         // You can only handle a query once
         if let Some(ref query_result) = self.output_query {
-            return Ok(query_result);
+            return Ok(HandleResult::Query(query_result.clone()));
         }
 
         self.input_query = Some(Arc::from(query.to_string()));
@@ -239,6 +238,7 @@ impl SecurityHandler {
             self.close_handler();
 
             return Err(SecurityHandlerError::QueryError(
+                90_200,
                 self.query_id.to_string(),
                 scan_output.error.unwrap(),
             ));
@@ -299,11 +299,14 @@ impl SecurityHandler {
         }
 
         let transpiler_input = transpiler_input.unwrap();
+
         // check for any security violations
         if transpiler_input.cause.is_some() {
-            // todo: send a response where we explain the cause of the security violation and present the message with the url as well
-            // todo: how are we going to handle multiple violations?
             self.close_handler();
+            return Ok(HandleResult::AccessDenied(
+                transpiler_input.cause.unwrap(),
+                transpiler_input.request_url,
+            ));
         }
         let output_query = self.transpile_query(&transpiler_input, false)?;
 
@@ -311,7 +314,9 @@ impl SecurityHandler {
         self.transpiler_input = Some(transpiler_input);
         self.output_query = Some(Arc::from(output_query));
 
-        Ok(self.output_query.as_ref().unwrap())
+        Ok(HandleResult::Query(
+            self.output_query.as_ref().unwrap().clone(),
+        ))
     }
 
     /// Closes this queryhandler making sure that it cannot be reused.
@@ -321,40 +326,41 @@ impl SecurityHandler {
 
     /// Properly handle the security handler error
     fn handle_error(&mut self, error: SecurityHandlerResult) -> SecurityHandlerError {
-        SecurityHandlerError::SecurityError(self.query_id.to_string(), match error {
-            SecurityHandlerResult::EntityNotFoundFromAttribute(e) => SecurityError {
+        let (error_code, error) = match error {
+            SecurityHandlerResult::EntityNotFoundFromAttribute(e) => (90300, SecurityError {
                 message: format!("Could not find entity from attribute: {}.", e),
                 audit_only: false,
-            },
-            SecurityHandlerResult::EntityNotFound(e) => SecurityError {
+            }),
+            SecurityHandlerResult::EntityNotFound(e) => (90301, SecurityError {
                 message: format!("Could not find requested entity: {}", e),
                 audit_only: false,
-            },
-            SecurityHandlerResult::EntityNotAllowed(e) => SecurityError {
+            }),
+            SecurityHandlerResult::EntityNotAllowed(e) => (90302, SecurityError {
                 message: format!("Access to entity {} not allowed", e),
                 audit_only: false,
-            },
-            SecurityHandlerResult::UserGroupsNotFound(e) => SecurityError {
+            }),
+            SecurityHandlerResult::UserGroupsNotFound(e) => (90303, SecurityError {
                 message: format!("Could not find user groups for user: {}", e),
                 audit_only: true,
-            },
-            SecurityHandlerResult::UserNotFound(e) => SecurityError {
+            }),
+            SecurityHandlerResult::UserNotFound(e) => (90304, SecurityError {
                 message: format!("Could not find user: {}", e),
-                audit_only: true,
-            },
-            SecurityHandlerResult::PolicyError(e) => SecurityError {
+                audit_only: false,
+            }),
+            SecurityHandlerResult::PolicyError(e) => (90305, SecurityError {
                 message: format!("Policy error: {}", e),
                 audit_only: true,
-            },
-            SecurityHandlerResult::InvalidCacheError => SecurityError {
+            }),
+            SecurityHandlerResult::InvalidCacheError => (90306, SecurityError {
                 message: "Invalid cache error, corrupted cache?".to_string(),
                 audit_only: true,
-            },
-            SecurityHandlerResult::IterationLimitReached(e) => SecurityError {
+            }),
+            SecurityHandlerResult::IterationLimitReached(e) => (90307, SecurityError {
                 message: format!("Iteration limit of {} reached. Could not processes query correctly, please check logs.", e),
                 audit_only: true,
-            },
-        })
+            }),
+        };
+        SecurityHandlerError::SecurityError(error_code, self.query_id.to_string(), error)
     }
 
     /// Executes the transpile operation for transpiling an input query to an allowed executable SQL query.
@@ -363,10 +369,12 @@ impl SecurityHandler {
         scanned: &TranspilerInput,
         secure_output: bool,
     ) -> Result<String, SecurityHandlerError> {
-        let transpiler_output = run_transpile_operation(scanned, secure_output)
-            .map_err(|e| TdsWireError::Protocol(e.to_string()))?;
+        let transpiler_output = run_transpile_operation(scanned, secure_output).map_err(|e| {
+            SecurityHandlerError::WireError(90101, TdsWireError::Input(e.to_string()))
+        })?;
         if let Some(error) = transpiler_output.error {
             return Err(SecurityHandlerError::QueryError(
+                90201,
                 self.query_id.to_string(),
                 error,
             ));
@@ -395,8 +403,9 @@ impl SecurityHandler {
         }
 
         self.input_query_secured = Some(Arc::from(
-            run_secure_operation(self.input_query.as_ref().unwrap().as_ref())
-                .map_err(|e| TdsWireError::Protocol(e.to_string()))?,
+            run_secure_operation(self.input_query.as_ref().unwrap().as_ref()).map_err(|e| {
+                SecurityHandlerError::WireError(90100, TdsWireError::Protocol(e.to_string()))
+            })?,
         ));
         Ok(self.input_query_secured.as_ref().unwrap())
     }
@@ -408,13 +417,13 @@ impl SecurityHandler {
 
     /// Checks if the current user has access to the entity involved with the given intent.
     async fn check_user_access(&self, scan_output: &ScanOutput) -> bool {
-        if scan_output.query_type == "SELECT" {
+        if scan_output.query_type == SELECT {
             return true;
         }
 
         let (catalog, schema, table) = scan_output.get_full_path_names();
-        let table = if table.is_some() {
-            Some(table.unwrap().to_owned())
+        let table = if let Some(table) = table {
+            Some(table.to_owned())
         } else {
             None
         };
@@ -486,10 +495,6 @@ impl<'a> QueryPolicyDecision<'a> {
         entity_model.objects.get(attribute_full_path_name)
     }
 
-    // todo: we also need to check the intent, do you perform a select statement, update or delete etc... based on roles. This is where gravitino api should help
-    // todo: PAP should generate the necessary rules, it should however also generate the regular access rules where no filtering or masking should be applied, the actions below should honor that
-    // todo: in order to cover both the cases above, we might as well use a select permission as a full transparent access approach and the below for consuming data via this security layer,
-    // this will have to be checked before executing this part as no policies are applicable in a full access scenario
     pub async fn process(
         &self,
         scan_output: &ScanOutput,
@@ -507,38 +512,31 @@ impl<'a> QueryPolicyDecision<'a> {
         let mut request_url: Option<Vec<PolicyAccessRequestUrl>> = None;
 
         // set input (user and group)
-        let user_model = self
-            .cached_backend
-            .user_model
-            .get(&self.session_model.user_id)
-            .await
-            .ok_or_else(|| {
-                SecurityHandlerResult::UserNotFound(self.session_model.user_id.to_owned())
-            })?;
+        let (user_model, group_model, impersonate_user_model, impersonate_group_model) =
+            self.get_user_and_group_models().await?;
 
-        let group_model = self
-            .cached_backend
-            .group_model
-            .get(&self.session_model.user_id)
-            .await
-            .ok_or_else(|| {
-                SecurityHandlerResult::UserGroupsNotFound(self.session_model.user_id.to_owned())
-            })?;
-
+        // set input user policies
         let mut policies = BTreeMap::new();
-        for policy_id in user_model.access_policy_ids.iter() {
-            let found = self
-                .cached_backend
-                .access_policy_model
-                .get(policy_id)
-                .await
-                .ok_or_else(|| {
-                    SecurityHandlerResult::PolicyError(format!(
-                        "Could not find policy: {}",
-                        policy_id
-                    ))
-                })?;
-            policies.insert(found.normalized_name.clone(), found);
+        self.get_user_policies(&user_model, &mut policies).await?;
+        if let Some(ref impersonate_user_model) = impersonate_user_model {
+            self.get_user_policies(impersonate_user_model, &mut policies)
+                .await?;
+        }
+
+        // input for enforcing policies
+        let mut impersonate_session_model: Option<SessionModel> = None;
+        let mut policy_enforce_context =
+            [Some((&user_model, &group_model, self.session_model)), None];
+        if self.session_model.impersonate_user_id.is_some() {
+            let mut session_model = self.session_model.clone();
+            session_model.user_id = session_model.impersonate_user_id.clone().unwrap();
+            impersonate_session_model = Some(session_model);
+
+            policy_enforce_context[1] = Some((
+                impersonate_user_model.as_ref().unwrap(),
+                impersonate_group_model.as_ref().unwrap(),
+                impersonate_session_model.as_ref().unwrap(),
+            ));
         }
 
         // walk through all scopes and attributes
@@ -611,28 +609,33 @@ impl<'a> QueryPolicyDecision<'a> {
                 };
 
                 // check access based on policy
-                match enforcer.enforce((
-                    &user_model,
-                    &group_model,
-                    self.session_model,
-                    &object_model,
-                    &policies,
-                )) {
-                    Ok(status) => {
-                        if !status && !*is_starred {
-                            // explicitly requested entity attribute
-                            // will be handled later (when processing policies found)
-                            results.insert(object_model.id.as_ref(), false);
-                        } else if !status {
-                            // implicitly requested starred entity attribute
-                            exclude_attributes_visible_map.insert(entity_attribute_name);
-                            results.insert(object_model.id.as_ref(), true);
-                        } else {
-                            results.insert(object_model.id.as_ref(), true);
+                for context in policy_enforce_context {
+                    if let Some((user_model, group_model, session_model)) = context {
+                        match enforcer.enforce((
+                            user_model,
+                            group_model,
+                            session_model,
+                            &object_model,
+                            &policies,
+                        )) {
+                            Ok(status) => {
+                                if !status && !*is_starred {
+                                    // explicitly requested entity attribute
+                                    // will be handled later (when processing policies found)
+                                    results.insert(object_model.id.as_ref(), false);
+                                } else if !status {
+                                    // implicitly requested starred entity attribute
+                                    exclude_attributes_visible_map
+                                        .insert(entity_attribute_name.clone());
+                                    results.insert(object_model.id.as_ref(), true);
+                                } else {
+                                    results.insert(object_model.id.as_ref(), true);
+                                }
+                            }
+                            Err(err) => {
+                                panic!("Failed to enforce policy: {}", err)
+                            }
                         }
-                    }
-                    Err(err) => {
-                        panic!("Failed to enforce policy: {}", err)
                     }
                 }
             }
@@ -660,8 +663,14 @@ impl<'a> QueryPolicyDecision<'a> {
                 .flat_map(|e| &e.objects)
                 .map(|(_, v)| v)
                 .collect();
+
             for (object_id, rules) in policies_found {
-                let prio_stricter = self.check_policy_rules_prio(&rules).await?;
+                // check if we should prioritize stricter rules over less strict rules
+                // in case this is an impersonate session, we always prioritize stricter rules
+                let prio_stricter = self
+                    .check_policy_rules_prio(&rules, impersonate_session_model.is_some())
+                    .await?;
+
                 let (object_name, att_name, from_star) =
                     Self::find_star_and_attribute_name(items, &object_models, &object_id)?;
 
@@ -754,11 +763,81 @@ impl<'a> QueryPolicyDecision<'a> {
         })
     }
 
+    async fn get_user_policies(
+        &self,
+        user_model: &UserModel,
+        policies: &mut BTreeMap<String, AccessPolicyModel>,
+    ) -> Result<(), SecurityHandlerResult> {
+        for policy_id in user_model.access_policy_ids.iter() {
+            let found = self
+                .cached_backend
+                .access_policy_model
+                .get(policy_id)
+                .await
+                .ok_or_else(|| {
+                    SecurityHandlerResult::PolicyError(format!(
+                        "Could not find policy: {}",
+                        policy_id
+                    ))
+                })?;
+            policies.insert(found.normalized_name.clone(), found);
+        }
+
+        Ok(())
+    }
+
+    async fn get_user_and_group_models(
+        &self,
+    ) -> Result<(UserModel, GroupModel, Option<UserModel>, Option<GroupModel>), SecurityHandlerResult>
+    {
+        let user_model = self.get_user_model(&self.session_model.user_id).await?;
+        let group_model = self.get_group_model(&self.session_model.user_id).await?;
+
+        let (impersonate_user_model, impersonate_group_model) =
+            if let Some(ref user_id) = self.session_model.impersonate_user_id {
+                (
+                    Some(self.get_user_model(user_id).await?),
+                    Some(self.get_group_model(user_id).await?),
+                )
+            } else {
+                (None, None)
+            };
+
+        Ok((
+            user_model,
+            group_model,
+            impersonate_user_model,
+            impersonate_group_model,
+        ))
+    }
+
+    async fn get_user_model(&self, user_id: &String) -> Result<UserModel, SecurityHandlerResult> {
+        self.cached_backend
+            .user_model
+            .get(user_id)
+            .await
+            .ok_or_else(|| {
+                SecurityHandlerResult::UserNotFound(self.session_model.user_id.to_owned())
+            })
+    }
+
+    async fn get_group_model(&self, user_id: &String) -> Result<GroupModel, SecurityHandlerResult> {
+        self.cached_backend
+            .group_model
+            .get(user_id)
+            .await
+            .ok_or_else(|| SecurityHandlerResult::UserGroupsNotFound(user_id.to_owned()))
+    }
+
     /// Checks if a stricter policy is preferred based on the policy rules found
     async fn check_policy_rules_prio(
         &self,
         policies: &[PolicyFound],
+        is_impersonation: bool,
     ) -> Result<bool, SecurityHandlerResult> {
+        if is_impersonation {
+            return Ok(true); // always prioritize impersonate rules over regular rules
+        }
         let ids: HashSet<_> = policies.iter().map(|p| &p.policy_id).collect();
         for policy_id in ids {
             let found = self.cached_backend.access_policy_model.get(policy_id).await;
@@ -1030,6 +1109,7 @@ mod tests {
         group_model_items: Option<HashMap<String, GroupModel>>,
         entity_model_items: Option<HashMap<String, EntityModel>>,
         policy_model_items: Option<HashMap<String, AccessPolicyModel>>,
+        session_model_input: Option<SessionModel>,
     ) -> Result<TranspilerInput, SecurityHandlerResult> {
         // get all defaults
         let (abac_model, default_scan_output, cache_container) = get_defaults(
@@ -1043,7 +1123,11 @@ mod tests {
         let e = Arc::new(Mutex::new(
             CachedEnforcer::new(abac_model, adapter).await.unwrap(),
         ));
-        let session_model = get_session_model_input();
+        let session_model = if session_model_input.is_none() {
+            get_session_model_input()
+        } else {
+            session_model_input.unwrap()
+        };
         let policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>> =
             Arc::new(Box::new(DefaultCache::new(10)));
 
@@ -1070,7 +1154,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_query_policy_decision_full_access() {
-        let result = run_default_test(get_default_policy(), None, None, None, None, None).await;
+        let result =
+            run_default_test(get_default_policy(), None, None, None, None, None, None).await;
 
         // check results
         if !result.is_ok() {
@@ -1082,6 +1167,89 @@ mod tests {
         assert!(result.cause.is_none());
         assert!(result.filters.is_empty());
         assert_eq!(0, result.rules.len())
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_masking_impersonation_access() {
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.firstname",
+                "TagExists(r.user, \"test::user_2\")",
+                "allow",
+                // {"name": "replace_null"}
+                "eyJuYW1lIjogInJlcGxhY2VfbnVsbCJ9",
+                "masked_id",
+            ),
+        ];
+
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "masked_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "masked_id".to_string(),
+                prio_strict: true,
+                expire_datetime_utc: 0,
+                normalized_name: "masked_id".to_string(),
+            },
+        );
+
+        let mut user_model = get_user_model_input();
+        user_model.insert(
+            "user_id_2".to_owned(),
+            UserModel {
+                id: "user_id_2".to_string(),
+                principal_name: "".to_string(),
+                roles: vec![],
+                tags: vec!["test::user_2".to_string()],
+                account_type: AccountType::User,
+                access_policy_ids: vec!["policy_id".to_string()],
+            },
+        );
+
+        let mut session_model = get_session_model_input();
+        session_model.impersonate_user_id = Some("user_id_2".to_owned());
+
+        let mut group_model = get_group_model_input();
+        group_model.insert(
+            "user_id_2".to_owned(),
+            GroupModel {
+                user_id: "user_id_2".to_string(),
+                entity_version: 0,
+                groups: vec![],
+            },
+        );
+
+        let result = run_default_test(
+            policies,
+            None,
+            Some(user_model),
+            Some(group_model),
+            None,
+            Some(policy_models),
+            Some(session_model),
+        )
+        .await;
+
+        // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.filters.is_empty());
+        assert_eq!(result.rules.len(), 1);
     }
 
     #[tokio::test]
@@ -1118,7 +1286,8 @@ mod tests {
             },
         );
 
-        let result = run_default_test(policies, None, None, None, None, Some(policy_models)).await;
+        let result =
+            run_default_test(policies, None, None, None, None, Some(policy_models), None).await;
 
         // check results
         if !result.is_ok() {
@@ -1172,7 +1341,8 @@ mod tests {
             },
         );
 
-        let result = run_default_test(policies, None, None, None, None, Some(policy_models)).await;
+        let result =
+            run_default_test(policies, None, None, None, None, Some(policy_models), None).await;
 
         // check results
         if !result.is_ok() {
@@ -1226,7 +1396,8 @@ mod tests {
             },
         );
 
-        let result = run_default_test(policies, None, None, None, None, Some(policy_models)).await;
+        let result =
+            run_default_test(policies, None, None, None, None, Some(policy_models), None).await;
 
         // check results
         if !result.is_ok() {
@@ -1265,7 +1436,8 @@ mod tests {
             name: "orders".to_string(),
             alias: "b".to_string(),
         });
-        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
         assert!(result.is_err());
@@ -1330,6 +1502,7 @@ mod tests {
             None,
             None,
             Some(entities),
+            None,
             None,
         )
         .await;
@@ -1405,7 +1578,8 @@ mod tests {
             target_entity: None,
         };
 
-        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
         assert!(result.is_ok());
@@ -1450,7 +1624,8 @@ mod tests {
             target_entity: None,
         };
 
-        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
         assert!(result.is_ok());
@@ -1508,7 +1683,8 @@ mod tests {
             target_entity: None,
         };
 
-        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
         assert!(result.is_ok());
@@ -1581,7 +1757,8 @@ mod tests {
             target_entity: None,
         };
 
-        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
         assert!(result.is_ok());
@@ -1663,7 +1840,8 @@ mod tests {
             target_entity: None,
         };
 
-        let result = run_default_test(policies, Some(scan_output), None, None, None, None).await;
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
         assert!(result.is_ok());
@@ -1930,6 +2108,7 @@ mod tests {
     fn get_session_model_input() -> SessionModel {
         SessionModel {
             user_id: "user_id".to_string(),
+            impersonate_user_id: None,
             id: "session_id".to_string(),
             app_id: 0,
             app_name: "app_name".to_string(),

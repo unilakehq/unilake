@@ -546,6 +546,7 @@ mod tests {
         SessionModel {
             id: "".to_string(),
             user_id: "".to_string(),
+            impersonate_user_id: Some("".to_string()),
             app_id: 0,
             app_name: "".to_string(),
             app_type: "".to_string(),

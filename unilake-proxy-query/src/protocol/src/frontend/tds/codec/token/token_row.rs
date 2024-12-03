@@ -53,6 +53,15 @@ impl TokenRow {
         self.data.len()
     }
 
+    /// The size of the row in bytes.
+    pub fn size_in_bytes(&self) -> usize {
+        let mut size = 0;
+        for d in &self.data {
+            size += d.size_in_bytes();
+        }
+        size
+    }
+
     /// Gives the columnar data with the given index. `None` if index out of
     /// bounds.
     pub fn get(&self, index: usize) -> Option<&ColumnData> {
@@ -131,8 +140,6 @@ impl RowBitmap {
 
         for (i, d) in source.iter().enumerate() {
             match d {
-                // todo(mrhamburg): check if these are correct
-                // todo(mrhamburg): determine when nbc is used and also check its implementation
                 ColumnData::U8N(None)
                 | ColumnData::BitN(None)
                 | ColumnData::I16N(None)

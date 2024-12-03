@@ -6,6 +6,7 @@ mod session;
 use crate::backend::app::generic::FedResult;
 use crate::backend::app::{FedResultStream, FederatedFrontendHandler, FederatedRequestType};
 use crate::backend::starrocks::session::StarRocksSession;
+use crate::backend::telemetry::QueryTelemetry;
 use crate::frontend::{
     prot::{
         ServerInstance, ServerInstanceMessage, SessionAuditMessage, SessionUserInfo,
@@ -170,7 +171,7 @@ impl StarRocksTdsHandlerFactoryInnnerState {
                     cluster_id: cluster_id.to_string(),
                     mysql_pool: pool,
                     last_activity_reported: Mutex::new(None),
-                    //todo(mrhamburg): determine this, don't think 60 minutes is a good fit
+                    //todo(mrhamburg): determine this, don't think 60 minutes is a good fit, should be configurable (global config)
                     activity_timeout_in_minutes: 60, // Default to 60 minutes
                     server_instance: self.server_instance.clone(),
                     cached_rules: Mutex::new(HashMap::new()),
@@ -210,6 +211,16 @@ impl StarRocksTdsHandlerFactoryInnnerState {
                 SessionUserInfo::from(user_info),
                 query,
             )))
+        {
+            //todo(mrhamburg): log this properly
+            todo!()
+        }
+    }
+
+    async fn audit_on_query_telemetry(&self, telemetry: QueryTelemetry) {
+        if let Err(e) = self
+            .server_instance
+            .process_message(ServerInstanceMessage::QueryTelemetry(telemetry))
         {
             //todo(mrhamburg): log this properly
             todo!()
@@ -320,6 +331,7 @@ impl StarRocksTdsHandlerFactory {
         client: &mut C,
         cancellation_token: CancellationToken,
         session: &StarRocksSession,
+        mut query_telemetry: QueryTelemetry,
         query: &str,
     ) -> TdsWireResult<()>
     where
@@ -327,6 +339,7 @@ impl StarRocksTdsHandlerFactory {
     {
         let mut security_handler = SecurityHandler::new(session.get_cached_rules());
         let ulid = security_handler.get_query_id();
+        query_telemetry.set_query_id(ulid.to_string());
 
         // todo: this is best suited for query.rs
         self.inner.query_event(ulid, QueryEventType::Running).await;
@@ -352,8 +365,10 @@ impl StarRocksTdsHandlerFactory {
             }
         };
 
+        query_telemetry.start_backend_timer();
         let query_result = tokio::select! {
             result = conn.query_iter(query) => {
+                query_telemetry.clock_backend_time();
                 match result {
                     Ok(result) => {
                         Some(result)
@@ -378,17 +393,25 @@ impl StarRocksTdsHandlerFactory {
         }
         self.send_token(client, columns).await?;
 
-        let mut count = 0;
+        let mut record_count = 0;
+        let mut record_bytes = 0;
         while let Ok(Some(row)) = result.next().await {
             let token_row = TokenRow::from(row);
             self.send_token(client, token_row).await?;
-            count += 1;
+
+            record_count += 1;
+            record_bytes += token_row.size_in_bytes();
         }
+
+        // set and send telemetry
+        query_telemetry.end();
+        query_telemetry.set_processed_data(record_count, record_bytes as u64);
+        self.inner.audit_on_query_telemetry(query_telemetry).await;
 
         self.inner
             .query_event(ulid, QueryEventType::Succeeded)
             .await;
-        self.send_token(client, TokenDone::new_count(0, count))
+        self.send_token(client, TokenDone::new_count(0, record_count))
             .await
     }
 }
@@ -583,6 +606,10 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
         tracing::info!("Received SQL batch request: {}", &msg.query);
+
+        // set query telemetry, for keeping track of query execution time
+        let telemetry = QueryTelemetry::new();
+
         // check for federated query
         let hash = msg.get_hash();
         if let Some(handler) =
@@ -625,8 +652,14 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
 
         // handle batch request
         let cancellation_token = CancellationToken::new();
-        self.handle_batch_request(client, cancellation_token, session_info, &msg.query)
-            .await
+        self.handle_batch_request(
+            client,
+            cancellation_token,
+            session_info,
+            telemetry,
+            &msg.query,
+        )
+        .await
     }
 
     fn on_attention(&self, _session: &StarRocksSession) {

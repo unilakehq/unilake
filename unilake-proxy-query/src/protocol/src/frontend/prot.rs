@@ -1,3 +1,4 @@
+use crate::backend::telemetry::QueryTelemetry;
 use crate::frontend::{
     tds::server_context::ServerContext, BatchRequest, LoginMessage, PreloginMessage,
     TdsBackendResponse, TdsMessage, TdsToken,
@@ -144,6 +145,8 @@ pub enum ServerInstanceMessage {
     Telemetry,
     /// Used to send activity data (Connection)
     ActivityConnection(String),
+    /// Used to send Query Telemetry data
+    QueryTelemetry(QueryTelemetry),
 }
 
 /// These messages should be forwarded to SIEM/Audit logging endpoint
@@ -192,6 +195,7 @@ pub struct InnerServerInstance {
     semaphore: Arc<Semaphore>,
 }
 
+// todo: we might as well put serverinstance in own folder and handle all of this there (coordination of actions for example)
 impl ServerInstance {
     // todo(mrhamburg): implement logic for processing messages to retraced api or kafka for audit logging and other informational purposes
     pub fn new(ctx: ServerContext) -> Self {

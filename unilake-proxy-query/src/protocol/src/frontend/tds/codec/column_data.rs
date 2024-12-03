@@ -71,6 +71,132 @@ impl ColumnData {
         ColumnData::String(SqlString::from_string(Some(value.to_string()), max_length))
     }
 
+    /// Returns the size of the column data in bytes.
+    /// Does not take into account protocol overhead
+    pub fn size_in_bytes(&self) -> usize {
+        match self {
+            ColumnData::U8(_) => 1,
+            ColumnData::U8N(v) => {
+                if v.is_some() {
+                    1
+                } else {
+                    0
+                }
+            }
+            ColumnData::I16(_) => 2,
+            ColumnData::I16N(v) => {
+                if v.is_some() {
+                    2
+                } else {
+                    0
+                }
+            }
+            ColumnData::I32(_) => 4,
+            ColumnData::I32N(v) => {
+                if v.is_some() {
+                    4
+                } else {
+                    0
+                }
+            }
+            ColumnData::I64(_) => 8,
+            ColumnData::I64N(v) => {
+                if v.is_some() {
+                    8
+                } else {
+                    0
+                }
+            }
+            ColumnData::F32(_) => 4,
+            ColumnData::F32N(v) => {
+                if v.is_some() {
+                    4
+                } else {
+                    0
+                }
+            }
+            ColumnData::F64(_) => 8,
+            ColumnData::F64N(v) => {
+                if v.is_some() {
+                    8
+                } else {
+                    0
+                }
+            }
+            ColumnData::Bit(_) => 1,
+            ColumnData::BitN(v) => {
+                if v.is_some() {
+                    1
+                } else {
+                    0
+                }
+            }
+            ColumnData::String(v) => {
+                if !v.is_empty() {
+                    v.len() * 2
+                } else {
+                    0
+                }
+            }
+            ColumnData::Binary(v) => {
+                if v.is_some() {
+                    v.as_ref().unwrap().len()
+                } else {
+                    0
+                }
+            }
+            ColumnData::Numeric(v) => {
+                if v.is_some() {
+                    8
+                } else {
+                    0
+                }
+            }
+            ColumnData::DateTime(v) => {
+                if v.is_some() {
+                    8
+                } else {
+                    0
+                }
+            }
+            ColumnData::SmallDateTime(v) => {
+                if v.is_some() {
+                    4
+                } else {
+                    0
+                }
+            }
+            ColumnData::Time(v) => {
+                if v.is_some() {
+                    4
+                } else {
+                    0
+                }
+            }
+            ColumnData::Date(v) => {
+                if v.is_some() {
+                    4
+                } else {
+                    0
+                }
+            }
+            ColumnData::DateTime2(v) => {
+                if v.is_some() {
+                    8
+                } else {
+                    0
+                }
+            }
+            ColumnData::DateTimeOffset(v) => {
+                if v.is_some() {
+                    8
+                } else {
+                    0
+                }
+            }
+        }
+    }
+
     /// Encode this value into the given destination buffer.
     pub fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
         match self {

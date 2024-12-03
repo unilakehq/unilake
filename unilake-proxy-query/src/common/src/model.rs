@@ -49,10 +49,14 @@ pub struct GroupInstance {
     pub tags: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
+// todo: we need to generate this session model and also have a repo endpoint for ip information (country, continent, etc..)
+// todo: also needs application information (we keep track of some known applications, like power bi)
 pub struct SessionModel {
     /// Unique user id
     pub user_id: String,
+    /// Optionally the user id you would like to impersonate
+    pub impersonate_user_id: Option<String>,
     /// Unique session id
     pub id: String,
     /// The application id
@@ -87,7 +91,8 @@ pub struct SessionModel {
     /// The compute id of the connection
     #[serde(rename = "computeId")]
     pub compute_id: String,
-    /// The policy id in use (by including this, all previously cached results will be invalidated on change)
+    /// The policy id in use/currently active (by including this, all previously cached results will be invalidated on change)
+    /// Policy id here refers to the current policy file for this tenant
     #[serde(rename = "policyId")]
     pub policy_id: String,
     /// The workspace id of the connection
@@ -105,9 +110,6 @@ impl Hash for SessionModel {
         self.app_type.hash(state);
         self.app_driver.hash(state);
         self.source_ipv4.hash(state);
-        self.country_iso2.hash(state);
-        self.continent.hash(state);
-        self.timezone.hash(state);
         self.day_of_week.hash(state);
         self.branch.hash(state);
         self.policy_id.hash(state);

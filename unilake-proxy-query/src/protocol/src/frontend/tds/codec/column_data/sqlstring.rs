@@ -32,6 +32,10 @@ impl SqlString {
         self.value.is_none()
     }
 
+    pub fn len(&self) -> usize {
+        self.value.as_ref().map(|s| s.len()).unwrap_or(0)
+    }
+
     pub fn new_empty(ty: &crate::frontend::TypeInfo) -> SqlString {
         match ty {
             crate::frontend::TypeInfo::VarLenSized(l) => SqlString {
