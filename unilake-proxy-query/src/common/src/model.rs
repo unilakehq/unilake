@@ -50,8 +50,6 @@ pub struct GroupInstance {
 }
 
 #[derive(Serialize, Clone)]
-// todo: we need to generate this session model and also have a repo endpoint for ip information (country, continent, etc..)
-// todo: also needs application information (we keep track of some known applications, like power bi)
 pub struct SessionModel {
     /// Unique user id
     pub user_id: String,
@@ -82,10 +80,10 @@ pub struct SessionModel {
     /// The source timezone name (e.g., "America/New_York") of the source IP address
     pub timezone: String,
     /// Current timestamp in UTC
-    pub time: u32,
+    pub time: i64,
     /// Current day of the week (0 is Monday) in UTC
     #[serde(rename = "dayOfWeek")]
-    pub day_of_week: u8,
+    pub day_of_week: u32,
     /// The branch name of the connection
     pub branch: String,
     /// The compute id of the connection
@@ -176,6 +174,25 @@ pub struct AccessPolicyModel {
     /// Date and time when this policy will expire (in UTC unix timestamp).
     /// This value is maintained by the PIP endpoint (every time this object is updated, so will this value)
     pub expire_datetime_utc: i64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
+pub struct IpInfoModel {
+    pub ip_v4: String,
+    pub country_iso2: String,
+    pub continent: String,
+    pub timezone: String,
+    pub isp: String,
+    pub city: String,
+    pub country_name: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
+pub struct AppInfoModel {
+    pub app_id: u64,
+    pub app_name: String,
+    pub app_type: String,
+    pub app_driver: String,
 }
 
 #[derive(Serialize)]

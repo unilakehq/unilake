@@ -3212,6 +3212,8 @@ dependencies = [
  "futures",
  "mysql_async",
  "rand",
+ "redis",
+ "serde",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -3220,6 +3222,7 @@ dependencies = [
  "ulid",
  "unilake-common",
  "unilake-security",
+ "unilake-sql",
  "uuid",
 ]
 

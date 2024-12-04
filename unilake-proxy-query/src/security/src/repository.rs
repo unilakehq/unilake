@@ -183,11 +183,11 @@ pub struct RepoRest {
 
 impl RepoRest {
     #[allow(dead_code)]
-    pub fn new(tenant_id: String, workspace_id: String) -> Self {
+    pub fn new(tenant_id: &str, workspace_id: &str) -> Self {
         let api_endpoint = global_config().get::<String>("api_endpoint").unwrap();
         RepoRest {
-            tenant_id,
-            workspace_id,
+            tenant_id: tenant_id.to_owned(),
+            workspace_id: workspace_id.to_owned(),
             client: reqwest::Client::new(),
             api_endpoint,
         }

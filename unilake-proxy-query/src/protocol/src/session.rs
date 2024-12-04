@@ -9,6 +9,8 @@ use ulid::Ulid;
 pub const SESSION_VARIABLE_DIALECT: &str = "proxy_dialect";
 pub const SESSION_VARIABLE_CATALOG: &str = "proxy_catalog";
 pub const SESSION_VARIABLE_DATABASE: &str = "proxy_database";
+pub const SESSION_VARIABLE_SECURITY_IMPERSONATE: &str = "proxy_security_impersonate";
+pub const SESSION_VARIABLE_SEND_TELEMETRY: &str = "proxy_send_telemetry";
 
 pub trait SessionInfo: Send + Sync {
     /// Currently in use socket
@@ -73,7 +75,28 @@ pub trait SessionInfo: Send + Sync {
         if let Some(value) = self.get_session_variables().get(name) {
             return value;
         }
+        self.report_value_not_set(name, &SessionVariable::None);
         &SessionVariable::None
+    }
+
+    fn get_values_or_default<'a>(&self, default_values: &[&'a str]) -> HashMap<&'a str, Arc<str>> {
+        let mut values = HashMap::new();
+        for v in default_values {
+            let item = self.get_session_variable(v);
+            self.report_value_not_set(*v, item);
+            values.insert(*v, item.get_value_or_default());
+        }
+        values
+    }
+
+    fn report_value_not_set(&self, name: &str, var: &SessionVariable) {
+        if let SessionVariable::None = var {
+            tracing::warn!(
+                "Session variable '{}' not set for session with id {}",
+                name,
+                self.session_id()
+            );
+        }
     }
 
     /// Get all session variables
@@ -87,6 +110,18 @@ pub enum SessionVariable {
 }
 
 impl SessionVariable {
+    pub fn new(value: &str) -> Self {
+        SessionVariable::Some(Arc::from(value))
+    }
+
+    pub fn new_default(value: &str) -> Self {
+        SessionVariable::Default(Arc::from(value))
+    }
+
+    pub fn new_none() -> Self {
+        SessionVariable::None
+    }
+
     pub fn get_value_or_default(&self) -> Arc<str> {
         match self {
             SessionVariable::Some(value) => value.clone(),

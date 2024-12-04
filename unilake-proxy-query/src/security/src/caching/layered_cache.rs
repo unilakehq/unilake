@@ -6,6 +6,7 @@ use rslock::{Lock, LockManager};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::sync::Arc;
 use std::time::Duration;
 use unilake_common::settings::global_config;
 
@@ -78,10 +79,11 @@ where
             let key_bytes = key.as_bytes();
             tracing::info!("Trying to acquire lock for key: {}.", key);
             loop {
-                if let Ok(lock) = lm.lock(key_bytes, Duration::from_millis(3000)).await {
+                if let Ok(lock) = lm.lock(key_bytes, Duration::from_secs(10)).await {
                     tracing::info!("Acquired lock for key: {}.", key);
                     return Some(lock);
                 }
+                tokio::time::sleep(Duration::from_millis(250)).await;
             }
         }
         None
@@ -179,7 +181,7 @@ where
 
 pub struct RedisBackendProvider {
     // Implement Redis connection logic
-    client: redis::Client,
+    client: Arc<redis::Client>,
     tenant_id: String,
     /// Can be either Policy, GroupModel, UserModel, EntityModel
     backend_type: String,
@@ -187,12 +189,13 @@ pub struct RedisBackendProvider {
 
 impl RedisBackendProvider {
     #[allow(dead_code)]
-    pub fn new(tenant_id: &str, backend_type: &str) -> RedisBackendProvider {
-        let host = global_config().get::<String>("redis_host").unwrap();
-        let port = global_config().get::<i32>("redis_port").unwrap();
-
+    pub fn new(
+        client: Arc<redis::Client>,
+        tenant_id: &str,
+        backend_type: &str,
+    ) -> RedisBackendProvider {
         RedisBackendProvider {
-            client: redis::Client::open(format!("redis://{}:{}", host, port)).unwrap(),
+            client,
             tenant_id: tenant_id.to_owned(),
             backend_type: backend_type.to_owned(),
         }

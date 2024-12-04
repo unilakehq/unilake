@@ -2,8 +2,11 @@ use crate::backend::starrocks::StarRocksBackend;
 use crate::frontend::prot::{ServerInstance, TdsSessionState};
 use crate::frontend::tds::server_context::ServerContext;
 use crate::session::{
-    SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DIALECT,
+    SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE,
+    SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SECURITY_IMPERSONATE,
+    SESSION_VARIABLE_SEND_TELEMETRY,
 };
+use chrono::Datelike;
 use mysql_async::Conn;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -12,6 +15,8 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult};
+use unilake_common::model::{AppInfoModel, IpInfoModel, SessionModel};
+use unilake_security::caching::layered_cache::MultiLayeredCache;
 use unilake_security::{Cache, HitRule};
 
 pub struct StarRocksSession {
@@ -29,9 +34,12 @@ pub struct StarRocksSession {
     session_variables: HashMap<String, SessionVariable>,
     branch_name: Arc<str>,
     compute_id: Arc<str>,
+    workspace_id: Arc<str>,
+    domain_id: Arc<str>,
     endpoint: Arc<str>,
     backend: Option<Arc<StarRocksBackend>>,
     conn: Option<Mutex<Conn>>,
+    // todo: this needs a better spot, also requires the latest policy_id
     cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
 }
 
@@ -57,6 +65,8 @@ impl StarRocksSession {
             connection_reset_request_count: 0,
             branch_name: Arc::from(""),
             compute_id: Arc::from(""),
+            workspace_id: Arc::from(""),
+            domain_id: Arc::from(""),
             endpoint: Arc::from(""),
             conn,
             cached_rules,
@@ -106,11 +116,19 @@ impl StarRocksSession {
         let mut variables = HashMap::new();
         variables.insert(
             SESSION_VARIABLE_CATALOG.to_string(),
-            SessionVariable::Default(Arc::from("default_catalog")),
+            SessionVariable::new_default("default_catalog"),
         );
         variables.insert(
             SESSION_VARIABLE_DIALECT.to_string(),
-            SessionVariable::Default(Arc::from("tsql")),
+            SessionVariable::new_default("tsql"),
+        );
+        variables.insert(
+            SESSION_VARIABLE_DATABASE.to_string(),
+            SessionVariable::new_default("default_schema"),
+        );
+        variables.insert(
+            SESSION_VARIABLE_SEND_TELEMETRY.to_string(),
+            SessionVariable::new_default("false"),
         );
         variables
     }
@@ -121,6 +139,66 @@ impl StarRocksSession {
                 pool.drop_conn(userid.as_ref()).await;
             }
         }
+    }
+
+    pub async fn get_session_model(
+        &self,
+        ip_info: Arc<Box<MultiLayeredCache<String, IpInfoModel>>>,
+        app_info: Arc<Box<MultiLayeredCache<String, AppInfoModel>>>,
+        policy_id: Arc<str>,
+    ) -> TdsWireResult<SessionModel> {
+        // get connecting IP info, if available
+        let ip_info = ip_info.get(&self.socket_addr.ip().to_string()).await;
+        if ip_info.is_none() {
+            tracing::error!("Failed to get IP info for {}", self.socket_addr);
+            return Err(TdsWireError::Protocol("Failed to get IP info".to_string()));
+        }
+        let ip_info = ip_info.unwrap();
+
+        // get connecting app info, if available
+        let app_info = app_info.get(&"".to_string()).await;
+        if app_info.is_none() {
+            tracing::error!("Failed to get app info for {}", self.socket_addr);
+            return Err(TdsWireError::Protocol("Failed to get app info".to_string()));
+        }
+        let app_info = app_info.unwrap();
+
+        // get impersonate user id, if available
+        let impersonate_user_id = if let SessionVariable::Some(v) =
+            self.get_session_variable(SESSION_VARIABLE_SECURITY_IMPERSONATE)
+        {
+            Some(v.as_ref().clone().to_string())
+        } else {
+            None
+        };
+
+        // get current time and build session information
+        let current_time = chrono::offset::Utc::now();
+        Ok(SessionModel {
+            impersonate_user_id,
+            user_id: self
+                .sql_user_id
+                .as_ref()
+                .clone()
+                .expect("expecting user_id to exist after login")
+                .to_string(),
+            id: self.session_id.to_string(),
+            app_id: app_info.app_id,
+            app_name: app_info.app_name,
+            app_type: app_info.app_type,
+            app_driver: app_info.app_driver,
+            source_ipv4: ip_info.ip_v4,
+            country_iso2: ip_info.country_iso2,
+            continent: ip_info.continent,
+            timezone: ip_info.timezone,
+            time: current_time.timestamp(),
+            day_of_week: current_time.weekday().num_days_from_monday(),
+            branch: self.branch_name.clone().to_string(),
+            compute_id: self.compute_id.clone().to_string(),
+            policy_id: policy_id.clone().to_string(),
+            workspace_id: self.workspace_id.clone().to_string(),
+            domain_id: self.domain_id.clone().to_string(),
+        })
     }
 }
 

@@ -11,8 +11,10 @@ publish = { workspace = true }
 # internal
 unilake-common = { workspace = true }
 unilake-security = { workspace = true }
+unilake-sql = { workspace = true }
 
 # crates
+redis = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 async-stream = { workspace = true }
@@ -31,3 +33,4 @@ ulid = { workspace = true }
 mysql_async = { workspace = true }
 chrono = { workspace = true }
 bigdecimal = { workspace = true }
+serde = { version = "1.0.210", features = ["derive"] }

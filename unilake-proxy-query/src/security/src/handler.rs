@@ -17,7 +17,7 @@ use unilake_common::error::{TdsWireError, TokenError};
 use unilake_common::model::{
     AccessPolicyModel, EntityModel, GroupModel, ObjectModel, SessionModel, UserModel,
 };
-use unilake_common::settings::server_name;
+use unilake_common::settings::settings_server_name;
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
     PolicyAccessRequestUrl, ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject,
@@ -80,7 +80,7 @@ impl From<SecurityHandlerError> for TokenError {
                 message: e.to_string(),
                 class: 0,
                 procedure: "".to_string(),
-                server: server_name(),
+                server: settings_server_name(),
                 state: 0,
             },
             SecurityHandlerError::QueryError(code, id, e) => {
@@ -94,7 +94,7 @@ impl From<SecurityHandlerError> for TokenError {
                         class: 0,
                         line: err.line,
                         procedure: "".to_string(),
-                        server: server_name(),
+                        server: settings_server_name(),
                         state: 1,
                     };
                 }
@@ -104,7 +104,7 @@ impl From<SecurityHandlerError> for TokenError {
                     message: format!("Parser error: {}. Query Id: {}", e.message, id),
                     class: 0,
                     procedure: "".to_string(),
-                    server: server_name(),
+                    server: settings_server_name(),
                     state: 0,
                 }
             }
@@ -118,7 +118,7 @@ impl From<SecurityHandlerError> for TokenError {
                     ),
                     class: 0,
                     procedure: "".to_string(),
-                    server: server_name(),
+                    server: settings_server_name(),
                     state: 0,
                 },
                 false => TokenError {
@@ -127,7 +127,7 @@ impl From<SecurityHandlerError> for TokenError {
                     message: format!("{}. Query Id: {}", s.message, id),
                     class: 0,
                     procedure: "".to_string(),
-                    server: server_name(),
+                    server: settings_server_name(),
                     state: 0,
                 },
             },

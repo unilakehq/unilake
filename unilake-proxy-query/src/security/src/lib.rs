@@ -1,12 +1,12 @@
 pub(crate) static ABAC_MODEL: &str = include_str!("../abac_model.conf");
 
-mod adapter;
-mod caching;
+pub mod adapter;
+pub mod caching;
 mod effector;
 mod functions;
 pub mod handler;
 mod policies;
-mod repository;
+pub mod repository;
 mod scanner;
 
 // re-exports

@@ -1,4 +1,4 @@
 pub mod app;
-mod caching;
+mod repo;
 pub mod starrocks;
 pub mod telemetry;

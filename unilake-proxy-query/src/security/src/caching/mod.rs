@@ -1,1 +1,1 @@
-pub(crate) mod layered_cache;
+pub mod layered_cache;

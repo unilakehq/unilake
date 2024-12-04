@@ -16,6 +16,12 @@ pub fn global_config() -> &'static Config {
     })
 }
 
-pub fn server_name() -> String {
-    global_config().get_string("NAME").unwrap().to_string()
+pub fn settings_server_name() -> String {
+    global_config().get_string("name").unwrap().to_string()
+}
+
+pub fn settings_cache_invalidation_enabled() -> bool {
+    global_config()
+        .get::<bool>("cache_invalidation")
+        .unwrap_or(false)
 }

@@ -1,4 +1,3 @@
-// todo(mrhamburg): add feature to request for timings in the session (time in proxy, time in backend), this will also be needed for monitoring and troubleshooting
 mod extensions;
 mod query;
 mod session;
@@ -6,7 +5,7 @@ mod session;
 use crate::backend::app::generic::FedResult;
 use crate::backend::app::{FedResultStream, FederatedFrontendHandler, FederatedRequestType};
 use crate::backend::starrocks::session::StarRocksSession;
-use crate::backend::telemetry::QueryTelemetry;
+use crate::backend::telemetry::{QueryTelemetry, QueryTelemetryHandler};
 use crate::frontend::{
     prot::{
         ServerInstance, ServerInstanceMessage, SessionAuditMessage, SessionUserInfo,
@@ -17,7 +16,10 @@ use crate::frontend::{
     TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck, TokenPreLoginFedAuthRequiredOption,
     TokenRow,
 };
-use crate::session::SessionInfo;
+use crate::session::{
+    SessionInfo, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE, SESSION_VARIABLE_DIALECT,
+    SESSION_VARIABLE_SEND_TELEMETRY,
+};
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
 use futures::{Sink, StreamExt};
@@ -25,10 +27,10 @@ use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
-use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult, TokenError};
-use unilake_security::handler::SecurityHandler;
+use unilake_security::handler::{HandleResult, SecurityHandler, SecurityHandlerError};
 use unilake_security::{Cache, DefaultCache, HitRule};
+use unilake_sql::{PolicyAccessRequestUrl, TranspilerDenyCause};
 
 pub(crate) struct StarRocksBackend {
     /// todo(mrhamburg): we actually need multiple pools, for multiple FE nodes (so 3 FE nodes, is 3 pools and load-balance connections)?
@@ -41,7 +43,7 @@ pub(crate) struct StarRocksBackend {
     cached_rules: Mutex<HashMap<String, Arc<Box<dyn Cache<u64, (String, HitRule)>>>>>,
     session_count: Mutex<HashMap<String, u64>>,
     // todo: multiple cache instances are needed here for model information, and we need a single server instance based adapter for loading policy files
-    // todo: the above also requires a handler for cache changes (redis mq/kafka) -> caching.rs will handle this.
+    // todo: the above also requires a handler for cache changes (redis mq/kafka) -> backend will handle this.
 }
 
 impl StarRocksBackend {
@@ -217,21 +219,11 @@ impl StarRocksTdsHandlerFactoryInnnerState {
         }
     }
 
-    async fn audit_on_query_telemetry(&self, telemetry: QueryTelemetry) {
-        if let Err(e) = self
-            .server_instance
-            .process_message(ServerInstanceMessage::QueryTelemetry(telemetry))
-        {
-            //todo(mrhamburg): log this properly
-            todo!()
-        }
-    }
-
-    async fn query_event(&self, query_id: Ulid, event_type: QueryEventType) {
-        let time = std::time::SystemTime::now();
-        // probably best to be implemented in the new query.rs environment
-        // todo: implement this properly, send to a queue for further processing
-    }
+    // async fn query_event(&self, query_id: Ulid, event_type: QueryEventType) {
+    //     let time = std::time::SystemTime::now();
+    //     // probably best to be implemented in the new query.rs environment
+    //     // todo: implement this properly, send to a queue for further processing
+    // }
 }
 
 enum QueryEventType {
@@ -331,37 +323,54 @@ impl StarRocksTdsHandlerFactory {
         client: &mut C,
         cancellation_token: CancellationToken,
         session: &StarRocksSession,
-        mut query_telemetry: QueryTelemetry,
+        mut query_telemetry: QueryTelemetryHandler,
         query: &str,
     ) -> TdsWireResult<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
-        let mut security_handler = SecurityHandler::new(session.get_cached_rules());
+        let mut security_handler = SecurityHandler::new(
+            session.get_cached_rules(),
+            session.get_session_model().await?,
+            session.get_cached_rules(),
+        );
         let ulid = security_handler.get_query_id();
         query_telemetry.set_query_id(ulid.to_string());
-
-        // todo: this is best suited for query.rs
-        self.inner.query_event(ulid, QueryEventType::Running).await;
 
         let mut conn = session.get_conn().await?;
         tracing::debug!("Connection id: {}", conn.id());
 
         // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
+        let values = session.get_values_or_default(&[
+            SESSION_VARIABLE_DIALECT,
+            SESSION_VARIABLE_CATALOG,
+            SESSION_VARIABLE_DATABASE,
+        ]);
         let query = security_handler
-            // todo(mrhamburg): properly bring back dialect, catalog and database here
-            .handle_query(query, "tsql", "default_catalog", "dwh");
+            .handle_query(
+                query,
+                values[SESSION_VARIABLE_DIALECT].as_ref(),
+                values[SESSION_VARIABLE_CATALOG].as_ref(),
+                values[SESSION_VARIABLE_DATABASE].as_ref(),
+            )
+            .await;
 
         self.inner.audit_on_query(session, security_handler).await;
         let query = match query {
-            Ok(query) => {
-                let query = query.to_string();
-                query
-            }
+            Ok(q) => match q {
+                HandleResult::Query(q) => q,
+                HandleResult::AccessDenied(cause, access_links) => {
+                    self.handle_telemetry_request(client, query_telemetry.end().await, session)
+                        .await?;
+                    return self
+                        .handle_access_denied_result(client, cause, access_links)
+                        .await;
+                }
+            },
             Err(e) => {
-                self.inner.query_event(ulid, QueryEventType::Failed).await;
-                self.handle_frontend_error(client, session, e).await?;
-                return Ok(());
+                self.handle_telemetry_request(client, query_telemetry.end().await, session)
+                    .await?;
+                return self.handle_error_result(client, e).await;
             }
         };
 
@@ -374,7 +383,7 @@ impl StarRocksTdsHandlerFactory {
                         Some(result)
                     }
                     Err(e) => {
-                        self.inner.query_event(ulid, QueryEventType::Failed).await;
+                        self.handle_telemetry_request(client, query_telemetry.end().await, session).await?;
                         self.handle_backend_error(client, session, e).await?;
                         return Ok(())
                     }
@@ -386,6 +395,7 @@ impl StarRocksTdsHandlerFactory {
             }
         };
 
+        // send column metadata
         let mut result = query_result.unwrap();
         let mut columns = TokenColMetaData::new(result.columns_ref().len());
         for column in result.columns_ref() {
@@ -393,6 +403,7 @@ impl StarRocksTdsHandlerFactory {
         }
         self.send_token(client, columns).await?;
 
+        // send rows
         let mut record_count = 0;
         let mut record_bytes = 0;
         while let Ok(Some(row)) = result.next().await {
@@ -404,15 +415,65 @@ impl StarRocksTdsHandlerFactory {
         }
 
         // set and send telemetry
-        query_telemetry.end();
         query_telemetry.set_processed_data(record_count, record_bytes as u64);
-        self.inner.audit_on_query_telemetry(query_telemetry).await;
+        self.handle_telemetry_request(client, query_telemetry.end().await, session)
+            .await?;
 
-        self.inner
-            .query_event(ulid, QueryEventType::Succeeded)
-            .await;
+        // send token done
         self.send_token(client, TokenDone::new_count(0, record_count))
             .await
+    }
+
+    async fn handle_telemetry_request<C>(
+        &self,
+        client: &mut C,
+        telemetry: QueryTelemetry,
+        session: &StarRocksSession,
+    ) -> Result<(), TdsWireError>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        if session
+            .get_session_variable(SESSION_VARIABLE_SEND_TELEMETRY)
+            .get_value_or_default()
+            .as_ref()
+            == "true"
+        {
+            return self
+                .send_token(
+                    client,
+                    telemetry.generate_telemetry_message_token(
+                        self.inner.server_instance.ctx.clone().as_ref(),
+                    ),
+                )
+                .await;
+        }
+        Ok(())
+    }
+
+    async fn handle_access_denied_result<C>(
+        &self,
+        client: &mut C,
+        cause: Vec<TranspilerDenyCause>,
+        access_links: Option<Vec<PolicyAccessRequestUrl>>,
+    ) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        // todo: we want to present the user with at least the access link to request for access, the other ones are errors and messages?
+        todo!()
+    }
+
+    async fn handle_error_result<C>(
+        &self,
+        client: &mut C,
+        error: SecurityHandlerError,
+    ) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        // todo: this could be an error like no user not found
+        todo!()
     }
 }
 
@@ -608,7 +669,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         tracing::info!("Received SQL batch request: {}", &msg.query);
 
         // set query telemetry, for keeping track of query execution time
-        let telemetry = QueryTelemetry::new();
+        let telemetry = QueryTelemetryHandler::new(self.inner.server_instance.clone());
 
         // check for federated query
         let hash = msg.get_hash();
