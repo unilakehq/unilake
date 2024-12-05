@@ -6,6 +6,7 @@ use crate::session::{
     SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SECURITY_IMPERSONATE,
     SESSION_VARIABLE_SEND_TELEMETRY,
 };
+use casbin::{Cache, CachedEnforcer, CoreApi};
 use chrono::Datelike;
 use mysql_async::Conn;
 use std::collections::HashMap;
@@ -17,7 +18,7 @@ use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult};
 use unilake_common::model::{AppInfoModel, IpInfoModel, SessionModel};
 use unilake_security::caching::layered_cache::MultiLayeredCache;
-use unilake_security::{Cache, HitRule};
+use unilake_security::{HitRule, ABAC_MODEL};
 
 pub struct StarRocksSession {
     socket_addr: SocketAddr,
@@ -34,12 +35,14 @@ pub struct StarRocksSession {
     session_variables: HashMap<String, SessionVariable>,
     branch_name: Arc<str>,
     compute_id: Arc<str>,
+    tenant_id: Arc<str>,
     workspace_id: Arc<str>,
     domain_id: Arc<str>,
     endpoint: Arc<str>,
     backend: Option<Arc<StarRocksBackend>>,
     conn: Option<Mutex<Conn>>,
     // todo: this needs a better spot, also requires the latest policy_id
+    cached_enforcer: Arc<Mutex<CachedEnforcer>>,
     cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
 }
 
@@ -50,6 +53,9 @@ impl StarRocksSession {
         conn: Option<Mutex<Conn>>,
         cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
     ) -> Self {
+        // let e = Arc::new(Mutex::new(
+        //     CachedEnforcer::new(abac_model, adapter).await.unwrap(),
+        // ));
         StarRocksSession {
             socket_addr,
             packet_size: Arc::new(AtomicU16::new(instance.ctx.packet_size)),
@@ -65,9 +71,14 @@ impl StarRocksSession {
             connection_reset_request_count: 0,
             branch_name: Arc::from(""),
             compute_id: Arc::from(""),
+            tenant_id: Arc::from(""),
             workspace_id: Arc::from(""),
             domain_id: Arc::from(""),
             endpoint: Arc::from(""),
+            cached_enforcer: Arc::new(Mutex::new(CachedEnforcer::new(
+                ABAC_MODEL,
+                instance.get_policy_adapter(),
+            ))),
             conn,
             cached_rules,
             backend: None,
@@ -145,7 +156,7 @@ impl StarRocksSession {
         &self,
         ip_info: Arc<Box<MultiLayeredCache<String, IpInfoModel>>>,
         app_info: Arc<Box<MultiLayeredCache<String, AppInfoModel>>>,
-        policy_id: Arc<str>,
+        policy_id: u64,
     ) -> TdsWireResult<SessionModel> {
         // get connecting IP info, if available
         let ip_info = ip_info.get(&self.socket_addr.ip().to_string()).await;
@@ -199,6 +210,10 @@ impl StarRocksSession {
             workspace_id: self.workspace_id.clone().to_string(),
             domain_id: self.domain_id.clone().to_string(),
         })
+    }
+
+    pub fn get_cached_enforcer(&self) -> Arc<Mutex<CachedEnforcer>> {
+        todo!()
     }
 }
 

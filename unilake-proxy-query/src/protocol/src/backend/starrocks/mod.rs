@@ -318,6 +318,38 @@ impl StarRocksTdsHandlerFactory {
         Ok(())
     }
 
+    async fn get_new_security_handler(
+        &self,
+        session_info: &StarRocksSession,
+    ) -> TdsWireResult<SecurityHandler> {
+        match self
+            .inner
+            .server_instance
+            .backend_handler
+            .get_backend_instance("")
+            .await
+        {
+            None => {
+                todo!()
+            }
+            Some(instance) => {
+                SecurityHandler::new(
+                    None, // cachedenforcer = user scoped (todo)
+                    session_info
+                        .get_session_model(
+                            instance.get_ip_info_cache(),
+                            instance.get_app_info_cache(),
+                            instance.get_active_policy_id().await.unwrap_or(0),
+                        )
+                        .await?,
+                    None, // todo: user scoped local only cache of hits
+                    instance.get_cache_container(),
+                    None, // can be created on the spot?
+                )
+            }
+        }
+    }
+
     async fn handle_batch_request<C>(
         &self,
         client: &mut C,
@@ -329,11 +361,7 @@ impl StarRocksTdsHandlerFactory {
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
-        let mut security_handler = SecurityHandler::new(
-            session.get_cached_rules(),
-            session.get_session_model().await?,
-            session.get_cached_rules(),
-        );
+        let mut security_handler = self.get_new_security_handler(session).await?;
         let ulid = security_handler.get_query_id();
         query_telemetry.set_query_id(ulid.to_string());
 

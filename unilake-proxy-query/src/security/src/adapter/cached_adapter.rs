@@ -7,18 +7,18 @@ use unilake_common::model::PolicyRule;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum CacheEntity {
+pub enum CachedPolicyRules {
     Policy(Vec<PolicyRule>),
     PolicyId(u64),
 }
 
 pub struct CachedAdapter {
     is_filtered: bool,
-    cache: Arc<MultiLayeredCache<u64, CacheEntity>>,
+    cache: Arc<MultiLayeredCache<u64, CachedPolicyRules>>,
 }
 
 impl CachedAdapter {
-    pub fn new(cache: Arc<MultiLayeredCache<u64, CacheEntity>>) -> Self {
+    pub fn new(cache: Arc<MultiLayeredCache<u64, CachedPolicyRules>>) -> Self {
         CachedAdapter {
             is_filtered: false,
             cache,
@@ -27,7 +27,7 @@ impl CachedAdapter {
 
     pub async fn get_current_policy_id(&self) -> Option<u64> {
         self.cache.get(&0).await.map(|entity| match entity {
-            CacheEntity::PolicyId(id) => id,
+            CachedPolicyRules::PolicyId(id) => id,
             _ => unreachable!(),
         })
     }
@@ -41,7 +41,7 @@ impl Adapter for CachedAdapter {
             .get(&current_policy_id)
             .await
             .map(|entity| match entity {
-                CacheEntity::Policy(policy) => policy.clone(),
+                CachedPolicyRules::Policy(policy) => policy.clone(),
                 _ => Vec::new(),
             });
 

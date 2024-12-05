@@ -1,13 +1,14 @@
 // todo: https://github.com/notken12/licensesnip
 // todo: when auditing, we also need number of records processed, processing time and total time in proxy. We will do this as a seperate message (QueryTelemetry and use query id to link to this event)
 
+use crate::adapter::cached_adapter::CachedAdapter;
 use crate::effector::PdpEffector;
 use crate::functions::add_functions;
 use crate::policies::{
     PolicyCollectResult, PolicyFound, PolicyHitManager, PolicyLogger, PolicyType,
 };
 use crate::repository::{CacheContainer, RepoBackend};
-use crate::HitRule;
+use crate::{HitRule, ABAC_MODEL};
 use casbin::{Cache, CachedEnforcer, CoreApi};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
@@ -234,13 +235,12 @@ impl SecurityHandler {
 
         self.input_query = Some(Arc::from(query.to_string()));
         let scan_output = self.scan(query, dialect, catalog, database)?;
-        if scan_output.error.is_some() {
+        if let Some(error) = scan_output.error {
             self.close_handler();
-
             return Err(SecurityHandlerError::QueryError(
                 90_200,
                 self.query_id.to_string(),
-                scan_output.error.unwrap(),
+                error,
             ));
         }
 
@@ -301,10 +301,10 @@ impl SecurityHandler {
         let transpiler_input = transpiler_input.unwrap();
 
         // check for any security violations
-        if transpiler_input.cause.is_some() {
+        if let Some(cause) = transpiler_input.cause {
             self.close_handler();
             return Ok(HandleResult::AccessDenied(
-                transpiler_input.cause.unwrap(),
+                cause,
                 transpiler_input.request_url,
             ));
         }
@@ -463,26 +463,30 @@ enum AttributeAccess {
 }
 
 struct QueryPolicyDecision<'a> {
+    /// Container for cached model input (entity model, user mode, group model, etc..)
     cached_backend: &'a CacheContainer,
-    enforcer: Arc<Mutex<CachedEnforcer>>,
+    cached_adapter: CachedAdapter,
+    /// Current session based information, required as context for the abac model
     session_model: &'a SessionModel,
-    policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+    /// Policy hit cache, caches policy hits so we maintain context (works together with the enforcer)
+    policy_hit_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+    /// Repository backend for interacting with the database and other data sources
     repo_backend: Arc<dyn RepoBackend>,
 }
 
 impl<'a> QueryPolicyDecision<'a> {
     pub fn new(
         cached_backend: &'a CacheContainer,
-        enforcer: Arc<Mutex<CachedEnforcer>>,
+        cached_adapter: CachedAdapter,
         session_model: &'a SessionModel,
-        policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
+        policy_hit_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
         repo_backend: Arc<dyn RepoBackend>,
     ) -> Self {
         QueryPolicyDecision {
             cached_backend,
-            enforcer,
+            cached_adapter,
             session_model,
-            policy_cache,
+            policy_hit_cache,
             repo_backend,
         }
     }
@@ -500,12 +504,7 @@ impl<'a> QueryPolicyDecision<'a> {
         scan_output: &ScanOutput,
     ) -> Result<TranspilerInput, SecurityHandlerResult> {
         // enforcer should only be used in a single thread (which normally should be the case)
-        let mut enforcer = self.enforcer.lock().await;
-
-        // reload policy (in case of changes)
-        if let Err(err) = enforcer.load_policy().await {
-            panic!("Failed to load policy: {}", err);
-        }
+        let mut enforcer = CachedEnforcer::new(ABAC_MODEL, self.cached_adapter);
 
         // set possible output
         let mut cause: Option<Vec<TranspilerDenyCause>> = None;
@@ -546,7 +545,6 @@ impl<'a> QueryPolicyDecision<'a> {
         let mut exclude_attributes_visible_map = HashSet::new();
 
         // set enforcer dependencies
-        // todo(mrhamburg): would prefer that we do this only once, not every time. But this works for now (less efficient)
         let effector = Box::new(PdpEffector);
         enforcer.set_effector(effector);
         add_functions(enforcer.get_mut_engine());
@@ -558,8 +556,8 @@ impl<'a> QueryPolicyDecision<'a> {
                 Self::get_entity_attributes(&scan_output.objects),
             )
         }) {
-            // set new logger instance (logger is scoped to a scope)
-            let mut pm = PolicyHitManager::new(self.policy_cache.clone());
+            // set new logger instance (logger is scoped to a (query)scope)
+            let mut pm = PolicyHitManager::new(self.policy_hit_cache.clone());
             let logger = Box::new(PolicyLogger::new(pm.get_sender()));
 
             // set logger to enforcer
@@ -647,7 +645,7 @@ impl<'a> QueryPolicyDecision<'a> {
             {
                 PolicyCollectResult::Found(f) => f,
                 PolicyCollectResult::CacheInvalid => {
-                    self.policy_cache.clear();
+                    self.policy_hit_cache.clear();
                     return Err(SecurityHandlerResult::InvalidCacheError);
                 }
                 PolicyCollectResult::NotFound => {
@@ -727,18 +725,19 @@ impl<'a> QueryPolicyDecision<'a> {
 
         // prepare transpiler input
         let entities = entities.into_iter().map(|(_, v)| v).collect();
-        let query = if scan_output.query.is_some() {
-            scan_output.query.clone().unwrap()
-        } else {
-            return Err(SecurityHandlerResult::PolicyError(
-                "Query not found".to_owned(),
-            ));
+        let query = match scan_output.query.as_ref() {
+            None => {
+                return Err(SecurityHandlerResult::PolicyError(
+                    "Query not found".to_owned(),
+                ))
+            }
+            Some(query) => query,
         };
 
         Ok(TranspilerInput {
             cause,
             request_url,
-            query,
+            query: query.clone(),
             rules: masking_rules
                 .iter()
                 .map(|(scope, att_id, att_name, rule)| TranspilerInputRule {
@@ -926,7 +925,11 @@ impl<'a> QueryPolicyDecision<'a> {
         for policy_id in policy_ids {
             let found = self
                 .repo_backend
-                .generate_access_request(self.session_model.user_id.clone(), policy_id.clone())
+                .generate_access_request(
+                    self.session_model.workspace_id.clone(),
+                    self.session_model.user_id.clone(),
+                    policy_id.clone(),
+                )
                 .await
                 .map_err(|e| {
                     SecurityHandlerResult::PolicyError(format!(
@@ -1083,7 +1086,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::adapter::cached_adapter::{CacheEntity, CachedAdapter};
+    use crate::adapter::cached_adapter::{CachedAdapter, CachedPolicyRules};
     use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
     use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerResult};
     use crate::repository::RepoBackend;
@@ -1097,8 +1100,8 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::Mutex;
     use unilake_common::model::{
-        AccessPolicyModel, AccountType, DataAccessRequestResponse, EntityModel, GroupInstance,
-        GroupModel, ObjectModel, PolicyRule, SessionModel, UserModel,
+        AccessPolicyModel, AccountType, AppInfoModel, DataAccessRequestResponse, EntityModel,
+        GroupInstance, GroupModel, IpInfoModel, ObjectModel, PolicyRule, SessionModel, UserModel,
     };
     use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput};
 
@@ -1123,10 +1126,10 @@ mod tests {
         let e = Arc::new(Mutex::new(
             CachedEnforcer::new(abac_model, adapter).await.unwrap(),
         ));
-        let session_model = if session_model_input.is_none() {
-            get_session_model_input()
+        let session_model = if let Some(session_model_input) = session_model_input {
+            session_model_input
         } else {
-            session_model_input.unwrap()
+            get_session_model_input()
         };
         let policy_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>> =
             Arc::new(Box::new(DefaultCache::new(10)));
@@ -1965,10 +1968,13 @@ mod tests {
 
     fn get_default_policy_cache(
         rules: Vec<PolicyRule>,
-    ) -> (Arc<MultiLayeredCache<u64, CacheEntity>>, CachedAdapter) {
+    ) -> (
+        Arc<MultiLayeredCache<u64, CachedPolicyRules>>,
+        CachedAdapter,
+    ) {
         let mut cached = HashMap::new();
-        cached.insert(0, CacheEntity::PolicyId(100));
-        cached.insert(100, CacheEntity::Policy(rules));
+        cached.insert(0, CachedPolicyRules::PolicyId(100));
+        cached.insert(100, CachedPolicyRules::Policy(rules));
         let rules_cache = Arc::new(MultiLayeredCache::new(
             10,
             Box::new(DummyBackendProvider::from(cached)),
@@ -2316,6 +2322,7 @@ mod tests {
             &self,
             _: String,
             _: String,
+            _: String,
         ) -> Result<DataAccessRequestResponse, String> {
             Ok(DataAccessRequestResponse {
                 message: "Some message".to_string(),
@@ -2330,6 +2337,21 @@ mod tests {
             _: Option<String>,
             _: String,
         ) -> Result<bool, String> {
+            unreachable!()
+        }
+
+        async fn get_ip_info_model(&self, _: String) -> Result<Option<IpInfoModel>, String> {
+            unreachable!()
+        }
+
+        async fn get_app_info_model(&self, _: String) -> Result<Option<AppInfoModel>, String> {
+            unreachable!()
+        }
+
+        async fn get_active_policy_rules(
+            &self,
+            _: String,
+        ) -> Result<Option<CachedPolicyRules>, String> {
             unreachable!()
         }
     }

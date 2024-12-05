@@ -1,4 +1,4 @@
 pub mod app;
-mod repo;
+pub(crate) mod data;
 pub mod starrocks;
 pub mod telemetry;

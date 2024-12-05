@@ -25,3 +25,35 @@ pub fn settings_cache_invalidation_enabled() -> bool {
         .get::<bool>("cache_invalidation")
         .unwrap_or(false)
 }
+
+pub fn settings_cache_sse_endpoint() -> Option<String> {
+    global_config().get_string("cache_sse_endpoint").ok()
+}
+
+pub fn settings_cache_redis_host() -> Option<String> {
+    global_config().get_string("cache_redis_host").ok()
+}
+
+pub fn settings_cache_redis_port() -> u16 {
+    global_config()
+        .get::<u16>("cache_redis_port")
+        .unwrap_or(6379)
+}
+
+pub fn settings_cache_redis_username() -> Option<String> {
+    global_config()
+        .get_string("cache_redis_username")
+        .map(|s| s.to_string())
+        .ok()
+}
+pub fn settings_cache_redis_password() -> Option<String> {
+    global_config()
+        .get_string("cache_redis_password")
+        .map(|s| s.to_string())
+        .ok()
+}
+pub fn settings_cache_redis_database() -> u16 {
+    global_config()
+        .get::<u16>("cache_redis_database")
+        .unwrap_or(0)
+}

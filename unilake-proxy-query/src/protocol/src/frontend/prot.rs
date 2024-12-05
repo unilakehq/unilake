@@ -1,3 +1,4 @@
+use crate::backend::data::BackendHandler;
 use crate::backend::telemetry::QueryTelemetry;
 use crate::frontend::{
     tds::server_context::ServerContext, BatchRequest, LoginMessage, PreloginMessage,
@@ -5,6 +6,7 @@ use crate::frontend::{
 };
 use crate::session::SessionInfo;
 use async_trait::async_trait;
+use casbin::Adapter;
 use futures::{Sink, SinkExt};
 use std::{
     net::SocketAddr,
@@ -18,7 +20,6 @@ use tokio::{sync::Semaphore, time::sleep};
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult};
 use unilake_security::handler::SecurityHandler;
-use unilake_security::Adapter;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -185,6 +186,7 @@ impl From<&dyn SessionInfo> for SessionUserInfo {
 
 pub struct ServerInstance {
     pub ctx: Arc<ServerContext>,
+    pub backend_handler: Arc<BackendHandler>,
     inner: InnerServerInstance,
 }
 
@@ -202,6 +204,7 @@ impl ServerInstance {
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<ServerInstanceMessage>();
         ServerInstance {
             ctx: Arc::new(ctx),
+            backend_handler: Arc::new(BackendHandler::new()),
             inner: InnerServerInstance {
                 receiver: Some(receiver),
                 sender: Arc::new(sender),
@@ -221,7 +224,15 @@ impl ServerInstance {
     /// an open slot to process new messages.
     /// Note: the server instance can only be started once, will panic in case the background process has
     /// already been started
-    pub fn start_instance(mut self) -> (Arc<Self>, tokio::task::JoinHandle<()>) {
+    pub async fn start_instance(mut self) -> (Arc<Self>, tokio::task::JoinHandle<()>) {
+        tracing::info!(
+            "Starting server instance background jobs (SSE consumer, Background Workers({}))",
+            self.inner.semaphore.available_permits()
+        );
+
+        // also start the sse cache handler
+        BackendHandler::start_sse_consumer(self.backend_handler.clone()).await;
+
         async fn run(
             instance: Arc<ServerInstance>,
             mut receiver: tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>,
@@ -245,6 +256,8 @@ impl ServerInstance {
         }
         let r = self.inner.receiver.take().unwrap();
         let instance = Arc::new(self);
+
+        tracing::info!("Server instance background jobs started");
         let running_instance = instance.clone();
         (
             instance,

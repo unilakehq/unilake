@@ -63,11 +63,12 @@ serde = { version = "1.0.210", features = ["derive"] }
 casbin = { git = "https://github.com/mrhamburg/casbin-rs.git", branch = "mrhamburg-function-map", features = ["explain", "logging", "glob", "cached"] }
 backon = { version = "1.2.0" }
 moka = { version = "0.12.8", features = ["future"] }
-redis = { version = "0.27.5", features = ["futures", "tokio", "aio", "tokio-comp"] }
+redis = { version = "0.27.5", features = ["futures", "tokio", "aio", "tokio-comp", "cluster-async", "cluster"] }
 base64 = { version = "0.22.1" }
 rslock = { version = "0.6.0" }
 reqwest = { version = "0.12.9", features = ["json"] }
 config = { version = "0.14.1" }
+reqwest-eventsource = { version = "0.6.0" }
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.

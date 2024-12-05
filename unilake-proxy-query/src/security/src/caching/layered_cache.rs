@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use moka::future::Cache as MokaCache;
-use redis::aio::MultiplexedConnection;
+use redis::cluster::ClusterClient;
+use redis::cluster_async::ClusterConnection;
 use redis::{AsyncCommands, RedisResult};
 use rslock::{Lock, LockManager};
 use serde::de::DeserializeOwned;
@@ -8,7 +9,6 @@ use serde::Serialize;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
-use unilake_common::settings::global_config;
 
 fn get_key_hash<H>(key: H) -> u64
 where
@@ -180,8 +180,7 @@ where
 }
 
 pub struct RedisBackendProvider {
-    // Implement Redis connection logic
-    client: Arc<redis::Client>,
+    client: Arc<ClusterClient>,
     tenant_id: String,
     /// Can be either Policy, GroupModel, UserModel, EntityModel
     backend_type: String,
@@ -190,9 +189,9 @@ pub struct RedisBackendProvider {
 impl RedisBackendProvider {
     #[allow(dead_code)]
     pub fn new(
-        client: Arc<redis::Client>,
-        tenant_id: &str,
-        backend_type: &str,
+        client: Arc<ClusterClient>,
+        tenant_id: String,
+        backend_type: String,
     ) -> RedisBackendProvider {
         RedisBackendProvider {
             client,
@@ -201,24 +200,19 @@ impl RedisBackendProvider {
         }
     }
 
-    async fn get_connection(&self) -> Result<MultiplexedConnection, String> {
+    async fn get_connection(&self) -> Result<ClusterConnection, String> {
         self.client
-            .get_multiplexed_async_connection()
+            .get_async_connection()
             .await
             .map_err(|_| "Failed to connect to Redis".to_string())
     }
+}
 
-    fn generate_key<H>(&self, key: &H) -> String
-    where
-        H: Hash,
-    {
-        format!(
-            "{}:{}:{}",
-            self.tenant_id,
-            self.backend_type,
-            get_key_hash(key)
-        )
-    }
+fn generate_key<H>(key: &H, tenant_id: String, backend_type: String) -> String
+where
+    H: Hash,
+{
+    format!("{}:{}:{}", tenant_id, backend_type, get_key_hash(key))
 }
 
 #[async_trait]
@@ -229,7 +223,7 @@ where
 {
     async fn get(&self, key: &K) -> Result<Option<V>, String> {
         let mut conn = self.get_connection().await?;
-        let key_str = self.generate_key(key);
+        let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
         let found: RedisResult<String> = conn.get(&key_str).await;
         match found {
             Ok(t) => Ok(Some(serde_json::from_str(&t).unwrap())),
@@ -239,7 +233,7 @@ where
 
     async fn set(&self, key: &K, value: &V) -> Result<(), String> {
         let mut conn = self.get_connection().await?;
-        let key_str = self.generate_key(key);
+        let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
         conn.set(&key_str, serde_json::to_string(value).unwrap())
             .await
             .map_err(|_| "Failed to set".to_string())?;
@@ -250,7 +244,7 @@ where
 
     async fn has(&self, key: &K) -> Result<bool, String> {
         let mut conn = self.get_connection().await?;
-        let key_str = self.generate_key(key);
+        let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
         conn.exists(key_str)
             .await
             .map_err(|_| "Failed to check existence".to_string())
@@ -258,48 +252,66 @@ where
 
     async fn evict(&self, key: &K) -> Result<(), String> {
         let mut conn = self.get_connection().await?;
-        let key_str = self.generate_key(key);
+        let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
         conn.del(key_str)
             .await
             .map_err(|_| "Failed to evict".to_string())
     }
 
     fn generate_key(&self, key: &K) -> String {
-        self.generate_key(key)
+        generate_key(key, self.tenant_id.clone(), self.backend_type.clone())
+    }
+}
+
+pub struct NoOpCache {
+    tenant_id: String,
+    backend_type: String,
+}
+
+impl NoOpCache {
+    pub fn new(tenant_id: String, backend_type: String) -> NoOpCache {
+        NoOpCache {
+            tenant_id,
+            backend_type,
+        }
+    }
+}
+
+#[async_trait]
+impl<K, V> BackendProvider<K, V> for NoOpCache
+where
+    K: Send + Hash + Sync,
+    V: Send + Serialize + DeserializeOwned + Sync,
+{
+    async fn get(&self, _: &K) -> Result<Option<V>, String> {
+        Ok(None)
+    }
+
+    async fn set(&self, _: &K, _: &V) -> Result<(), String> {
+        Ok(())
+    }
+
+    async fn has(&self, _: &K) -> Result<bool, String> {
+        Ok(false)
+    }
+
+    async fn evict(&self, _: &K) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn generate_key(&self, key: &K) -> String {
+        generate_key(key, self.tenant_id.clone(), self.backend_type.clone())
     }
 }
 
 mod tests {
-    use super::*;
-    struct TestBackendProvider;
-
-    #[async_trait]
-    impl BackendProvider<Vec<String>, bool> for TestBackendProvider {
-        async fn get(&self, _: &Vec<String>) -> Result<Option<bool>, String> {
-            Ok(None)
-        }
-
-        async fn set(&self, _: &Vec<String>, _: &bool) -> Result<(), String> {
-            Ok(())
-        }
-
-        async fn has(&self, _: &Vec<String>) -> Result<bool, String> {
-            Ok(false)
-        }
-
-        async fn evict(&self, _: &Vec<String>) -> Result<(), String> {
-            Ok(())
-        }
-
-        fn generate_key(&self, key: &Vec<String>) -> String {
-            format!("{:?}", key)
-        }
-    }
+    use crate::caching::layered_cache::MultiLayeredCache;
+    use crate::caching::layered_cache::NoOpCache;
 
     #[tokio::test]
     async fn test_set_and_get() {
-        let backend = Box::new(TestBackendProvider);
-        let repo = Box::new(TestBackendProvider);
+        let backend = Box::new(NoOpCache);
+        let repo = Box::new(NoOpCache);
         let cache = MultiLayeredCache::new(1, backend, repo);
 
         cache

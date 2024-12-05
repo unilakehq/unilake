@@ -1,4 +1,5 @@
 // Note: use backon for resilience
+use crate::adapter::cached_adapter::CachedPolicyRules;
 use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
@@ -6,8 +7,8 @@ use serde::Serialize;
 use std::hash::Hash;
 use std::sync::Arc;
 use unilake_common::model::{
-    AccessPolicyModel, DataAccessRequest, DataAccessRequestResponse, EntityModel, GroupModel,
-    UserModel,
+    AccessPolicyModel, AppInfoModel, DataAccessRequest, DataAccessRequestResponse, EntityModel,
+    GroupModel, IpInfoModel, UserModel,
 };
 use unilake_common::settings::global_config;
 
@@ -34,121 +35,44 @@ impl CacheContainer {
     }
 }
 
-#[async_trait]
-impl<K, T> BackendProvider<K, AccessPolicyModel> for T
-where
-    K: ToString + Send + Sync + Hash,
-    T: RepoBackend,
-{
-    async fn get(&self, key: &K) -> Result<Option<AccessPolicyModel>, String> {
-        self.get_access_policy_model(key.to_string()).await
-    }
+macro_rules! impl_backend_provider {
+    ($get_fn:ident, $model:ty) => {
+        #[async_trait]
+        impl<K, T> BackendProvider<K, $model> for T
+        where
+            K: ToString + Send + Sync + Hash,
+            T: RepoBackend,
+        {
+            async fn get(&self, key: &K) -> Result<Option<$model>, String> {
+                self.$get_fn(key.to_string()).await
+            }
 
-    async fn set(&self, _: &K, _: &AccessPolicyModel) -> Result<(), String> {
-        unreachable!("Set is not implemented for RepoRest")
-    }
+            async fn set(&self, _: &K, _: &$model) -> Result<(), String> {
+                unreachable!("Set is not implemented for RepoRest")
+            }
 
-    async fn has(&self, key: &K) -> Result<bool, String> {
-        self.get(key)
-            .await
-            .map(|opt: Option<AccessPolicyModel>| opt.is_some())
-    }
+            async fn has(&self, key: &K) -> Result<bool, String> {
+                self.get(key).await.map(|opt: Option<$model>| opt.is_some())
+            }
 
-    async fn evict(&self, _: &K) -> Result<(), String> {
-        Ok(())
-    }
+            async fn evict(&self, _: &K) -> Result<(), String> {
+                Ok(())
+            }
 
-    fn generate_key(&self, _: &K) -> String {
-        unreachable!("Key generation is not implemented for RepoBackend")
-    }
+            fn generate_key(&self, _: &K) -> String {
+                unreachable!("Key generation is not implemented for RepoBackend")
+            }
+        }
+    };
 }
 
-#[async_trait]
-impl<K, T> BackendProvider<K, EntityModel> for T
-where
-    K: ToString + Send + Sync + Hash,
-    T: RepoBackend,
-{
-    async fn get(&self, name: &K) -> Result<Option<EntityModel>, String> {
-        self.get_entity_model(name.to_string()).await
-    }
-
-    async fn set(&self, _: &K, _: &EntityModel) -> Result<(), String> {
-        unreachable!("Set is not implemented for RepoRest")
-    }
-
-    async fn has(&self, key: &K) -> Result<bool, String> {
-        self.get(key)
-            .await
-            .map(|opt: Option<EntityModel>| opt.is_some())
-    }
-
-    async fn evict(&self, _: &K) -> Result<(), String> {
-        Ok(())
-    }
-
-    fn generate_key(&self, _: &K) -> String {
-        unreachable!("Key generation is not implemented for RepoBackend")
-    }
-}
-
-#[async_trait]
-impl<K, T> BackendProvider<K, UserModel> for T
-where
-    K: ToString + Send + Sync + Hash,
-    T: RepoBackend,
-{
-    async fn get(&self, key: &K) -> Result<Option<UserModel>, String> {
-        self.get_user_model(key.to_string()).await
-    }
-
-    async fn set(&self, _: &K, _: &UserModel) -> Result<(), String> {
-        unreachable!("Set is not implemented for RepoRest")
-    }
-
-    async fn has(&self, key: &K) -> Result<bool, String> {
-        self.get(key)
-            .await
-            .map(|opt: Option<UserModel>| opt.is_some())
-    }
-
-    async fn evict(&self, _: &K) -> Result<(), String> {
-        Ok(())
-    }
-
-    fn generate_key(&self, _: &K) -> String {
-        unreachable!("Key generation is not implemented for RepoBackend")
-    }
-}
-
-#[async_trait]
-impl<K, T> BackendProvider<K, GroupModel> for T
-where
-    K: ToString + Send + Sync + Hash,
-    T: RepoBackend,
-{
-    async fn get(&self, key: &K) -> Result<Option<GroupModel>, String> {
-        self.get_group_model(key.to_string()).await
-    }
-
-    async fn set(&self, _: &K, _: &GroupModel) -> Result<(), String> {
-        unreachable!("Set is not implemented for RepoRest")
-    }
-
-    async fn has(&self, key: &K) -> Result<bool, String> {
-        self.get(key)
-            .await
-            .map(|opt: Option<GroupModel>| opt.is_some())
-    }
-
-    async fn evict(&self, _: &K) -> Result<(), String> {
-        Ok(())
-    }
-
-    fn generate_key(&self, _: &K) -> String {
-        unreachable!("Key generation is not implemented for RepoBackend")
-    }
-}
+impl_backend_provider!(get_entity_model, EntityModel);
+impl_backend_provider!(get_access_policy_model, AccessPolicyModel);
+impl_backend_provider!(get_user_model, UserModel);
+impl_backend_provider!(get_group_model, GroupModel);
+impl_backend_provider!(get_ip_info_model, IpInfoModel);
+impl_backend_provider!(get_app_info_model, AppInfoModel);
+impl_backend_provider!(get_active_policy_rules, CachedPolicyRules);
 
 #[async_trait]
 pub trait RepoBackend: Send + Sync {
@@ -161,6 +85,7 @@ pub trait RepoBackend: Send + Sync {
     async fn get_group_model(&self, id: String) -> Result<Option<GroupModel>, String>;
     async fn generate_access_request(
         &self,
+        workspace_id: String,
         user_id: String,
         security_policy_id: String,
     ) -> Result<DataAccessRequestResponse, String>;
@@ -171,23 +96,27 @@ pub trait RepoBackend: Send + Sync {
         entity: Option<String>,
         action: String,
     ) -> Result<bool, String>;
+    async fn get_ip_info_model(&self, ip: String) -> Result<Option<IpInfoModel>, String>;
+    async fn get_app_info_model(&self, app_id: String) -> Result<Option<AppInfoModel>, String>;
+    async fn get_active_policy_rules(
+        &self,
+        rules_version: String,
+    ) -> Result<Option<CachedPolicyRules>, String>;
 }
 
 // todo: add auth (service account)
 pub struct RepoRest {
     tenant_id: String,
-    workspace_id: String,
     api_endpoint: String,
     client: reqwest::Client,
 }
 
 impl RepoRest {
     #[allow(dead_code)]
-    pub fn new(tenant_id: &str, workspace_id: &str) -> Self {
+    pub fn new(tenant_id: String) -> Self {
         let api_endpoint = global_config().get::<String>("api_endpoint").unwrap();
         RepoRest {
-            tenant_id: tenant_id.to_owned(),
-            workspace_id: workspace_id.to_owned(),
+            tenant_id,
             client: reqwest::Client::new(),
             api_endpoint,
         }
@@ -195,7 +124,7 @@ impl RepoRest {
 
     async fn get_request<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
         let url = self.get_path(path);
-        let response = match self.client.get(url.clone()).send().await {
+        let response = match self.client.get(url.as_str()).send().await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("GET Request failed: {}", e);
@@ -217,7 +146,7 @@ impl RepoRest {
         data: I,
     ) -> Result<O, String> {
         let url = self.get_path(path);
-        let response = match self.client.post(url.clone()).json(&data).send().await {
+        let response = match self.client.post(url.as_str()).json(&data).send().await {
             Ok(r) => r,
             Err(e) => {
                 tracing::error!("POST Request failed: {}", e);
@@ -235,10 +164,7 @@ impl RepoRest {
     }
 
     fn get_path(&self, path: &str) -> String {
-        format!(
-            "{}/{}/{}/{}",
-            self.api_endpoint, self.tenant_id, self.workspace_id, path
-        )
+        format!("{}/{}/{}", self.api_endpoint, self.tenant_id, path)
     }
 }
 
@@ -275,11 +201,16 @@ impl RepoBackend for RepoRest {
 
     async fn generate_access_request(
         &self,
+        workspace_id: String,
         user_id: String,
         security_policy_id: String,
     ) -> Result<DataAccessRequestResponse, String> {
         self.post_request(
-            "security/access-requests/generate",
+            format!(
+                "workspaces/{}/security/access-requests/generate",
+                workspace_id
+            )
+            .as_ref(),
             DataAccessRequest {
                 user_id,
                 security_policy_id,
@@ -301,5 +232,20 @@ impl RepoBackend for RepoRest {
         }
         url = format!("{}/{}", url, action);
         self.get_request(url.as_str()).await
+    }
+
+    async fn get_ip_info_model(&self, ip: String) -> Result<Option<IpInfoModel>, String> {
+        todo!()
+    }
+
+    async fn get_app_info_model(&self, app_id: String) -> Result<Option<AppInfoModel>, String> {
+        todo!()
+    }
+
+    async fn get_active_policy_rules(
+        &self,
+        policy_id: String,
+    ) -> Result<Option<CachedPolicyRules>, String> {
+        todo!()
     }
 }
