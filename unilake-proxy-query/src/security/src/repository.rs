@@ -114,7 +114,9 @@ pub struct RepoRest {
 impl RepoRest {
     #[allow(dead_code)]
     pub fn new(tenant_id: String) -> Self {
-        let api_endpoint = global_config().get::<String>("api_endpoint").unwrap();
+        let api_endpoint = global_config()
+            .get::<String>("API_ENDPOINT")
+            .expect("Could not find 'API_ENDPOINT' in config");
         RepoRest {
             tenant_id,
             client: reqwest::Client::new(),

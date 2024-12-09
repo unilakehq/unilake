@@ -32,7 +32,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // todo(mrhamburg): use bgworker for graceful shutdown
     let (instance, _) = {
-        let instance = ServerInstance::new(ServerContext::default());
+        let mut instance = ServerInstance::new(ServerContext::default());
+        instance.load_abac_model().await;
         let (instance, bgworker) = instance.start_instance().await;
         (instance, bgworker)
     };

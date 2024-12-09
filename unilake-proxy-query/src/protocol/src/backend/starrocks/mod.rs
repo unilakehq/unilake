@@ -4,6 +4,7 @@ mod session;
 
 use crate::backend::app::generic::FedResult;
 use crate::backend::app::{FedResultStream, FederatedFrontendHandler, FederatedRequestType};
+use crate::backend::data::BackendInstance;
 use crate::backend::starrocks::session::StarRocksSession;
 use crate::backend::telemetry::{QueryTelemetry, QueryTelemetryHandler};
 use crate::frontend::{
@@ -29,7 +30,7 @@ use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 use unilake_common::error::{TdsWireError, TdsWireResult, TokenError};
 use unilake_security::handler::{HandleResult, SecurityHandler, SecurityHandlerError};
-use unilake_security::{Cache, DefaultCache, HitRule};
+use unilake_security::repository::RepoRest;
 use unilake_sql::{PolicyAccessRequestUrl, TranspilerDenyCause};
 
 pub(crate) struct StarRocksBackend {
@@ -39,8 +40,6 @@ pub(crate) struct StarRocksBackend {
     last_activity_reported: Mutex<Option<DateTime<Utc>>>,
     activity_timeout_in_minutes: u16,
     server_instance: Arc<ServerInstance>,
-    /// cached rules for each user, key is userid
-    cached_rules: Mutex<HashMap<String, Arc<Box<dyn Cache<u64, (String, HitRule)>>>>>,
     session_count: Mutex<HashMap<String, u64>>,
     // todo: multiple cache instances are needed here for model information, and we need a single server instance based adapter for loading policy files
     // todo: the above also requires a handler for cache changes (redis mq/kafka) -> backend will handle this.
@@ -62,7 +61,6 @@ impl StarRocksBackend {
     pub async fn get_conn(&self, userid: &str) -> TdsWireResult<Conn> {
         match self.mysql_pool.get_conn().await {
             Ok(conn) => {
-                self.init_cached_rules(userid).await;
                 let mut session_counter = self.session_count.lock().await;
                 if let Some(session_count) = session_counter.get_mut(userid) {
                     *session_count += 1;
@@ -82,24 +80,6 @@ impl StarRocksBackend {
         let mut sessions = self.session_count.lock().await;
         if let Some(count) = sessions.get_mut(userid) {
             *count -= 1;
-            if *count == 0 {
-                self.clear_cached_rules(userid).await;
-            }
-        }
-    }
-
-    async fn clear_cached_rules(&self, userid: &str) {
-        let mut rules = self.cached_rules.lock().await;
-        rules.remove(userid);
-    }
-
-    async fn init_cached_rules(&self, userid: &str) {
-        let mut rules = self.cached_rules.lock().await;
-        if !rules.contains_key(userid) {
-            rules.insert(
-                userid.to_string(),
-                Arc::new(Box::new(DefaultCache::new(400))),
-            );
         }
     }
 
@@ -123,15 +103,6 @@ impl StarRocksBackend {
             tracing::error!("Failed to register connection activity: {}", err);
         }
         *self.last_activity_reported.lock().await = Some(Utc::now());
-    }
-
-    async fn get_rules_cache(&self, userid: &str) -> Arc<Box<dyn Cache<u64, (String, HitRule)>>> {
-        let rules = self.cached_rules.lock().await;
-        if let Some(cache) = rules.get(userid) {
-            cache.clone()
-        } else {
-            panic!("No rules cache found for user {}", userid);
-        }
     }
 }
 
@@ -176,7 +147,6 @@ impl StarRocksTdsHandlerFactoryInnnerState {
                     //todo(mrhamburg): determine this, don't think 60 minutes is a good fit, should be configurable (global config)
                     activity_timeout_in_minutes: 60, // Default to 60 minutes
                     server_instance: self.server_instance.clone(),
-                    cached_rules: Mutex::new(HashMap::new()),
                     session_count: Mutex::new(HashMap::new()),
                 }),
             );
@@ -224,13 +194,6 @@ impl StarRocksTdsHandlerFactoryInnnerState {
     //     // probably best to be implemented in the new query.rs environment
     //     // todo: implement this properly, send to a queue for further processing
     // }
-}
-
-enum QueryEventType {
-    Queued,
-    Running,
-    Succeeded,
-    Failed,
 }
 
 pub struct StarRocksTdsHandlerFactory {
@@ -318,36 +281,102 @@ impl StarRocksTdsHandlerFactory {
         Ok(())
     }
 
+    async fn get_backend_instance(&self, session_info: &StarRocksSession) -> Arc<BackendInstance> {
+        self.inner
+            .server_instance
+            .backend_handler
+            .get_backend_instance(session_info.get_tenant_id().to_string())
+            .await
+    }
+
     async fn get_new_security_handler(
         &self,
         session_info: &StarRocksSession,
     ) -> TdsWireResult<SecurityHandler> {
-        match self
-            .inner
-            .server_instance
-            .backend_handler
-            .get_backend_instance("")
-            .await
-        {
-            None => {
-                todo!()
-            }
-            Some(instance) => {
-                SecurityHandler::new(
-                    None, // cachedenforcer = user scoped (todo)
-                    session_info
-                        .get_session_model(
-                            instance.get_ip_info_cache(),
-                            instance.get_app_info_cache(),
-                            instance.get_active_policy_id().await.unwrap_or(0),
-                        )
-                        .await?,
-                    None, // todo: user scoped local only cache of hits
-                    instance.get_cache_container(),
-                    None, // can be created on the spot?
+        let instance = self.get_backend_instance(session_info).await;
+        Ok(SecurityHandler::new(
+            instance.get_cached_adapter(),
+            session_info
+                .get_session_model(
+                    instance.get_ip_info_cache(),
+                    instance.get_app_info_cache(),
+                    instance.get_active_policy_id().await.unwrap_or(0),
                 )
+                .await?,
+            instance
+                .get_user_hit_rules(session_info.get_sql_user_id().to_string())
+                .await,
+            instance.get_cache_container(),
+            Box::new(RepoRest::new(session_info.get_tenant_id().to_string())),
+            session_info.get_abac_model(),
+        ))
+    }
+
+    async fn secure_query<C>(
+        &self,
+        client: &mut C,
+        session_info: &StarRocksSession,
+        query_telemetry: &mut QueryTelemetryHandler,
+        query: &str,
+    ) -> TdsWireResult<Option<Arc<str>>>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        let mut security_handler = self.get_new_security_handler(session_info).await?;
+        let ulid = security_handler.get_query_id();
+        query_telemetry.set_query_id(ulid.to_string());
+
+        let values = session_info.get_values_or_default(&[
+            SESSION_VARIABLE_DIALECT,
+            SESSION_VARIABLE_CATALOG,
+            SESSION_VARIABLE_DATABASE,
+        ]);
+
+        let query = security_handler
+            .handle_query(
+                query,
+                values[SESSION_VARIABLE_DIALECT].as_ref(),
+                values[SESSION_VARIABLE_CATALOG].as_ref(),
+                values[SESSION_VARIABLE_DATABASE].as_ref(),
+            )
+            .await;
+
+        self.inner
+            .audit_on_query(session_info, security_handler)
+            .await;
+
+        match query {
+            Ok(q) => match q {
+                HandleResult::Query(q) => Ok(Some(q)),
+                HandleResult::AccessDenied(cause, access_links) => {
+                    self.handle_telemetry_request(
+                        client,
+                        query_telemetry.end().await,
+                        session_info,
+                    )
+                    .await?;
+                    self.handle_access_denied_result(client, cause, access_links)
+                        .await?;
+                    Ok(None)
+                }
+            },
+            Err(e) => {
+                self.handle_telemetry_request(client, query_telemetry.end().await, session_info)
+                    .await?;
+                self.handle_error_result(client, e).await?;
+                Ok(None)
             }
         }
+    }
+
+    /// Checks if transparent mode is enabled, used for debugging purposes
+    fn get_transparent_mode_on() -> bool {
+        if cfg!(debug_assertions) {
+            // return settings_server_transparent_mode();
+            return true;
+        }
+        // false
+        true
     }
 
     async fn handle_batch_request<C>(
@@ -361,47 +390,23 @@ impl StarRocksTdsHandlerFactory {
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
-        let mut security_handler = self.get_new_security_handler(session).await?;
-        let ulid = security_handler.get_query_id();
-        query_telemetry.set_query_id(ulid.to_string());
-
         let mut conn = session.get_conn().await?;
         tracing::debug!("Connection id: {}", conn.id());
 
-        // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
-        let values = session.get_values_or_default(&[
-            SESSION_VARIABLE_DIALECT,
-            SESSION_VARIABLE_CATALOG,
-            SESSION_VARIABLE_DATABASE,
-        ]);
-        let query = security_handler
-            .handle_query(
-                query,
-                values[SESSION_VARIABLE_DIALECT].as_ref(),
-                values[SESSION_VARIABLE_CATALOG].as_ref(),
-                values[SESSION_VARIABLE_DATABASE].as_ref(),
-            )
-            .await;
-
-        self.inner.audit_on_query(session, security_handler).await;
-        let query = match query {
-            Ok(q) => match q {
-                HandleResult::Query(q) => q,
-                HandleResult::AccessDenied(cause, access_links) => {
-                    self.handle_telemetry_request(client, query_telemetry.end().await, session)
-                        .await?;
-                    return self
-                        .handle_access_denied_result(client, cause, access_links)
-                        .await;
-                }
-            },
-            Err(e) => {
-                self.handle_telemetry_request(client, query_telemetry.end().await, session)
-                    .await?;
-                return self.handle_error_result(client, e).await;
+        // for debugging purposes we only secure the query if transparent mode is disabled
+        let query = if Self::get_transparent_mode_on() {
+            Arc::from(query)
+        } else {
+            match self
+                .secure_query(client, session, &mut query_telemetry, query)
+                .await?
+            {
+                None => return Ok(()),
+                Some(q) => q,
             }
         };
 
+        // todo(mrhamburg): handle query cancellation (either when dropping the connection or by sending an attention message to cancel)
         query_telemetry.start_backend_timer();
         let query_result = tokio::select! {
             result = conn.query_iter(query) => {
@@ -429,6 +434,8 @@ impl StarRocksTdsHandlerFactory {
         for column in result.columns_ref() {
             columns.add_column(column);
         }
+
+        // todo: add exclude time for send_token (telemetry), so we don't include network time
         self.send_token(client, columns).await?;
 
         // send rows
@@ -436,10 +443,11 @@ impl StarRocksTdsHandlerFactory {
         let mut record_bytes = 0;
         while let Ok(Some(row)) = result.next().await {
             let token_row = TokenRow::from(row);
-            self.send_token(client, token_row).await?;
-
             record_count += 1;
             record_bytes += token_row.size_in_bytes();
+
+            // todo: add exclude time for send_token (telemetry), so we don't include network time
+            self.send_token(client, token_row).await?;
         }
 
         // set and send telemetry
@@ -465,7 +473,7 @@ impl StarRocksTdsHandlerFactory {
             .get_session_variable(SESSION_VARIABLE_SEND_TELEMETRY)
             .get_value_or_default()
             .as_ref()
-            == "true"
+            != "true"
         {
             return self
                 .send_token(
@@ -500,7 +508,7 @@ impl StarRocksTdsHandlerFactory {
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
-        // todo: this could be an error like no user not found
+        // todo: this could be an error like no user found
         todo!()
     }
 }
@@ -523,6 +531,10 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
 
     async fn close_session(&self, session: &mut StarRocksSession) {
         tracing::info!("Closing session for: {}", session.session_id());
+        let instance = self.get_backend_instance(session).await;
+        instance
+            .remove_user_session(session.get_sql_user_id().to_string())
+            .await;
         session.close().await;
     }
 
@@ -727,13 +739,6 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
                 .await?;
             session_info.set_backend(backend.clone());
             session_info.set_conn(Mutex::new(conn));
-
-            // set cached rules
-            session_info.set_cached_rules(
-                backend
-                    .get_rules_cache(session_info.get_sql_user_id().as_ref())
-                    .await,
-            );
         }
 
         // register activity to backend

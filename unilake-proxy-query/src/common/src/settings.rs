@@ -5,7 +5,7 @@ pub fn global_config() -> &'static Config {
     static CONFIG: OnceLock<Config> = OnceLock::new();
     CONFIG.get_or_init(|| {
         match Config::builder()
-            .add_source(Environment::with_prefix("UNILAKE_PROXY_"))
+            .add_source(Environment::with_prefix("UNILAKE"))
             .build()
         {
             Ok(c) => c,
@@ -14,6 +14,12 @@ pub fn global_config() -> &'static Config {
             }
         }
     })
+}
+
+pub fn settings_server_transparent_mode() -> bool {
+    global_config()
+        .get::<bool>("server_transparent_mode")
+        .unwrap_or(false)
 }
 
 pub fn settings_server_name() -> String {

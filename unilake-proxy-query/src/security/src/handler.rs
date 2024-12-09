@@ -9,10 +9,9 @@ use crate::policies::{
 };
 use crate::repository::{CacheContainer, RepoBackend};
 use crate::{HitRule, ABAC_MODEL};
-use casbin::{Cache, CachedEnforcer, CoreApi};
+use casbin::{Cache, CachedEnforcer, CoreApi, DefaultModel};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
 use unilake_common::model::{
@@ -145,19 +144,21 @@ pub struct SecurityHandler {
     input_query_secured: Option<Arc<str>>,
     input_query: Option<Arc<str>>,
     session_model: SessionModel,
-    cached_enforcer: Arc<Mutex<CachedEnforcer>>,
+    cached_adapter: Option<CachedAdapter>,
     cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
     cached_backend: CacheContainer,
-    repo_backend: Arc<dyn RepoBackend>,
+    repo_backend: Box<dyn RepoBackend>,
+    abac_model: Option<DefaultModel>,
 }
 
 impl SecurityHandler {
     pub fn new(
-        cached_enforcer: Arc<Mutex<CachedEnforcer>>,
+        cached_adapter: CachedAdapter,
         session_model: SessionModel,
         cached_rules: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
         cached_backend: CacheContainer,
-        repo_backend: Arc<dyn RepoBackend>,
+        repo_backend: Box<dyn RepoBackend>,
+        abac_model: Option<DefaultModel>,
     ) -> Self {
         SecurityHandler {
             query_id: Ulid::new(),
@@ -167,11 +168,12 @@ impl SecurityHandler {
             output_query_secured: None,
             input_query_secured: None,
             input_query: None,
-            cached_enforcer,
+            cached_adapter: Some(cached_adapter),
             session_model,
             cached_rules,
             cached_backend,
             repo_backend,
+            abac_model,
         }
     }
 
@@ -269,10 +271,11 @@ impl SecurityHandler {
 
             match QueryPolicyDecision::new(
                 &self.cached_backend,
-                self.cached_enforcer.clone(),
+                self.cached_adapter.take(),
+                self.abac_model.take(),
                 &self.session_model,
                 self.cached_rules.clone(),
-                self.repo_backend.clone(),
+                &self.repo_backend,
             )
             .process(&scan_output)
             .await
@@ -465,29 +468,32 @@ enum AttributeAccess {
 struct QueryPolicyDecision<'a> {
     /// Container for cached model input (entity model, user mode, group model, etc..)
     cached_backend: &'a CacheContainer,
-    cached_adapter: CachedAdapter,
+    cached_adapter: Option<CachedAdapter>,
+    abac_model: Option<DefaultModel>,
     /// Current session based information, required as context for the abac model
     session_model: &'a SessionModel,
     /// Policy hit cache, caches policy hits so we maintain context (works together with the enforcer)
     policy_hit_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
     /// Repository backend for interacting with the database and other data sources
-    repo_backend: Arc<dyn RepoBackend>,
+    repo_backend: &'a Box<dyn RepoBackend>,
 }
 
 impl<'a> QueryPolicyDecision<'a> {
     pub fn new(
         cached_backend: &'a CacheContainer,
-        cached_adapter: CachedAdapter,
+        cached_adapter: Option<CachedAdapter>,
+        abac_model: Option<DefaultModel>,
         session_model: &'a SessionModel,
         policy_hit_cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>>,
-        repo_backend: Arc<dyn RepoBackend>,
+        repo_backend: &'a Box<dyn RepoBackend>,
     ) -> Self {
         QueryPolicyDecision {
             cached_backend,
-            cached_adapter,
             session_model,
             policy_hit_cache,
             repo_backend,
+            cached_adapter,
+            abac_model,
         }
     }
 
@@ -500,11 +506,20 @@ impl<'a> QueryPolicyDecision<'a> {
     }
 
     pub async fn process(
-        &self,
+        &mut self,
         scan_output: &ScanOutput,
     ) -> Result<TranspilerInput, SecurityHandlerResult> {
-        // enforcer should only be used in a single thread (which normally should be the case)
-        let mut enforcer = CachedEnforcer::new(ABAC_MODEL, self.cached_adapter);
+        let abac_model = if let Some(abac_model) = self.abac_model.take() {
+            // prefer to get it from the supplied value (quicker)
+            abac_model
+        } else {
+            tracing::debug!("Recreating abac model - not preferred");
+            DefaultModel::from_str(ABAC_MODEL).await.unwrap()
+        };
+
+        let mut enforcer = CachedEnforcer::new(abac_model, self.cached_adapter.take().unwrap())
+            .await
+            .unwrap();
 
         // set possible output
         let mut cause: Option<Vec<TranspilerDenyCause>> = None;
@@ -1092,13 +1107,12 @@ mod tests {
     use crate::repository::RepoBackend;
     use crate::{HitRule, ABAC_MODEL};
     use async_trait::async_trait;
-    use casbin::{Cache, CachedEnforcer, CoreApi, DefaultCache, DefaultModel};
+    use casbin::{Cache, DefaultCache, DefaultModel};
     use serde::de::DeserializeOwned;
     use serde::Serialize;
     use std::collections::HashMap;
     use std::hash::Hash;
     use std::sync::Arc;
-    use tokio::sync::Mutex;
     use unilake_common::model::{
         AccessPolicyModel, AccountType, AppInfoModel, DataAccessRequestResponse, EntityModel,
         GroupInstance, GroupModel, IpInfoModel, ObjectModel, PolicyRule, SessionModel, UserModel,
@@ -1123,9 +1137,6 @@ mod tests {
         )
         .await;
         let (_, adapter) = get_default_policy_cache(rules);
-        let e = Arc::new(Mutex::new(
-            CachedEnforcer::new(abac_model, adapter).await.unwrap(),
-        ));
         let session_model = if let Some(session_model_input) = session_model_input {
             session_model_input
         } else {
@@ -1135,15 +1146,16 @@ mod tests {
             Arc::new(Box::new(DefaultCache::new(10)));
 
         // set repo backend
-        let fake_backend = Arc::new(FakeRepoBackend {});
+        let fake_backend: Box<dyn RepoBackend> = Box::new(FakeRepoBackend {});
 
         // set sut
-        let sut = QueryPolicyDecision::new(
+        let mut sut = QueryPolicyDecision::new(
             &cache_container,
-            e.clone(),
+            Some(adapter),
+            Some(abac_model),
             &session_model,
             policy_cache.clone(),
-            fake_backend,
+            &fake_backend,
         );
 
         // process results

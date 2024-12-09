@@ -1,4 +1,4 @@
-pub(crate) static ABAC_MODEL: &str = include_str!("../abac_model.conf");
+pub static ABAC_MODEL: &str = include_str!("../abac_model.conf");
 
 pub mod adapter;
 pub mod caching;

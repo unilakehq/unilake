@@ -6,7 +6,7 @@ use crate::session::{
     SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SECURITY_IMPERSONATE,
     SESSION_VARIABLE_SEND_TELEMETRY,
 };
-use casbin::{Cache, CachedEnforcer, CoreApi};
+use casbin::{Cache, CoreApi, DefaultModel};
 use chrono::Datelike;
 use mysql_async::Conn;
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult};
 use unilake_common::model::{AppInfoModel, IpInfoModel, SessionModel};
 use unilake_security::caching::layered_cache::MultiLayeredCache;
-use unilake_security::{HitRule, ABAC_MODEL};
+use unilake_security::HitRule;
 
 pub struct StarRocksSession {
     socket_addr: SocketAddr,
@@ -41,15 +41,14 @@ pub struct StarRocksSession {
     endpoint: Arc<str>,
     backend: Option<Arc<StarRocksBackend>>,
     conn: Option<Mutex<Conn>>,
-    // todo: this needs a better spot, also requires the latest policy_id
-    cached_enforcer: Arc<Mutex<CachedEnforcer>>,
     cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
+    server_instance: Arc<ServerInstance>,
 }
 
 impl StarRocksSession {
     pub fn new(
         socket_addr: SocketAddr,
-        instance: Arc<ServerInstance>,
+        server_instance: Arc<ServerInstance>,
         conn: Option<Mutex<Conn>>,
         cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
     ) -> Self {
@@ -58,13 +57,13 @@ impl StarRocksSession {
         // ));
         StarRocksSession {
             socket_addr,
-            packet_size: Arc::new(AtomicU16::new(instance.ctx.packet_size)),
-            session_id: instance.next_session_id(),
-            sql_user_id: None,
+            packet_size: Arc::new(AtomicU16::new(server_instance.ctx.packet_size)),
+            session_id: server_instance.next_session_id(),
+            sql_user_id: Some(Arc::from("fake_user_id")),
             state: TdsSessionState::default(),
             database: None,
             schema: None,
-            tds_server_context: instance.ctx.clone(),
+            tds_server_context: server_instance.ctx.clone(),
             client_nonce: None,
             server_nonce: None,
             session_variables: StarRocksSession::get_default_session_variable(),
@@ -75,18 +74,19 @@ impl StarRocksSession {
             workspace_id: Arc::from(""),
             domain_id: Arc::from(""),
             endpoint: Arc::from(""),
-            cached_enforcer: Arc::new(Mutex::new(CachedEnforcer::new(
-                ABAC_MODEL,
-                instance.get_policy_adapter(),
-            ))),
             conn,
             cached_rules,
+            server_instance,
             backend: None,
         }
     }
 
     pub fn set_conn(&mut self, conn: Mutex<Conn>) {
         self.conn = Some(conn);
+    }
+
+    pub fn get_tenant_id(&self) -> Arc<str> {
+        self.tenant_id.clone()
     }
 
     pub fn has_conn(&self) -> bool {
@@ -212,8 +212,8 @@ impl StarRocksSession {
         })
     }
 
-    pub fn get_cached_enforcer(&self) -> Arc<Mutex<CachedEnforcer>> {
-        todo!()
+    pub fn get_abac_model(&self) -> Option<DefaultModel> {
+        self.server_instance.get_abac_model()
     }
 }
 

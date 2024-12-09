@@ -107,7 +107,7 @@ impl Decoder for TdsWireMessageServerCodec {
             return Ok(None);
         }
 
-        // do decoding
+        // perform decoding
         let result = TdsFrontendRequest::decode(src);
         if let Err(ref e) = result {
             tracing::error!("Error decoding message: {}", e);

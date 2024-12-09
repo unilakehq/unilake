@@ -12,7 +12,7 @@ impl TdsFrontendRequest {
     pub fn decode(buf: &mut BytesMut) -> TdsWireResult<Option<Self>> {
         let mut messages = Vec::new();
         while buf.has_remaining() {
-            let header = header::PacketHeader::decode(buf)?;
+            let header = PacketHeader::decode(buf)?;
             tracing::debug!(
                 message = "Receiving packet",
                 message_type = header.ty.to_string(),

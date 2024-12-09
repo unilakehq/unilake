@@ -310,8 +310,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_and_get() {
-        let backend = Box::new(NoOpCache);
-        let repo = Box::new(NoOpCache);
+        let backend = Box::new(NoOpCache::new("".to_owned(), "".to_owned()));
+        let repo = Box::new(NoOpCache::new("".to_owned(), "".to_owned()));
         let cache = MultiLayeredCache::new(1, backend, repo);
 
         cache

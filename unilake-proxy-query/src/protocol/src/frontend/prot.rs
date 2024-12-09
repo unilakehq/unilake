@@ -6,7 +6,7 @@ use crate::frontend::{
 };
 use crate::session::SessionInfo;
 use async_trait::async_trait;
-use casbin::Adapter;
+use casbin::{Adapter, DefaultModel};
 use futures::{Sink, SinkExt};
 use std::{
     net::SocketAddr,
@@ -20,6 +20,7 @@ use tokio::{sync::Semaphore, time::sleep};
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TdsWireResult};
 use unilake_security::handler::SecurityHandler;
+use unilake_security::ABAC_MODEL;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -187,6 +188,7 @@ impl From<&dyn SessionInfo> for SessionUserInfo {
 pub struct ServerInstance {
     pub ctx: Arc<ServerContext>,
     pub backend_handler: Arc<BackendHandler>,
+    default_model: Option<DefaultModel>,
     inner: InnerServerInstance,
 }
 
@@ -211,7 +213,18 @@ impl ServerInstance {
                 active_sessions: AtomicUsize::new(0),
                 semaphore: Arc::new(Semaphore::new(4)),
             },
+            default_model: None,
         }
+    }
+
+    /// Load ABAC model from a string and initialize the server instance with it.
+    pub async fn load_abac_model(&mut self) {
+        self.default_model = Some(DefaultModel::from_str(ABAC_MODEL).await.unwrap())
+    }
+
+    pub fn get_abac_model(&self) -> Option<DefaultModel> {
+        // expect cloning to be faster than re-initializing the model, since casbin takes ownership of the model we can't reference it
+        self.default_model.clone()
     }
 
     async fn inner_process_message(&self, msg: ServerInstanceMessage) {

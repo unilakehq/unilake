@@ -1,5 +1,6 @@
 // intent is that here we define the logic to maintain these caches and handle their updates via sse (single sse consumer for all caches) -> use remove_local(key) function on the cache
 
+use casbin::{Cache, DefaultCache};
 use redis::cluster::{ClusterClient, ClusterClientBuilder};
 use reqwest_eventsource::{Event, EventSource};
 use serde::de::DeserializeOwned;
@@ -21,6 +22,7 @@ use unilake_security::caching::layered_cache::{
     BackendProvider, MultiLayeredCache, NoOpCache, RedisBackendProvider,
 };
 use unilake_security::repository::{CacheContainer, RepoRest};
+use unilake_security::HitRule;
 
 pub struct BackendInstance {
     tenant_id: String,
@@ -31,6 +33,7 @@ pub struct BackendInstance {
     ip_info_model: Arc<Box<MultiLayeredCache<String, IpInfoModel>>>,
     app_info_model: Arc<Box<MultiLayeredCache<String, AppInfoModel>>>,
     policy_cache: Arc<MultiLayeredCache<u64, CachedPolicyRules>>,
+    user_rule_hits: RwLock<HashMap<String, (usize, Arc<Box<dyn Cache<u64, (String, HitRule)>>>)>>,
 }
 
 impl BackendInstance {
@@ -47,6 +50,39 @@ impl BackendInstance {
     /// Get the user model cache from the multi-layered cache
     pub fn get_ip_info_cache(&self) -> Arc<Box<MultiLayeredCache<String, IpInfoModel>>> {
         self.ip_info_model.clone()
+    }
+
+    pub async fn add_user_session(&self, sql_userid: String) {
+        if let Some(items) = self.user_rule_hits.write().await.get_mut(&sql_userid) {
+            items.0 += 1;
+        }
+    }
+
+    pub async fn remove_user_session(&self, sql_userid: String) {
+        let mut items = self.user_rule_hits.write().await;
+        if let Some((counter, _)) = items.get_mut(&sql_userid) {
+            *counter -= 1;
+            if *counter == 0 {
+                items.remove(&sql_userid);
+            }
+        }
+    }
+
+    /// Cached policy hits for improved speed (no need to evaluate the rules again)
+    /// Scoped to a user, can be used over multiple sessions from the same user. This cache
+    /// is local and not distributed. When the last session of a user is dropped, the cache is also dropped.
+    pub async fn get_user_hit_rules(
+        &self,
+        sql_userid: String,
+    ) -> Arc<Box<dyn Cache<u64, (String, HitRule)>>> {
+        if let Some(cached_hits) = self.user_rule_hits.read().await.get(&sql_userid) {
+            return cached_hits.1.clone();
+        }
+        let mut items = self.user_rule_hits.write().await;
+        let cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>> =
+            Arc::new(Box::new(DefaultCache::new(100)));
+        items.insert(sql_userid, (1, cache.clone()));
+        cache
     }
 
     /// Get the app info cache from the multi-layered cache
@@ -149,10 +185,12 @@ impl BackendHandler {
         }
     }
 
-    pub async fn add_tenant(&self, tenant_id: String) {
+    /// Add a new tenant to the backend handler
+    async fn add_tenant(&self, tenant_id: String) -> Arc<BackendInstance> {
         let local_cap = 100;
         let backend_instance = BackendInstance {
             tenant_id: tenant_id.to_owned(),
+            user_rule_hits: RwLock::new(HashMap::new()),
             user_model: Arc::new(Box::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "user_model".to_owned()),
@@ -190,19 +228,22 @@ impl BackendHandler {
             )),
         };
 
+        let backend_instance = Arc::new(backend_instance);
         self.instances
             .write()
             .await
-            .insert(tenant_id, Arc::new(backend_instance));
+            .insert(tenant_id, Arc::clone(&backend_instance));
+
+        backend_instance
     }
 
     /// Get the backend instance for a specific tenant.
-    pub async fn get_backend_instance(&self, tenant_id: &str) -> Option<Arc<BackendInstance>> {
-        self.instances
-            .read()
-            .await
-            .get(&tenant_id.to_string())
-            .cloned()
+    /// NOTE: will add the tenant if it doesn't exist.
+    pub async fn get_backend_instance(&self, tenant_id: String) -> Arc<BackendInstance> {
+        if let Some(instance) = self.instances.read().await.get(&tenant_id) {
+            return instance.clone();
+        }
+        self.add_tenant(tenant_id).await
     }
 
     /// Clears all instances for a specific tenant.
@@ -216,27 +257,26 @@ impl BackendHandler {
                 tenant_id,
                 forced
             );
-            if let Some(instance) = self.get_backend_instance(&tenant_id).await {
-                instance.clear_local_data();
-            }
+            self.get_backend_instance(tenant_id.to_string())
+                .await
+                .clear_local_data();
         }
     }
 
     async fn on_sse_action(&self, update: SseInvalidateRequestDto) {
         tracing::info!("Received SSE action: {:?}", update);
 
-        if let Some(instance) = self.get_backend_instance(&update.tenant_id).await {
-            match update.cache_type.as_str() {
-                "user" => instance.user_model.remove_local(&update.key).await,
-                "group" => instance.group_model.remove_local(&update.key).await,
-                "entity" => instance.entity_model.remove_local(&update.key).await,
-                "access_policy" => instance.access_policy_model.remove_local(&update.key).await,
-                "ip_info" => instance.ip_info_model.remove_local(&update.key).await,
-                "app_info" => instance.app_info_model.remove_local(&update.key).await,
-                "policy" => instance.policy_cache.clear(),
-                _ => {
-                    tracing::warn!("Unknown cache type: {}", update.cache_type);
-                }
+        let instance = self.get_backend_instance(update.tenant_id).await;
+        match update.cache_type.as_str() {
+            "user" => instance.user_model.remove_local(&update.key).await,
+            "group" => instance.group_model.remove_local(&update.key).await,
+            "entity" => instance.entity_model.remove_local(&update.key).await,
+            "access_policy" => instance.access_policy_model.remove_local(&update.key).await,
+            "ip_info" => instance.ip_info_model.remove_local(&update.key).await,
+            "app_info" => instance.app_info_model.remove_local(&update.key).await,
+            "policy" => instance.policy_cache.clear(),
+            _ => {
+                tracing::warn!("Unknown cache type: {}", update.cache_type);
             }
         }
     }
