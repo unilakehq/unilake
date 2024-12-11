@@ -29,6 +29,9 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 use unilake_common::error::{TdsWireError, TdsWireResult, TokenError};
+use unilake_common::settings::{
+    settings_backend_register_activity_timeout_in_seconds, settings_server_transparent_mode,
+};
 use unilake_security::handler::{HandleResult, SecurityHandler, SecurityHandlerError};
 use unilake_security::repository::RepoRest;
 use unilake_sql::{PolicyAccessRequestUrl, TranspilerDenyCause};
@@ -47,6 +50,7 @@ pub(crate) struct StarRocksBackend {
 
 impl StarRocksBackend {
     /// Checks if the current connection pool has not been used and has timed out. If so, the connection pool can be removed and the backend instance can be shutdown.
+    // todo(mrhamburg): determine if this is necessary or if we can remove it entirely
     pub async fn is_timed_out(&self) -> bool {
         let last_activity = self.last_activity_reported.lock().await;
         match last_activity.as_ref() {
@@ -84,11 +88,10 @@ impl StarRocksBackend {
     }
 
     async fn register_activity(&self) {
-        // only every 15 seconds
-        // todo(mrhamburg): make sure this 15 seconds interval is configurable
         if let Some(last_request) = *self.last_activity_reported.lock().await {
+            let timeout = settings_backend_register_activity_timeout_in_seconds();
             let elapsed = Utc::now().signed_duration_since(last_request);
-            if elapsed < TimeDelta::seconds(15) {
+            if elapsed < TimeDelta::seconds(timeout) {
                 return;
             }
         }
@@ -372,8 +375,7 @@ impl StarRocksTdsHandlerFactory {
     /// Checks if transparent mode is enabled, used for debugging purposes
     fn get_transparent_mode_on() -> bool {
         if cfg!(debug_assertions) {
-            // return settings_server_transparent_mode();
-            return true;
+            return settings_server_transparent_mode();
         }
         // false
         true

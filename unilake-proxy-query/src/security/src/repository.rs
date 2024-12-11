@@ -10,7 +10,7 @@ use unilake_common::model::{
     AccessPolicyModel, AppInfoModel, DataAccessRequest, DataAccessRequestResponse, EntityModel,
     GroupModel, IpInfoModel, UserModel,
 };
-use unilake_common::settings::global_config;
+use unilake_common::settings::settings_server_api_endpoint;
 
 pub struct CacheContainer {
     pub user_model: Arc<Box<MultiLayeredCache<String, UserModel>>>,
@@ -114,9 +114,7 @@ pub struct RepoRest {
 impl RepoRest {
     #[allow(dead_code)]
     pub fn new(tenant_id: String) -> Self {
-        let api_endpoint = global_config()
-            .get::<String>("API_ENDPOINT")
-            .expect("Could not find 'API_ENDPOINT' in config");
+        let api_endpoint = settings_server_api_endpoint();
         RepoRest {
             tenant_id,
             client: reqwest::Client::new(),
@@ -248,6 +246,7 @@ impl RepoBackend for RepoRest {
         &self,
         policy_id: String,
     ) -> Result<Option<CachedPolicyRules>, String> {
-        todo!()
+        // todo!()
+        Ok(Some(CachedPolicyRules::PolicyId(1)))
     }
 }

@@ -12,3 +12,4 @@ publish.workspace = true
 thiserror = { workspace = true }
 serde = { workspace = true }
 config = { workspace = true }
+tracing = { workspace = true }

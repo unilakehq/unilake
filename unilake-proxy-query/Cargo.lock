@@ -3229,6 +3229,7 @@ dependencies = [
  "config",
  "serde",
  "thiserror 1.0.63",
+ "tracing",
 ]
 
 [[package]]

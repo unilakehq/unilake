@@ -8,7 +8,10 @@ pub fn global_config() -> &'static Config {
             .add_source(Environment::with_prefix("UNILAKE"))
             .build()
         {
-            Ok(c) => c,
+            Ok(c) => {
+                tracing::info!("Loaded configuration: {:?}", c.clone());
+                c
+            }
             Err(e) => {
                 panic!("Failed to load configuration: {}", e);
             }
@@ -24,6 +27,12 @@ pub fn settings_server_transparent_mode() -> bool {
 
 pub fn settings_server_name() -> String {
     global_config().get_string("name").unwrap().to_string()
+}
+
+pub fn settings_server_api_endpoint() -> String {
+    global_config()
+        .get_string("api_endpoint")
+        .expect("Could not find 'api_endpoint' in config")
 }
 
 pub fn settings_cache_invalidation_enabled() -> bool {
@@ -62,4 +71,10 @@ pub fn settings_cache_redis_database() -> u16 {
     global_config()
         .get::<u16>("cache_redis_database")
         .unwrap_or(0)
+}
+
+pub fn settings_backend_register_activity_timeout_in_seconds() -> i64 {
+    global_config()
+        .get::<i64>("backend_register_activity_timeout")
+        .unwrap_or(15)
 }

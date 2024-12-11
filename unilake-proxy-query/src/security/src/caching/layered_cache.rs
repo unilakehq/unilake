@@ -201,10 +201,13 @@ impl RedisBackendProvider {
     }
 
     async fn get_connection(&self) -> Result<ClusterConnection, String> {
-        self.client
-            .get_async_connection()
-            .await
-            .map_err(|_| "Failed to connect to Redis".to_string())
+        match self.client.get_async_connection().await {
+            Ok(conn) => Ok(conn),
+            Err(e) => {
+                tracing::error!("Error getting connection from Redis: {}", e);
+                Err(format!("Error getting connection from Redis: {}", e))
+            }
+        }
     }
 }
 
@@ -224,6 +227,7 @@ where
     async fn get(&self, key: &K) -> Result<Option<V>, String> {
         let mut conn = self.get_connection().await?;
         let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
+        tracing::trace!("Getting data from Redis for key: {}.", key_str);
         let found: RedisResult<String> = conn.get(&key_str).await;
         match found {
             Ok(t) => Ok(Some(serde_json::from_str(&t).unwrap())),
@@ -234,6 +238,7 @@ where
     async fn set(&self, key: &K, value: &V) -> Result<(), String> {
         let mut conn = self.get_connection().await?;
         let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
+        tracing::trace!("Setting data from Redis for key: {}.", key_str);
         conn.set(&key_str, serde_json::to_string(value).unwrap())
             .await
             .map_err(|_| "Failed to set".to_string())?;
@@ -245,6 +250,7 @@ where
     async fn has(&self, key: &K) -> Result<bool, String> {
         let mut conn = self.get_connection().await?;
         let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
+        tracing::trace!("Checking has data from Redis for key: {}.", key_str);
         conn.exists(key_str)
             .await
             .map_err(|_| "Failed to check existence".to_string())
@@ -253,6 +259,7 @@ where
     async fn evict(&self, key: &K) -> Result<(), String> {
         let mut conn = self.get_connection().await?;
         let key_str = generate_key(key, self.tenant_id.clone(), self.backend_type.clone());
+        tracing::trace!("Deleting data from Redis for key: {}.", key_str);
         conn.del(key_str)
             .await
             .map_err(|_| "Failed to evict".to_string())

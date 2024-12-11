@@ -143,8 +143,12 @@ impl BackendHandler {
     }
 
     fn get_redis_client() -> Option<Arc<ClusterClient>> {
+        tracing::info!("Initializing Redis client");
         match settings_cache_redis_host() {
-            None => None,
+            None => {
+                tracing::info!("Redis cache is disabled. Falling back to local caching only.");
+                None
+            }
             Some(v) => {
                 let connections = v
                     .split(',')
@@ -155,7 +159,10 @@ impl BackendHandler {
                     .password(settings_cache_redis_password().unwrap_or("".to_owned()))
                     .build()
                 {
-                    Ok(c) => Some(Arc::new(c)),
+                    Ok(c) => {
+                        tracing::info!("Successfully created Redis client");
+                        Some(Arc::new(c))
+                    }
                     Err(e) => {
                         tracing::error!("Error creating redis client, falling back to local caching only. Error message: {}", e);
                         None
@@ -238,7 +245,7 @@ impl BackendHandler {
     }
 
     /// Get the backend instance for a specific tenant.
-    /// NOTE: will add the tenant if it doesn't exist.
+    /// will add the tenant if it doesn't exist.
     pub async fn get_backend_instance(&self, tenant_id: String) -> Arc<BackendInstance> {
         if let Some(instance) = self.instances.read().await.get(&tenant_id) {
             return instance.clone();

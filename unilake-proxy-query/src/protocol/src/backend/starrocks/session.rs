@@ -178,7 +178,7 @@ impl StarRocksSession {
         let impersonate_user_id = if let SessionVariable::Some(v) =
             self.get_session_variable(SESSION_VARIABLE_SECURITY_IMPERSONATE)
         {
-            Some(v.as_ref().clone().to_string())
+            Some(v.to_string())
         } else {
             None
         };
