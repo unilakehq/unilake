@@ -97,6 +97,7 @@ pub trait RepoBackend: Send + Sync {
         action: String,
     ) -> Result<bool, String>;
     async fn get_ip_info_model(&self, ip: String) -> Result<Option<IpInfoModel>, String>;
+    // todo(mrhamburg): I think this should be app_name instead, since here we don't know the id of an APP, we only get the name of the connecting app
     async fn get_app_info_model(&self, app_id: String) -> Result<Option<AppInfoModel>, String>;
     async fn get_active_policy_rules(
         &self,

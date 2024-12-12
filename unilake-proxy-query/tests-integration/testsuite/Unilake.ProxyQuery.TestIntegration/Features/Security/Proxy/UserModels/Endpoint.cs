@@ -1,0 +1,24 @@
+namespace Unilake.ProxyQuery.TestIntegration.Features.Security.Proxy.UserModels;
+
+public class Endpoint : Endpoint<UserModelRequestRouteParams, ProxyUserModelDto>
+{
+    public override void Configure()
+    {
+        AllowAnonymous();
+        Get("/tenants/{tenantId}/security/proxy/user-models/{id}");
+    }
+
+    public override async Task HandleAsync(UserModelRequestRouteParams req, CancellationToken ct)
+    {
+        var found = UserModelsTestData.GetTestData(req.TenantId).FirstOrDefault(i => i.Id == req.Id);
+        switch (found != null)
+        {
+            case true:
+                await SendAsync(found, cancellation: ct);
+                break;
+            case false:
+                await SendNotFoundAsync(cancellation: ct);
+                break;
+        }
+    }
+}
