@@ -14,7 +14,7 @@ def scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutput:
         parser_error = ParserError.from_sqlglot_optimize_error(e)
         return ScanOutput.from_parser_error(parser_error)
     except Exception as e:
-        parser_error = ParserError(type="INTERNAL_ERROR", message=str(e), errors=[])
+        parser_error = ParserError(error_type="INTERNAL_ERROR", message=str(e), errors=[])
         return ScanOutput.from_parser_error(parser_error)
 
 def transpile(source: str | dict | TranspilerInput, secure_output: bool = False) -> TranspilerOutput:
@@ -24,7 +24,7 @@ def transpile(source: str | dict | TranspilerInput, secure_output: bool = False)
         parser_error = ParserError.from_sqlglot_parse_error(e)
         return TranspilerOutput.from_parser_error(parser_error)
     except Exception as e:
-        parser_error = ParserError(type="INTERNAL_ERROR", message=str(e), errors=[])
+        parser_error = ParserError(error_type="INTERNAL_ERROR", message=str(e), errors=[])
         return TranspilerOutput.from_parser_error(parser_error)
 
 def secure_query(sql: str, dialect: str, catalog: str, database: str) -> str:

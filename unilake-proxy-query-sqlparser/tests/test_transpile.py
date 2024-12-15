@@ -1,5 +1,6 @@
 import json
 import unittest
+
 from sqlparser import transpile, scan
 
 # todo: make sure transpiling of windows functions are supported! so order by x is also hashed(x)
@@ -29,7 +30,7 @@ class TestTranspile(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "rule_id": "some_guid",
+                    "policy_id": "some_guid",
                     "rule_definition": {"name": "xxhash3", "properties": None},
                 }
             ],
@@ -53,7 +54,7 @@ class TestTranspile(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "rule_id": "some_guid",
+                    "policy_id": "some_guid",
                     "rule_definition": {"name": "xxhash3", "properties": None},
                 }
             ],
@@ -83,7 +84,7 @@ class TestTranspile(unittest.TestCase):
             "filters": [{
                 "scope": 0,
                 "attribute": '"b"."a"',
-                "filter_id": "some_guid",
+                "policy_id": "some_guid",
                 "filter_definition": {
                     "expression": "? > 0"
                 }
@@ -113,14 +114,14 @@ class TestTranspile(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "rule_id": "some_guid",
+                    "policy_id": "some_guid",
                     "rule_definition": {"name": "xxhash3", "properties": None},
                 }
             ],
             "filters": [{
                 "scope": 0,
                 "attribute": '"b"."a"',
-                "filter_id": "some_guid",
+                "policy_id": "some_guid",
                 "filter_definition": {
                     "expression": "? > 0"
                 }
@@ -152,14 +153,14 @@ class TestTranspile(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "rule_id": "some_guid",
+                    "policy_id": "some_guid",
                     "rule_definition": {"name": "xxhash3", "properties": None},
                 }
             ],
             "filters": [{
                 "scope": 0,
                 "attribute": '"b"."a"',
-                "filter_id": "some_guid",
+                "policy_id": "some_guid",
                 "filter_definition": {
                     "expression": "? > 0"
                 }
@@ -208,4 +209,3 @@ class TestTranspile(unittest.TestCase):
             "SELECT `b`.`firstname` AS `firstname` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`username` = '?' AND `b`.`country` IN ('?', '?') AND `b`.`age` > ?",
             output.sql_transformed,
         )
-

@@ -301,6 +301,7 @@ impl SecurityHandler {
             }
         }
 
+        // unwrap: we can only get here if the above loop was successful
         let transpiler_input = transpiler_input.unwrap();
 
         // check for any security violations
@@ -844,6 +845,7 @@ impl<'a> QueryPolicyDecision<'a> {
     }
 
     /// Checks if a stricter policy is preferred based on the policy rules found
+    /// defaults to strict, if no prio strict is found, will return Ok(true)
     async fn check_policy_rules_prio(
         &self,
         policies: &[PolicyFound],
@@ -863,13 +865,13 @@ impl<'a> QueryPolicyDecision<'a> {
                     )))
                 }
                 Some(p) => {
-                    if p.prio_strict {
-                        return Ok(true);
+                    if !p.prio_strict {
+                        return Ok(false);
                     }
                 }
             }
         }
-        Ok(false)
+        Ok(true)
     }
 
     /// Gets the full object name, attribute name and whether it's a starred attribute
@@ -1319,6 +1321,144 @@ mod tests {
         assert_eq!(1, result.rules.len());
         let rule = &result.rules[0];
         assert_eq!(rule.policy_id, "masked_id");
+        assert_eq!(rule.attribute_id, "object_id_1");
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_one_masked_column_access_same_policy_id() {
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.*",
+                "TagExists(r.object, \"pii::id\")",
+                "allow",
+                // {"name": "replace_null"}
+                "eyJuYW1lIjogInJlcGxhY2VfbnVsbCJ9",
+                "policy_id",
+            ),
+        ];
+
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "policy_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "policy_id".to_string(),
+                prio_strict: true,
+                expire_datetime_utc: 0,
+                normalized_name: "policy_id".to_string(),
+            },
+        );
+
+        let result =
+            run_default_test(policies, None, None, None, None, Some(policy_models), None).await;
+
+        // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.visible_schema.is_some());
+        assert!(result.query.len() > 0);
+
+        assert!(result.filters.is_empty());
+        assert_eq!(1, result.rules.len());
+        let rule = &result.rules[0];
+        assert_eq!(rule.policy_id, "policy_id");
+        assert_eq!(rule.attribute_id, "object_id_1");
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_multiple_policies_loose_policy_choice() {
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id_1",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.*",
+                "TagExists(r.object, \"pii::id\")",
+                "allow",
+                // {"name": "rounding", "properties": {"value": "2"}}
+                "eyJuYW1lIjogInJvdW5kaW5nIiwgInByb3BlcnRpZXMiOiB7InZhbHVlIjogIjIifX0=",
+                "policy_id_1",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.*",
+                "TagExists(r.object, \"pii::id\")",
+                "allow",
+                // {"name": "left", "properties": {"len": "3"}}
+                "eyJuYW1lIjogImxlZnQiLCAicHJvcGVydGllcyI6IHsibGVuIjogIjMifX0=",
+                "policy_id_2",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.*",
+                "TagExists(r.object, \"pii::id\")",
+                "allow",
+                // {"name": "xxhash3", "properties": null}
+                "eyJuYW1lIjogInh4aGFzaDMiLCAicHJvcGVydGllcyI6IG51bGx9",
+                "policy_id_2",
+            ),
+        ];
+
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "policy_id_1".to_string(),
+            AccessPolicyModel {
+                policy_id: "policy_id_1".to_string(),
+                prio_strict: false,
+                expire_datetime_utc: 0,
+                normalized_name: "policy_id_1".to_string(),
+            },
+        );
+
+        policy_models.insert(
+            "policy_id_2".to_string(),
+            AccessPolicyModel {
+                policy_id: "policy_id_2".to_string(),
+                prio_strict: false,
+                expire_datetime_utc: 0,
+                normalized_name: "policy_id_2".to_string(),
+            },
+        );
+
+        let result =
+            run_default_test(policies, None, None, None, None, Some(policy_models), None).await;
+
+        // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
+        assert!(result.is_ok());
+        let result = result.ok().unwrap();
+        assert!(result.request_url.is_none());
+        assert!(result.cause.is_none());
+        assert!(result.visible_schema.is_some());
+        assert!(result.query.len() > 0);
+
+        assert!(result.filters.is_empty());
+        assert_eq!(1, result.rules.len());
+        let rule = &result.rules[0];
+        assert_eq!(rule.policy_id, "policy_id_1");
         assert_eq!(rule.attribute_id, "object_id_1");
     }
 

@@ -9,7 +9,7 @@ pub fn global_config() -> &'static Config {
             .build()
         {
             Ok(c) => {
-                tracing::info!("Loaded configuration: {:?}", c.clone());
+                tracing::debug!("Loaded configuration: {:?}", c.clone());
                 c
             }
             Err(e) => {
@@ -39,10 +39,6 @@ pub fn settings_cache_invalidation_enabled() -> bool {
     global_config()
         .get::<bool>("cache_invalidation")
         .unwrap_or(false)
-}
-
-pub fn settings_cache_sse_endpoint() -> Option<String> {
-    global_config().get_string("cache_sse_endpoint").ok()
 }
 
 pub fn settings_cache_redis_host() -> Option<String> {

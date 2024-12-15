@@ -236,11 +236,15 @@ impl RepoBackend for RepoRest {
     }
 
     async fn get_ip_info_model(&self, ip: String) -> Result<Option<IpInfoModel>, String> {
-        todo!()
+        let mut url = format!("todo: determine path");
+        url = format!("{}/{}", url, ip);
+        self.get_request(url.as_str()).await
     }
 
     async fn get_app_info_model(&self, app_id: String) -> Result<Option<AppInfoModel>, String> {
-        todo!()
+        let mut url = format!("todo: determine path");
+        url = format!("{}/{}", url, app_id);
+        self.get_request(url.as_str()).await
     }
 
     async fn get_active_policy_rules(

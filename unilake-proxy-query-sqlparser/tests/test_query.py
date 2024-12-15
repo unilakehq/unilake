@@ -11,7 +11,7 @@ class TestQuery(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "filter_id": "some_guid",
+                    "policy_id": "some_guid",
                     "filter_definition": filters,
                 }
             ]
@@ -32,7 +32,7 @@ class TestQuery(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "rule_id": "some_guid",
+                    "policy_id": "some_guid",
                     "rule_definition": rule_definition,
                 }
             ]

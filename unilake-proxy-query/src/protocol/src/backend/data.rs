@@ -15,7 +15,7 @@ use unilake_common::model::{
 };
 use unilake_common::settings::{
     settings_cache_invalidation_enabled, settings_cache_redis_host, settings_cache_redis_password,
-    settings_cache_redis_port, settings_cache_redis_username, settings_cache_sse_endpoint,
+    settings_cache_redis_port, settings_cache_redis_username, settings_server_api_endpoint,
 };
 use unilake_security::adapter::cached_adapter::{CachedAdapter, CachedPolicyRules};
 use unilake_security::caching::layered_cache::{
@@ -146,7 +146,7 @@ impl BackendHandler {
         tracing::info!("Initializing Redis client");
         match settings_cache_redis_host() {
             None => {
-                tracing::info!("Redis cache is disabled. Falling back to local caching only.");
+                tracing::warn!("Redis cache is disabled. Falling back to local caching only.");
                 None
             }
             Some(v) => {
@@ -307,21 +307,14 @@ impl BackendHandler {
             let mut backoff = 1;
             *backend_handler.backend_running.write().await = true;
 
-            let endpoint = match settings_cache_sse_endpoint() {
-                None => {
-                    tracing::error!("No SSE endpoint provided in settings.");
-                    return;
-                }
-                Some(v) => {
-                    tracing::info!("SSE consumer endpoint: {}", v);
-                    v
-                }
-            };
-
+            // todo: add hmac based authentication
+            let endpoint = format!(
+                "{}/security/proxy/event-stream",
+                settings_server_api_endpoint()
+            );
+            tracing::info!("Starting SSE consumer at {}", endpoint);
             loop {
                 tokio::time::sleep(std::time::Duration::from_secs(backoff)).await;
-                tracing::info!("Connecting SSE consumer");
-
                 let mut es = EventSource::get(endpoint.clone());
                 while let Some(event) = es.next().await {
                     match event {

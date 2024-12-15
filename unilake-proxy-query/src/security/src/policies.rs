@@ -2,6 +2,7 @@ use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use casbin::{Cache, EventData, Logger};
 use std::cmp::PartialEq;
+use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
@@ -171,8 +172,9 @@ impl PolicyHitManager {
         })?;
         Ok(serde_json::from_str(&rule).map_err(|e| {
             format!(
-                "Error while parsing rule definition to json: {}",
-                e.to_string()
+                "Error while parsing rule definition to json: {}, input: {}",
+                e.to_string(),
+                rule_definition
             )
         })?)
     }
@@ -190,7 +192,7 @@ impl PolicyHitManager {
             return Ok((None, PolicyType::FilterRule));
         } else if let Some(is_full_access) = rule_definition.get("full_access") {
             if is_full_access.as_bool().unwrap_or(false) {
-                return Ok((None, PolicyType::FullAccess));
+                return Ok((Some("full_access".to_owned()), PolicyType::FullAccess));
             }
         }
         Ok((None, PolicyType::None))
@@ -202,71 +204,89 @@ impl PolicyHitManager {
         policies: &Vec<PolicyFound>,
         prio_stricter: bool,
     ) -> Option<&PolicyFound> {
-        // check for full access
-        if policies
-            .iter()
-            .all(|p| p.policy_type == PolicyType::FullAccess)
-        {
-            return None;
-        }
+        fn resolve_masking_prio<'b>(
+            policies: &Vec<&'b PolicyFound>,
+            prio_stricter: bool,
+        ) -> Option<&'b PolicyFound> {
+            let mut chosen = (if prio_stricter { u16::MAX } else { u16::MIN }, None);
+            for policy in policies.iter().filter(|policy| {
+                policy.policy_type == PolicyType::MaskingRule
+                    || policy.policy_type == PolicyType::FullAccess
+            }) {
+                let name = policy
+                    .policy_name
+                    .as_ref()
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
 
-        // Check policies
-        let mut chosen = (if prio_stricter { u16::MAX } else { u16::MIN }, None);
-        for policy in policies
-            .iter()
-            .filter(|policy| policy.policy_type == PolicyType::MaskingRule)
-        {
-            let name = policy
-                .policy_name
-                .as_ref()
-                .map(|s| s.as_str())
-                .unwrap_or("");
+                let prio = match name {
+                    // highly constraint
+                    "hidden" => 0,
+                    "replace_null" => 10,
+                    "replace_string" => 20,
+                    "replace_char" => 30,
 
-            let prio = match name {
-                // highly constraint
-                "hidden" => 0,
-                "replace_null" => 10,
-                "replace_string" => 20,
-                "replace_char" => 30,
+                    // masking based
+                    "xxhash3" => 110,
+                    "mask_except_last" => 120,
+                    "mask_except_first" => 130,
 
-                // masking based
-                "xxhash3" => 110,
-                "mask_except_last" => 120,
-                "mask_except_first" => 130,
+                    // masking with preserving information
+                    "ip_anonymize" => 210,
+                    "mail_hash_pres" => 220,
+                    "mail_mask_pres" => 230,
+                    "cc_hash_pres" => 240,
+                    "cc_mask_pres" => 250,
+                    "cc_last_four" => 260,
+                    "ip_hash_pres" => 270,
+                    "ip_mask_pres" => 280,
+                    "mail_mask_username" => 290,
+                    "mail_mask_domain" => 291,
 
-                // masking with preserving information
-                "ip_anonymize" => 210,
-                "mail_hash_pres" => 220,
-                "mail_mask_pres" => 230,
-                "cc_hash_pres" => 240,
-                "cc_mask_pres" => 250,
-                "cc_last_four" => 260,
-                "ip_hash_pres" => 270,
-                "ip_mask_pres" => 280,
-                "mail_mask_username" => 290,
-                "mail_mask_domain" => 291,
+                    // somewhat constraint
+                    "left" => 310,
+                    "right" => 320,
 
-                // somewhat constraint
-                "left" => 310,
-                "right" => 320,
+                    // less constraint
+                    "rounding" => 410,
+                    "date_year_only" => 420,
+                    "date_month_only" => 430,
 
-                // less constraint
-                "rounding" => 410,
-                "date_year_only" => 420,
-                "date_month_only" => 430,
+                    // unknown constraint level
+                    "custom" => 998,
+                    "full_access" => 999,
+                    &_ => continue,
+                };
 
-                // unknown constraint level
-                "custom" => 999,
-                &_ => continue,
-            };
+                if prio < chosen.0 && prio_stricter {
+                    chosen = (prio, Some(policy));
+                } else if prio > chosen.0 && !prio_stricter {
+                    chosen = (prio, Some(policy));
+                }
+            }
 
-            if prio < chosen.0 && prio_stricter {
-                chosen = (prio, Some(policy));
-            } else if prio > chosen.0 && !prio_stricter {
-                chosen = (prio, Some(policy));
+            match chosen.1 {
+                Some(policy) if policy.policy_type == PolicyType::FullAccess => None, // for full access, no masking to apply
+                Some(policy) => Some(policy),
+                None => None,
             }
         }
-        chosen.1
+
+        // resolution per policy_id
+        resolve_masking_prio(
+            &policies
+                .iter()
+                .fold(HashMap::new(), |mut map, policy| {
+                    let item = map.entry(policy.policy_id.clone()).or_insert(Vec::new());
+                    item.push(policy);
+                    map
+                })
+                .iter()
+                // for policy conflicts within a policy_id, prioritize the policy with higher priority
+                .filter_map(|(_, i)| resolve_masking_prio(i, true))
+                .collect(),
+            prio_stricter,
+        )
     }
 }
 

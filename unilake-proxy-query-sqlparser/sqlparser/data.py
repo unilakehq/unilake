@@ -151,6 +151,7 @@ class ScanOutput:
 class TranspilerInputRules:
     scope: int
     attribute: str
+    attribute_id: str
     policy_id: str
     rule_definition: dict
 
@@ -158,6 +159,7 @@ class TranspilerInputRules:
 class TranspilerInputFilters:
     scope: int
     attribute: str
+    attribute_id: str
     policy_id: str
     filter_definition: dict
 
@@ -183,12 +185,14 @@ class TranspilerInput:
         for filter_ in json_data.get("filters", []):
             filters.append(TranspilerInputFilters(**filter_))
 
+        input_query = json_data.get("query") if "query" in json_data else "{}"
+
         return TranspilerInput(
             rules,
             filters,
             json_data.get("visible_schema"),
             json_data.get("cause") if "cause" in json_data else None,
-            json.loads(json_data.get("query")),
+            json.loads(input_query),
             json_data.get("request_url") if "request_url" in json_data else None,
         )
 

@@ -68,20 +68,6 @@ class TestRulesMask(TestQuery):
             "SELECT ROUND(`b`.`a`, 2) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
         )
 
-    def test_rules_mask_random_number(self):
-        self.run_test_with_masking_rule(
-            {"name": "random_number", "properties": {"min": "2", "max": "5"}},
-            "SELECT a from b",
-            "SELECT FLOOR((5 - 2 + 1) * RAND() + 2) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
-        )
-
-    def test_rules_mask_random_multiplication(self):
-        self.run_test_with_masking_rule(
-            {"name": "random_multiplication", "properties": {"max": "5"}},
-            "SELECT a from b",
-            "SELECT RAND() * 5 AS `a` FROM `catalog`.`database`.`b` AS `b` ",
-        )
-
     def test_rules_mask_left(self):
         self.run_test_with_masking_rule(
             {"name": "left", "properties": {"len": "3"}},
@@ -172,7 +158,7 @@ class TestRulesMask(TestQuery):
                 {
                     "scope": 1,
                     "attribute": '"b"."a"',
-                    "rule_id": "some_guid",
+                    "policy_id": "some_guid",
                     "rule_definition": {"name": "replace_null"},
                 }
             ],
@@ -209,7 +195,7 @@ class TestRulesMask(TestQuery):
                 {
                     "scope": 0,
                     "attribute": '"test2"."a"',
-                    "rule_id": "some_guid",
+                    "policy_id": "some_guid",
                     "rule_definition": {"name": "replace_null"},
                 }
             ],

@@ -22,7 +22,7 @@ pub fn run_scan_operation(
             .call1((query, dialect, catalog, database))?;
 
         let elapsed_time = std::time::Instant::now().duration_since(start_time);
-        println!("Elapsed time [Scan]: {:?}", elapsed_time);
+        tracing::info!("Elapsed time [Scan]: {:?}", elapsed_time);
 
         Ok(result.extract::<ScanOutput>()?)
     })
@@ -36,6 +36,7 @@ pub fn run_transpile_operation(
     let start_time = std::time::Instant::now();
     Python::with_gil(|py| {
         let builtins = PyModule::import_bound(py, "sqlparser").unwrap();
+        println!("Transpiling: {}", serde_json::to_string(input).unwrap());
         let result = builtins
             .getattr("transpile")
             .unwrap()
@@ -44,7 +45,7 @@ pub fn run_transpile_operation(
             .unwrap();
 
         let elapsed_time = std::time::Instant::now().duration_since(start_time);
-        println!("Elapsed time [Transpile]: {:?}", elapsed_time);
+        tracing::info!("Elapsed time [Transpile]: {:?}", elapsed_time);
 
         Ok(result.extract::<TranspilerOutput>()?)
     })
@@ -189,12 +190,6 @@ pub struct TranspilerInput {
     pub cause: Option<Vec<TranspilerDenyCause>>,
     pub query: String,
     pub request_url: Option<Vec<PolicyAccessRequestUrl>>,
-}
-
-impl TranspilerInput {
-    pub fn is_approved(&self) -> bool {
-        self.cause.is_none() && self.request_url.is_none()
-    }
 }
 
 pub struct VisibleSchemaBuilder {
