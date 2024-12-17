@@ -5,20 +5,26 @@ namespace Unilake.ProxyQuery.TestIntegration.Features.Security.AccessPolicies.Ru
 
 public class AccessPolicyRuleRequestRouteParams : BaseRouteParams
 {
-    public string VersionId { get; set; }
+    public long VersionId { get; set; }
 }
 
-public class AccessPolicyRuleDto
+public class AccessPolicyVersionDto
 {
-    [JsonProperty("eft")] public string Eft { get; set; }
+    [JsonProperty("versionId")] public long VersionId { get; set; }
+    [JsonProperty("rules")] public AccessPolicyVersionRuleDto[] AccessPolicyRules { get; set; }
+}
 
-    [JsonProperty("func")] public string Func { get; set; }
+public class AccessPolicyVersionRuleDto
+{
+    [JsonProperty("e")] public string Eft { get; set; }
 
-    [JsonProperty("object")] public string Object { get; set; }
+    [JsonProperty("f")] public string Func { get; set; }
 
-    [JsonProperty("policy_id")] public string PolicyId { get; set; }
+    [JsonProperty("o")] public string Object { get; set; }
 
-    [JsonProperty("policy_type")] public string PolicyType { get; set; }
+    [JsonProperty("i")] public string PolicyId { get; set; }
 
-    [JsonProperty("sub_rule")] public string SubRule { get; set; }
+    [JsonProperty("t")] public string PolicyType { get; set; }
+
+    [JsonProperty("s")] public string SubRule { get; set; }
 }

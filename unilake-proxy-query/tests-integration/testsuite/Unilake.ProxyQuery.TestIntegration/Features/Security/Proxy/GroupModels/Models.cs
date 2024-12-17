@@ -9,8 +9,6 @@ public class GroupModelRequestRouteParams : ProxyRouteParams
 
 public class ProxyGroupModelDto
 {
-    [JsonProperty("entityVersion")] public double EntityVersion { get; set; }
-
     [JsonProperty("groups")] public Group[] Groups { get; set; }
 
     [JsonProperty("userId")] public string UserId { get; set; }

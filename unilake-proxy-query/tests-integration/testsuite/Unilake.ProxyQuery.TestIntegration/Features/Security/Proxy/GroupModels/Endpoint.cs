@@ -17,6 +17,7 @@ public class Endpoint : Endpoint<GroupModelRequestRouteParams, ProxyGroupModelDt
                 await SendAsync(found, cancellation: ct);
                 break;
             case false:
+                Logger.LogWarning($"Group model not found for tenant '{req.TenantId}' and user id '{req.Id}'.");
                 await SendNotFoundAsync(cancellation: ct);
                 break;
         }

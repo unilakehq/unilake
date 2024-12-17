@@ -7,8 +7,8 @@ use serde::Serialize;
 use std::hash::Hash;
 use std::sync::Arc;
 use unilake_common::model::{
-    AccessPolicyModel, AppInfoModel, DataAccessRequest, DataAccessRequestResponse, EntityModel,
-    GroupModel, IpInfoModel, UserModel,
+    AccessPolicyModel, AccessPolicyVersion, AppInfoModel, DataAccessRequest,
+    DataAccessRequestResponse, EntityModel, GroupModel, IpInfoModel, UserModel,
 };
 use unilake_common::settings::settings_server_api_endpoint;
 
@@ -97,8 +97,7 @@ pub trait RepoBackend: Send + Sync {
         action: String,
     ) -> Result<bool, String>;
     async fn get_ip_info_model(&self, ip: String) -> Result<Option<IpInfoModel>, String>;
-    // todo(mrhamburg): I think this should be app_name instead, since here we don't know the id of an APP, we only get the name of the connecting app
-    async fn get_app_info_model(&self, app_id: String) -> Result<Option<AppInfoModel>, String>;
+    async fn get_app_info_model(&self, app_name: String) -> Result<Option<AppInfoModel>, String>;
     async fn get_active_policy_rules(
         &self,
         rules_version: String,
@@ -165,7 +164,7 @@ impl RepoRest {
     }
 
     fn get_path(&self, path: &str) -> String {
-        format!("{}/{}/{}", self.api_endpoint, self.tenant_id, path)
+        format!("{}/tenants/{}/{}", self.api_endpoint, self.tenant_id, path)
     }
 }
 
@@ -236,14 +235,13 @@ impl RepoBackend for RepoRest {
     }
 
     async fn get_ip_info_model(&self, ip: String) -> Result<Option<IpInfoModel>, String> {
-        let mut url = format!("todo: determine path");
-        url = format!("{}/{}", url, ip);
+        let url = format!("security/proxy/ipinfo-models/{}", ip);
         self.get_request(url.as_str()).await
     }
 
     async fn get_app_info_model(&self, app_id: String) -> Result<Option<AppInfoModel>, String> {
-        let mut url = format!("todo: determine path");
-        url = format!("{}/{}", url, app_id);
+        // todo(mrhamburg): these endpoints need to be made more resilient as they are now crashing the connection on errors (should report the error back to the client, no protocol error?)
+        let url = format!("security/proxy/appinfo-models/{}", app_id);
         self.get_request(url.as_str()).await
     }
 
@@ -251,7 +249,18 @@ impl RepoBackend for RepoRest {
         &self,
         policy_id: String,
     ) -> Result<Option<CachedPolicyRules>, String> {
-        // todo!()
-        Ok(Some(CachedPolicyRules::PolicyId(1)))
+        let url = format!("security/access-policies/rules/{}", policy_id);
+        match self.get_request::<AccessPolicyVersion>(url.as_str()).await {
+            Ok(ap) => {
+                if ap.rules.len() > 0 {
+                    return Ok(Some(CachedPolicyRules::Policy(ap.rules)));
+                }
+                Ok(Some(CachedPolicyRules::PolicyId(ap.version_id)))
+            }
+            Err(e) => {
+                tracing::error!("Failed to fetch AccessPolicy: {}", e);
+                return Err(format!("Failed to fetch AccessPolicy: {}", url));
+            }
+        }
     }
 }

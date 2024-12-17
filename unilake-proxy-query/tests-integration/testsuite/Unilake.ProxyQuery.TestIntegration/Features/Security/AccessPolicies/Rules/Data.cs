@@ -3,10 +3,10 @@ namespace Unilake.ProxyQuery.TestIntegration.Features.Security.AccessPolicies.Ru
 
 public static class AccessPolicyRuleTestData
 {
-    public static AccessPolicyRuleDto[] GetTestData(string tenantid) => Config.GetRunScenario(tenantid) switch
+    public static AccessPolicyVersionRuleDto[] GetTestData(string tenantid) => Config.GetRunScenario(tenantid) switch
     {
         "happy_flow" => [
-            new AccessPolicyRuleDto
+            new AccessPolicyVersionRuleDto
             {
                 PolicyType = "p",
                 Object = "*",

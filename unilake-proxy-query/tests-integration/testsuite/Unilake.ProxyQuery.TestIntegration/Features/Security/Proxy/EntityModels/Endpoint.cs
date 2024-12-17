@@ -1,6 +1,6 @@
 namespace Unilake.ProxyQuery.TestIntegration.Features.Security.Proxy.EntityModels;
 
-public class Endpoint : Endpoint<EntityModelRequestRouteParams, ProxyObjectModelDto>
+public class Endpoint : Endpoint<EntityModelRequestRouteParams, ProxyEntityModelDto>
 {
     public override void Configure()
     {
@@ -17,6 +17,7 @@ public class Endpoint : Endpoint<EntityModelRequestRouteParams, ProxyObjectModel
                 await SendAsync(found, cancellation: ct);
                 break;
             case false:
+                Logger.LogWarning("Entity model not found for tenant {TenantId} and fullname {Fullname}", req.TenantId, req.Fullname);
                 await SendNotFoundAsync(cancellation: ct);
                 break;
         }

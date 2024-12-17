@@ -14,15 +14,15 @@ public class Endpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        await SendEventStreamAsync("my-event", GenerateEventsAsync(ct), ct);
+        await SendEventStreamAsync("update", GenerateEventsAsync(ct), ct);
     }
 
-    private async IAsyncEnumerable<string> GenerateEventsAsync([EnumeratorCancellation] CancellationToken ct)
+    private async IAsyncEnumerable<SseEventDto> GenerateEventsAsync([EnumeratorCancellation] CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
-            await Task.Delay(1000, ct);
-            yield return $"Event: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            await Task.Delay(30000, ct);
+            yield return new SseEventDto { TenantId = "some_tenant_id"};
         }
     }
 }

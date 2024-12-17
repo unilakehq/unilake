@@ -120,8 +120,16 @@ impl BackendInstance {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct SseInvalidateRequestDto {
+struct SseEventDto {
+    #[serde(rename = "tenantId")]
     tenant_id: String,
+    #[serde(rename = "invalidationRequest")]
+    invalidation_request: Option<SseInvalidateRequestDto>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct SseInvalidateRequestDto {
+    #[serde(rename = "cacheType")]
     cache_type: String,
     key: String,
 }
@@ -270,20 +278,21 @@ impl BackendHandler {
         }
     }
 
-    async fn on_sse_action(&self, update: SseInvalidateRequestDto) {
+    async fn on_sse_event(&self, update: SseEventDto) {
         tracing::info!("Received SSE action: {:?}", update);
-
         let instance = self.get_backend_instance(update.tenant_id).await;
-        match update.cache_type.as_str() {
-            "user" => instance.user_model.remove_local(&update.key).await,
-            "group" => instance.group_model.remove_local(&update.key).await,
-            "entity" => instance.entity_model.remove_local(&update.key).await,
-            "access_policy" => instance.access_policy_model.remove_local(&update.key).await,
-            "ip_info" => instance.ip_info_model.remove_local(&update.key).await,
-            "app_info" => instance.app_info_model.remove_local(&update.key).await,
-            "policy" => instance.policy_cache.clear(),
-            _ => {
-                tracing::warn!("Unknown cache type: {}", update.cache_type);
+        if let Some(update) = update.invalidation_request {
+            match update.cache_type.as_str() {
+                "user" => instance.user_model.remove_local(&update.key).await,
+                "group" => instance.group_model.remove_local(&update.key).await,
+                "entity" => instance.entity_model.remove_local(&update.key).await,
+                "access_policy" => instance.access_policy_model.remove_local(&update.key).await,
+                "ip_info" => instance.ip_info_model.remove_local(&update.key).await,
+                "app_info" => instance.app_info_model.remove_local(&update.key).await,
+                "policy" => instance.policy_cache.clear(),
+                _ => {
+                    tracing::warn!("Unknown cache type: {}", update.cache_type);
+                }
             }
         }
     }
@@ -326,12 +335,16 @@ impl BackendHandler {
                         }
                         Ok(Event::Message(message)) => {
                             tracing::info!("Received SSE update: {:?}", message);
-                            if message.event == "invalidate" {
-                                let update: SseInvalidateRequestDto =
-                                    serde_json::from_str(&message.data).unwrap();
-                                backend_handler.on_sse_action(update).await;
-                            } else {
-                                tracing::warn!("Unknown SSE event: {}", message.event);
+                            match message.event.as_str() {
+                                "update" => {
+                                    match serde_json::from_str::<SseEventDto>(&message.data) {
+                                        Ok(event) => backend_handler.on_sse_event(event).await,
+                                        Err(e) => {
+                                            tracing::error!("Error parsing SSE update: {}", e);
+                                        }
+                                    }
+                                }
+                                _ => tracing::warn!("Unknown SSE event: {}", message.event),
                             }
                         }
                         Err(err) => {

@@ -151,8 +151,7 @@ mod tests {
     use casbin::rhai::{Scope, INT};
     use std::collections::BTreeMap;
     use unilake_common::model::{
-        AccessPolicyModel, AccountType, GroupInstance, GroupModel, ObjectModel, SessionModel,
-        UserModel,
+        AccessPolicyModel, EntityAttributeModel, GroupInstance, GroupModel, SessionModel, UserModel,
     };
 
     #[test]
@@ -160,11 +159,13 @@ mod tests {
         let mut engine = rhai::Engine::new();
         add_functions(&mut engine);
 
-        let object_model = ObjectModel {
+        let object_model = EntityAttributeModel {
             id: "some_id".to_string(),
+            name: "".to_string(),
             full_name: "".to_string(),
             tags: vec!["pii:username".to_string(), "pii::email".to_string()],
             is_aggregated: false,
+            data_type: "STRING".to_string(),
         };
 
         let mut scope = Scope::new();
@@ -187,7 +188,6 @@ mod tests {
             principal_name: "".to_string(),
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
-            account_type: AccountType::User,
             access_policy_ids: vec!["policy1".to_string()],
         };
 
@@ -211,7 +211,6 @@ mod tests {
             principal_name: "".to_string(),
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
-            account_type: AccountType::User,
             access_policy_ids: vec!["policy1".to_string()],
         };
 
@@ -235,7 +234,6 @@ mod tests {
             principal_name: "".to_string(),
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
-            account_type: AccountType::User,
             access_policy_ids: vec!["policy1".to_string()],
         };
 
@@ -259,7 +257,6 @@ mod tests {
             principal_name: "".to_string(),
             roles: vec!["role1".to_string(), "role2".to_string()],
             tags: vec!["pii::email".to_string()],
-            account_type: AccountType::User,
             access_policy_ids: vec!["policy1".to_string()],
         };
 
@@ -280,7 +277,6 @@ mod tests {
 
         let group_model = GroupModel {
             user_id: "user_id".to_string(),
-            entity_version: 0,
             groups: vec![GroupInstance {
                 id: "group_id".to_string(),
                 tags: vec!["pii::email".to_string()],
@@ -304,7 +300,6 @@ mod tests {
 
         let group_model = GroupModel {
             user_id: "user_id".to_string(),
-            entity_version: 0,
             groups: vec![GroupInstance {
                 id: "group_id".to_string(),
                 tags: vec!["pii::email".to_string()],
@@ -328,7 +323,6 @@ mod tests {
 
         let group_model = GroupModel {
             user_id: "some_id".to_string(),
-            entity_version: 0,
             groups: vec![GroupInstance {
                 id: "some_id".to_string(),
                 tags: vec!["pii::email".to_string()],
@@ -352,7 +346,6 @@ mod tests {
 
         let group_model = GroupModel {
             user_id: "some_id".to_string(),
-            entity_version: 0,
             groups: vec![GroupInstance {
                 id: "some_id".to_string(),
                 tags: vec!["pii::email".to_string()],

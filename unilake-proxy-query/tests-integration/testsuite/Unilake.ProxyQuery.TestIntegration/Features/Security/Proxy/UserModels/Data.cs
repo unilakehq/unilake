@@ -11,8 +11,10 @@ public class UserModelsTestData
             [
                 new ProxyUserModelDto
                 {
-                    Id = "500efbea-0bfd-49b3-88ab-090cff23cab6", AccountType = AccountType.User, EntityVersion = 1,
-                    PrincipalName = "testuser@example.com", Role = "admin", Tags = ["pii::firstname", "pii::lastname"]
+                    Id = "500efbea-0bfd-49b3-88ab-090cff23cab6",
+                    PrincipalName = "testuser@example.com", Roles = ["admin", "data_analyst"],
+                    Tags = ["pii::firstname", "pii::lastname"],
+                    AccessPolicyIds = ["afe6f97a-b3b6-41b1-b4be-5c3c100e567c"]
                 }
             ],
             _ => []

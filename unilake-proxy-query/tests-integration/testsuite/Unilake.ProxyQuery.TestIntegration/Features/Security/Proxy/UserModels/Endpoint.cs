@@ -17,6 +17,7 @@ public class Endpoint : Endpoint<UserModelRequestRouteParams, ProxyUserModelDto>
                 await SendAsync(found, cancellation: ct);
                 break;
             case false:
+                Logger.LogWarning("UserModel not found for tenant {ReqTenantId} and id {ReqId}", req.TenantId, req.Id);
                 await SendNotFoundAsync(cancellation: ct);
                 break;
         }

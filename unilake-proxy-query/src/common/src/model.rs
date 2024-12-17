@@ -3,13 +3,6 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 #[derive(Serialize, Deserialize, Hash, Clone)]
-#[allow(unused)]
-pub enum AccountType {
-    User,
-    Group,
-}
-
-#[derive(Serialize, Deserialize, Hash, Clone)]
 pub struct UserModel {
     /// User id
     pub id: String,
@@ -20,9 +13,6 @@ pub struct UserModel {
     pub roles: Vec<String>,
     /// Tags associated with the user, a tag: some_category::some_tag
     pub tags: Vec<String>,
-    /// The type of the user (User or Group)
-    #[serde(rename = "accountType")]
-    pub account_type: AccountType,
     /// The user's access policies. These are the access policies this user has.
     /// This can be used for checking the last accessed time and date for a policy
     /// so policies can be expired
@@ -35,8 +25,6 @@ pub struct GroupModel {
     /// The user id these groups belong to
     #[serde(rename = "userId")]
     pub user_id: String,
-    #[serde(rename = "entityVersion")]
-    pub entity_version: u32,
     /// The groups this user is member of
     pub groups: Vec<GroupInstance>,
 }
@@ -59,7 +47,7 @@ pub struct SessionModel {
     pub id: String,
     /// The application id
     #[serde(rename = "appId")]
-    pub app_id: u64,
+    pub app_id: u32,
     /// The application name
     #[serde(rename = "appName")]
     pub app_name: String,
@@ -117,27 +105,30 @@ impl Hash for SessionModel {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ObjectModel {
+pub struct EntityAttributeModel {
     /// The object id
     pub id: String,
-    /// The full name of the object (e.g., catalog.schema.table.column)
+    pub name: String,
+    #[serde(rename = "fullName")]
     pub full_name: String,
     /// Tags associated with the object, a tag: some_category::some_tag
     pub tags: Vec<String>,
     /// If true, this object is being aggregated (needs to be updated on execution)
+    #[serde(rename = "isAggregated")]
     pub is_aggregated: bool,
+    #[serde(rename = "dataType")]
+    pub data_type: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EntityModel {
     /// The entity id
     pub id: String,
-    /// The full name of the object (e.g., catalog.schema.table)
+    /// The full name of the entity (e.g., catalog.schema.table)
+    #[serde(rename = "fullName")]
     pub full_name: String,
-    /// Attribute names and types of the object [(a, INT), (b, VARCHAR)]
-    pub attributes: Vec<(String, String)>,
     /// Object models for this entity (full_name, object_model)
-    pub objects: HashMap<String, ObjectModel>,
+    pub attributes: HashMap<String, EntityAttributeModel>,
 }
 
 impl EntityModel {
@@ -154,7 +145,7 @@ impl EntityModel {
     }
 }
 
-impl Hash for ObjectModel {
+impl Hash for EntityAttributeModel {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
         self.tags.hash(state);
@@ -189,7 +180,7 @@ pub struct IpInfoModel {
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash)]
 pub struct AppInfoModel {
-    pub app_id: u64,
+    pub app_id: u32,
     pub app_name: String,
     pub app_type: String,
     pub app_driver: String,
@@ -207,6 +198,13 @@ pub struct DataAccessRequest {
 pub struct DataAccessRequestResponse {
     pub message: String,
     pub url: String,
+}
+
+#[derive(Deserialize)]
+pub struct AccessPolicyVersion {
+    #[serde(rename = "versionId")]
+    pub version_id: u64,
+    pub rules: Vec<PolicyRule>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

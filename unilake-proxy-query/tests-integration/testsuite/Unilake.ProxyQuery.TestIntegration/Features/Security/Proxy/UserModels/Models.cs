@@ -19,14 +19,6 @@ public enum AccountType
 public class ProxyUserModelDto
 {
     /// <summary>
-    /// Type of account
-    /// </summary>
-    [JsonProperty("accountType")]
-    public AccountType AccountType { get; set; }
-
-    [JsonProperty("entityVersion")] public long EntityVersion { get; set; }
-
-    /// <summary>
     /// ID
     /// </summary>
     [JsonProperty("id")]
@@ -34,7 +26,8 @@ public class ProxyUserModelDto
 
     [JsonProperty("principalName")] public string PrincipalName { get; set; }
 
-    [JsonProperty("role")] public string Role { get; set; }
+    [JsonProperty("roles")] public string[] Roles { get; set; }
 
     [JsonProperty("tags")] public string[] Tags { get; set; }
+    [JsonProperty("accessPolicyIds")] public string[] AccessPolicyIds { get; set; }
 }

@@ -10,7 +10,7 @@ public static class AccessPoliciesTestData
             new AccessPolicyModelDto
             {
                 ExpireDatetimeUtc = DateTime.UtcNow.AddHours(1).GetUnixTimestamp(),
-                NormalizedName = "some_policy_name",
+                NormalizedName = "tenant_workspace_some_policy",
                 PolicyId = "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
                 PrioStrict = true
             }

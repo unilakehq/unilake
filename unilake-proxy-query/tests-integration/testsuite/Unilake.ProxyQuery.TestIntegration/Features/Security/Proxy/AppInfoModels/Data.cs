@@ -11,8 +11,8 @@ public class AppInfoTestData
             new ProxyAppInfoModelDto
             {
                 AppDriver = "Unilake.ProxyQuery.Test.Features.Security.Proxy.AppInfoModels.AppDriver",
-                AppId = "TestApp123",
-                AppName = "Test App",
+                AppId = 1211,
+                AppName = "sqlcmd",
                 AppType = "Test"
             }
         ],

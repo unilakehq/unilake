@@ -15,7 +15,7 @@ use std::sync::Arc;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
 use unilake_common::model::{
-    AccessPolicyModel, EntityModel, GroupModel, ObjectModel, SessionModel, UserModel,
+    AccessPolicyModel, EntityAttributeModel, EntityModel, GroupModel, SessionModel, UserModel,
 };
 use unilake_common::settings::settings_server_name;
 use unilake_sql::{
@@ -502,8 +502,8 @@ impl<'a> QueryPolicyDecision<'a> {
         &self,
         entity_model: &'b EntityModel,
         attribute_full_path_name: &str,
-    ) -> Option<&'b ObjectModel> {
-        entity_model.objects.get(attribute_full_path_name)
+    ) -> Option<&'b EntityAttributeModel> {
+        entity_model.attributes.get(attribute_full_path_name)
     }
 
     pub async fn process(
@@ -665,6 +665,7 @@ impl<'a> QueryPolicyDecision<'a> {
                     return Err(SecurityHandlerResult::InvalidCacheError);
                 }
                 PolicyCollectResult::NotFound => {
+                    // todo: this can also be a valid result, for example "select 1", we need to handle this scenario and a combination of expressions and literals correctly
                     return Err(SecurityHandlerResult::PolicyError(
                         "Could not find any policy results, are the policies loaded correctly?"
                             .to_string(),
@@ -674,7 +675,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
             let object_models = entities
                 .values()
-                .flat_map(|e| &e.objects)
+                .flat_map(|e| &e.attributes)
                 .map(|(_, v)| v)
                 .collect();
 
@@ -877,7 +878,7 @@ impl<'a> QueryPolicyDecision<'a> {
     /// Gets the full object name, attribute name and whether it's a starred attribute
     fn find_star_and_attribute_name(
         entities_and_attributes: &[(Option<&ScanEntity>, &ScanAttribute, bool)],
-        objects: &Vec<&ObjectModel>,
+        objects: &Vec<&EntityAttributeModel>,
         object_id: &str,
     ) -> Result<(String, String, bool), SecurityHandlerResult> {
         let object_model = objects
@@ -1035,8 +1036,8 @@ impl<'a> QueryPolicyDecision<'a> {
                 .get_or_add_database(model.get_schema_name()?)
                 .get_or_add_table(model.get_table_name()?);
             for (n, t) in &model.attributes {
-                if !exclude.contains(&format!("{}.{}", model.full_name, n)) {
-                    table.get_or_add_column(n.to_owned(), t.to_owned());
+                if !exclude.contains(n) {
+                    table.get_or_add_column(t.name.to_owned(), t.data_type.to_owned());
                 }
             }
         }
@@ -1054,19 +1055,18 @@ impl<'a> QueryPolicyDecision<'a> {
     ) -> Result<(EntityModel, Vec<ScanAttribute>), SecurityHandlerResult> {
         if let Some(entity) = cached_backend.entity_model.get(&full_entity_name).await {
             let mut attributes = Vec::new();
-            for attr in &entity.attributes {
-                let full_entity_name = format!("{}.{}", full_entity_name, attr.0);
-                if let Some(_) = self.get_object_model(&entity, &full_entity_name) {
+            for (full_entity_name, _) in &entity.attributes {
+                if let Some(obj) = self.get_object_model(&entity, &full_entity_name) {
                     attributes.push(ScanAttribute {
+                        // todo: check if this works with spaces in the name
                         entity_alias: entity_alias.to_owned(),
-                        name: attr.0.to_owned(),
-                        alias: attr.0.to_owned(),
+                        name: obj.name.to_owned(),
+                        alias: obj.name.to_owned(),
                     });
                 } else {
-                    return Err(SecurityHandlerResult::EntityNotFound(format!(
-                        "{}.{}",
-                        full_entity_name, attr.0
-                    )));
+                    return Err(SecurityHandlerResult::EntityNotFound(
+                        full_entity_name.to_owned(),
+                    ));
                 }
             }
 
@@ -1116,8 +1116,8 @@ mod tests {
     use std::hash::Hash;
     use std::sync::Arc;
     use unilake_common::model::{
-        AccessPolicyModel, AccountType, AppInfoModel, DataAccessRequestResponse, EntityModel,
-        GroupInstance, GroupModel, IpInfoModel, ObjectModel, PolicyRule, SessionModel, UserModel,
+        AccessPolicyModel, AppInfoModel, DataAccessRequestResponse, EntityAttributeModel,
+        EntityModel, GroupInstance, GroupModel, IpInfoModel, PolicyRule, SessionModel, UserModel,
     };
     use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput};
 
@@ -1228,7 +1228,6 @@ mod tests {
                 principal_name: "".to_string(),
                 roles: vec![],
                 tags: vec!["test::user_2".to_string()],
-                account_type: AccountType::User,
                 access_policy_ids: vec!["policy_id".to_string()],
             },
         );
@@ -1241,7 +1240,6 @@ mod tests {
             "user_id_2".to_owned(),
             GroupModel {
                 user_id: "user_id_2".to_string(),
-                entity_version: 0,
                 groups: vec![],
             },
         );
@@ -1634,11 +1632,13 @@ mod tests {
         let mut objects = HashMap::new();
         objects.insert(
             "catalog.schema.orders.unknown".to_owned(),
-            ObjectModel {
+            EntityAttributeModel {
                 id: "unknown_id".to_string(),
+                name: "unknown".to_string(),
                 full_name: "catalog.schema.orders.unknown".to_string(),
                 tags: vec![],
                 is_aggregated: false,
+                data_type: "STRING".to_owned(),
             },
         );
 
@@ -1647,8 +1647,7 @@ mod tests {
             EntityModel {
                 id: "extra_entity".to_string(),
                 full_name: "catalog.schema.orders".to_string(),
-                attributes: vec![("unknown".to_owned(), "INT".to_owned())],
-                objects,
+                attributes: objects,
             },
         );
         let result = run_default_test(
@@ -1783,13 +1782,19 @@ mod tests {
             run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
+
         let result = result.ok().unwrap();
         assert!(result.request_url.is_none());
         assert!(result.cause.is_none());
         assert!(result.rules.is_empty());
         assert!(result.filters.is_empty());
     }
+
+    // todo: add test for visible schema (check if this is actually correct)
 
     #[tokio::test]
     async fn test_query_policy_decision_star_expand_deny_one() {
@@ -1842,7 +1847,11 @@ mod tests {
             run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
+
         let result = result.ok().unwrap();
         assert!(result.request_url.is_none());
         assert!(result.cause.is_none());
@@ -1916,7 +1925,11 @@ mod tests {
             run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
+
         let result = result.ok().unwrap();
         assert!(result.request_url.is_none());
         assert!(result.cause.is_none());
@@ -1999,7 +2012,11 @@ mod tests {
             run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
 
         // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
         assert!(result.is_ok());
+
         let result = result.ok().unwrap();
         assert!(result.cause.is_some());
         assert!(result.request_url.is_some());
@@ -2307,13 +2324,7 @@ mod tests {
             EntityModel {
                 id: "entity_model_id".to_string(),
                 full_name: "catalog.schema.customers".to_string(),
-                attributes: vec![
-                    ("user_id".to_string(), "INT".to_string()),
-                    ("firstname".to_string(), "STRING".to_string()),
-                    ("lastname".to_string(), "STRING".to_string()),
-                    ("email".to_string(), "STRING".to_string()),
-                ],
-                objects: get_object_model_input(),
+                attributes: get_object_model_input(),
             },
         );
         entity_model_input
@@ -2324,7 +2335,6 @@ mod tests {
         user_model_input.insert(
             "user_id".to_string(),
             UserModel {
-                account_type: AccountType::User,
                 id: "user_id".to_string(),
                 principal_name: "user_principal_name_1".to_string(),
                 roles: vec!["user_role_1".to_string()],
@@ -2341,7 +2351,6 @@ mod tests {
             "user_id".to_string(),
             GroupModel {
                 user_id: "user_id".to_string(),
-                entity_version: 0,
                 groups: vec![GroupInstance {
                     id: "group_id".to_string(),
                     tags: vec!["pii::username".to_string()],
@@ -2351,45 +2360,53 @@ mod tests {
         group_model_input
     }
 
-    fn get_object_model_input() -> HashMap<String, ObjectModel> {
+    fn get_object_model_input() -> HashMap<String, EntityAttributeModel> {
         let mut values = HashMap::new();
         values.insert(
             "catalog.schema.customers.user_id".to_owned(),
-            ObjectModel {
+            EntityAttributeModel {
                 id: "object_id_1".to_string(),
+                name: "user_id".to_string(),
                 full_name: "catalog.schema.customers.user_id".to_string(),
                 is_aggregated: false,
                 tags: vec!["pii::id".to_string()],
+                data_type: "INT".to_string(),
             },
         );
 
         values.insert(
             "catalog.schema.customers.firstname".to_owned(),
-            ObjectModel {
+            EntityAttributeModel {
                 id: "object_id_2".to_string(),
+                name: "firstname".to_string(),
                 full_name: "catalog.schema.customers.firstname".to_string(),
                 is_aggregated: false,
                 tags: vec!["pii::firstname".to_string()],
+                data_type: "STRING".to_string(),
             },
         );
 
         values.insert(
             "catalog.schema.customers.lastname".to_owned(),
-            ObjectModel {
+            EntityAttributeModel {
                 id: "object_id_3".to_string(),
+                name: "lastname".to_string(),
                 full_name: "catalog.schema.customers.lastname".to_string(),
                 is_aggregated: false,
                 tags: vec!["pii::lastname".to_string()],
+                data_type: "STRING".to_string(),
             },
         );
 
         values.insert(
             "catalog.schema.customers.email".to_owned(),
-            ObjectModel {
+            EntityAttributeModel {
                 id: "object_id_4".to_string(),
+                name: "email".to_string(),
                 full_name: "catalog.schema.customers.email".to_string(),
                 is_aggregated: false,
                 tags: vec!["pii::email".to_string()],
+                data_type: "STRING".to_string(),
             },
         );
 

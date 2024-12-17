@@ -680,6 +680,9 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         )
         .await?;
 
+        // keep this information
+        session_info.set_login_message(msg.clone());
+
         // create login ack token
         self.send_token(
             client,

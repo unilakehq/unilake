@@ -11,7 +11,6 @@ public class GroupModelsTestData
             [
                 new ProxyGroupModelDto
                 {
-                    EntityVersion = 1,
                     Groups =
                     [
                         new Group

@@ -1,12 +1,13 @@
 use crate::backend::starrocks::StarRocksBackend;
 use crate::frontend::prot::{ServerInstance, TdsSessionState};
 use crate::frontend::tds::server_context::ServerContext;
+use crate::frontend::LoginMessage;
 use crate::session::{
     SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE,
     SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SECURITY_IMPERSONATE,
     SESSION_VARIABLE_SEND_TELEMETRY,
 };
-use casbin::{Cache, CoreApi, DefaultModel};
+use casbin::{Cache, DefaultModel};
 use chrono::Datelike;
 use mysql_async::Conn;
 use std::collections::HashMap;
@@ -43,6 +44,7 @@ pub struct StarRocksSession {
     conn: Option<Mutex<Conn>>,
     cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
     server_instance: Arc<ServerInstance>,
+    login_message: Option<LoginMessage>,
 }
 
 impl StarRocksSession {
@@ -59,7 +61,7 @@ impl StarRocksSession {
             socket_addr,
             packet_size: Arc::new(AtomicU16::new(server_instance.ctx.packet_size)),
             session_id: server_instance.next_session_id(),
-            sql_user_id: Some(Arc::from("fake_user_id")),
+            sql_user_id: Some(Arc::from("500efbea-0bfd-49b3-88ab-090cff23cab6")),
             state: TdsSessionState::default(),
             database: None,
             schema: None,
@@ -70,7 +72,7 @@ impl StarRocksSession {
             connection_reset_request_count: 0,
             branch_name: Arc::from(""),
             compute_id: Arc::from(""),
-            tenant_id: Arc::from(""),
+            tenant_id: Arc::from("7507f433-1943-4a7a-85e2-b8a441688709"),
             workspace_id: Arc::from(""),
             domain_id: Arc::from(""),
             endpoint: Arc::from(""),
@@ -78,11 +80,16 @@ impl StarRocksSession {
             cached_rules,
             server_instance,
             backend: None,
+            login_message: None,
         }
     }
 
     pub fn set_conn(&mut self, conn: Mutex<Conn>) {
         self.conn = Some(conn);
+    }
+
+    pub fn set_login_message(&mut self, login_message: LoginMessage) {
+        self.login_message = Some(login_message);
     }
 
     pub fn get_tenant_id(&self) -> Arc<str> {
@@ -135,7 +142,8 @@ impl StarRocksSession {
         );
         variables.insert(
             SESSION_VARIABLE_DATABASE.to_string(),
-            SessionVariable::new_default("default_schema"),
+            // todo: return back to default_schema when we have proper session variable support
+            SessionVariable::new_default("dwh"),
         );
         variables.insert(
             SESSION_VARIABLE_SEND_TELEMETRY.to_string(),
@@ -149,6 +157,15 @@ impl StarRocksSession {
             if let Some(userid) = &self.sql_user_id {
                 pool.drop_conn(userid.as_ref()).await;
             }
+        }
+    }
+
+    fn get_app_name(&self) -> String {
+        let default = "unknown".to_string();
+        if let Some(login_message) = &self.login_message {
+            login_message.app_name.clone().unwrap_or(default)
+        } else {
+            default
         }
     }
 
@@ -167,7 +184,7 @@ impl StarRocksSession {
         let ip_info = ip_info.unwrap();
 
         // get connecting app info, if available
-        let app_info = app_info.get(&"".to_string()).await;
+        let app_info = app_info.get(&self.get_app_name()).await;
         if app_info.is_none() {
             tracing::error!("Failed to get app info for {}", self.socket_addr);
             return Err(TdsWireError::Protocol("Failed to get app info".to_string()));

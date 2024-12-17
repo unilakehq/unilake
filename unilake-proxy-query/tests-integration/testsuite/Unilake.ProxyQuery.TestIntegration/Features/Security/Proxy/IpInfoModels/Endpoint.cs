@@ -17,6 +17,7 @@ public class Endpoint : Endpoint<ProxyIpInfoModelRequestRouteParams, ProxyIpInfo
                 await SendAsync(found, cancellation: ct);
                 break;
             case false:
+                Logger.LogWarning("Could not find proxy IP info model for tenant '{ReqTenantId}' and IP '{ReqIpv4}'", req.TenantId, req.Ipv4);
                 await SendNotFoundAsync(cancellation: ct);
                 break;
         }

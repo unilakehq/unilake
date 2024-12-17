@@ -5,7 +5,7 @@ public class Endpoint: Endpoint<AccessPolicyModelRequestRouteParams, AccessPolic
     public override void Configure()
     {
         AllowAnonymous();
-        Get("/tenants/{tenantId}/security/proxy/access-policies/{id}");
+        Get("/tenants/{tenantId}/security/proxy/access-policy-models/{id}");
     }
 
     public override async Task HandleAsync(AccessPolicyModelRequestRouteParams req, CancellationToken ct)
@@ -17,6 +17,7 @@ public class Endpoint: Endpoint<AccessPolicyModelRequestRouteParams, AccessPolic
                 await SendAsync(found, cancellation: ct);
                 break;
             case false:
+                Logger.LogWarning("Could not find access policy with ID {ReqId} for tenant {ReqTenantId}", req.Id, req.TenantId);
                 await SendNotFoundAsync(cancellation: ct);
                 break;
         }
