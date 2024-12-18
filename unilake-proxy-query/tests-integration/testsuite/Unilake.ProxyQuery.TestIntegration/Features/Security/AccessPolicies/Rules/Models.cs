@@ -16,9 +16,15 @@ public class AccessPolicyVersionDto
 
 public class AccessPolicyVersionRuleDto
 {
+    private string f = "";
+
     [JsonProperty("e")] public string Eft { get; set; }
 
-    [JsonProperty("f")] public string Func { get; set; }
+    [JsonProperty("f")] public string Func
+    {
+        get => f.Base64Encode();
+        set => f = value;
+    }
 
     [JsonProperty("o")] public string Object { get; set; }
 

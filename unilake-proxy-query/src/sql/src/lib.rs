@@ -36,7 +36,6 @@ pub fn run_transpile_operation(
     let start_time = std::time::Instant::now();
     Python::with_gil(|py| {
         let builtins = PyModule::import_bound(py, "sqlparser").unwrap();
-        println!("Transpiling: {}", serde_json::to_string(input).unwrap());
         let result = builtins
             .getattr("transpile")
             .unwrap()

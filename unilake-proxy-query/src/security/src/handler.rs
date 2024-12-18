@@ -663,7 +663,11 @@ impl<'a> QueryPolicyDecision<'a> {
                                 }
                             }
                             Err(err) => {
-                                panic!("Failed to enforce policy: {}", err)
+                                tracing::error!("Failed to enforce policy: {}", err);
+                                return Err(SecurityHandlerResult::PolicyError(
+                                    "Failed to enforce policy, policy file is corrupted or invalid"
+                                        .to_string(),
+                                ));
                             }
                         }
                     }

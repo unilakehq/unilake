@@ -1,0 +1,11 @@
+[
+  {
+    "city": "Amsterdam",
+    "continent": "Europe",
+    "country_iso2": "NL",
+    "country_name": "The Netherlands",
+    "ip_v4": "127.0.0.1",
+    "isp": "Localhost",
+    "timezone": "Europe/Amsterdam"
+  }
+]

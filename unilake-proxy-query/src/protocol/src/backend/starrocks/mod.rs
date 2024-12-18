@@ -310,7 +310,10 @@ impl StarRocksTdsHandlerFactory {
                 .get_user_hit_rules(session_info.get_sql_user_id().to_string())
                 .await,
             instance.get_cache_container(),
-            Box::new(RepoRest::new(session_info.get_tenant_id().to_string())),
+            Box::new(RepoRest::new(
+                session_info.get_tenant_id().to_string(),
+                instance.get_rest_client(),
+            )),
             session_info.get_abac_model(),
         ))
     }
@@ -326,12 +329,7 @@ impl StarRocksTdsHandlerFactory {
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
         let mut start = std::time::Instant::now();
-        // todo: this currently takes > 25ms, this needs to be optimized
         let mut security_handler = self.get_new_security_handler(session_info).await?;
-        tracing::trace!(
-            "Elapsed time [get_new_security_handler]: {:?}",
-            start.elapsed()
-        );
         let ulid = security_handler.get_query_id();
         query_telemetry.set_query_id(ulid.to_string());
 

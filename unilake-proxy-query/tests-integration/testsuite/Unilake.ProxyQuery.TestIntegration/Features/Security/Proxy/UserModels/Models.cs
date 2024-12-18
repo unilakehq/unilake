@@ -7,15 +7,6 @@ public class UserModelRequestRouteParams : ProxyRouteParams
     public string Id { get; set; }
 }
 
-/// <summary>
-/// Type of account
-/// </summary>
-public enum AccountType
-{
-    Service,
-    User
-};
-
 public class ProxyUserModelDto
 {
     /// <summary>

@@ -15,7 +15,9 @@ from sqlparser.data import (
     ScanOutputObject,
     TranspilerOutput,
     ErrorMessage,
-    TranspilerInput, TranspilerInputRules, TranspilerInputFilters,
+    TranspilerInput,
+    TranspilerInputRules,
+    TranspilerInputFilters,
 )
 
 OUTPUT_DIALECT = "starrocks"
@@ -46,7 +48,9 @@ def _scan_transform(node, scope_id: int, entities, attributes, aggregates):
         found_from = node.find(exp.From)
 
         if found_from:
-            attributes[scope_id].append(ScanAttribute(found_from.this.name, "*", found_from.this.alias))
+            attributes[scope_id].append(
+                ScanAttribute(found_from.this.name, "*", found_from.this.alias)
+            )
 
         if "joins" in node.args:
             joins = [join for join in node.args["joins"] if join.this.alias]
@@ -62,7 +66,12 @@ def _scan_transform(node, scope_id: int, entities, attributes, aggregates):
 def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutput:
     if not sql:
         return ScanOutput(
-            objects=[], dialect=dialect, query={"query": sql}, type=ScanOutputType.UNKNOWN, error=None, target_entity=None,
+            objects=[],
+            dialect=dialect,
+            query={"query": sql},
+            type=ScanOutputType.UNKNOWN,
+            error=None,
+            target_entity=None,
         )
     dialect = _get_dialect(dialect)
 
@@ -88,9 +97,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         for i, scope in enumerate(scoped):
             entities.append([])
             attributes.append([])
-            scope.expression.transform(
-                _scan_transform, i, entities, attributes, aggregates
-            )
+            scope.expression.transform(_scan_transform, i, entities, attributes, aggregates)
             objects.append(
                 ScanOutputObject(
                     scope=i, entities=entities[i], attributes=attributes[i], is_agg=i in aggregates
@@ -375,26 +382,33 @@ def _transform_mask(node: exp.Column, scope_id: int, rule_lookup: dict):
         case _:
             return node
 
+
 def _hide_literals(node: exp.Literal):
     node.set("this", "?", overwrite=True)
     return node
+
 
 def _transformer_filters(node, scope_id: int, filter_lookup: dict):
     if isinstance(node, exp.Select):
         return _transform_filters(node, scope_id, filter_lookup)
     return node
 
+
 def _transformer_mask(node, scope_id: int, rule_lookup: dict):
     if isinstance(node, exp.Column):
         return _transform_mask(node, scope_id, rule_lookup)
     return node
+
 
 def _transformer_hide_literals(node):
     if isinstance(node, exp.Literal):
         return _hide_literals(node)
     return node
 
-def inner_transpile(source: str | dict | TranspilerInput, secure_output: bool = False) -> TranspilerOutput:
+
+def inner_transpile(
+    source: str | dict | TranspilerInput, secure_output: bool = False
+) -> TranspilerOutput:
     # check input
     if source is None:
         return TranspilerOutput(
@@ -434,8 +448,14 @@ def inner_transpile(source: str | dict | TranspilerInput, secure_output: bool = 
 
     # set visible schema (if applicable)
     if transpiler_input.visible_schema:
-        visible_schema = MappingSchema(transpiler_input.visible_schema)
-        input_sql = qualify(input_sql, expand_stars=True, schema=visible_schema, validate_qualify_columns=True)
+        visible_schema = MappingSchema(schema=transpiler_input.visible_schema, normalize=False)
+        input_sql = qualify(
+            input_sql,
+            expand_stars=True,
+            schema=visible_schema,
+            infer_schema=False,
+            validate_qualify_columns=True,
+        )
 
     # set scopes
     scoped = traverse_scope(input_sql)
@@ -443,20 +463,19 @@ def inner_transpile(source: str | dict | TranspilerInput, secure_output: bool = 
     if scoped:
         for i, scope in enumerate(scoped):
             if _has_rules_for_scope(transpiler_input.rules, i):
-                scope.expression.transform(
-                    _transformer_mask, i, rule_lookup, copy=False
-                )
+                scope.expression.transform(_transformer_mask, i, rule_lookup, copy=False)
             if _has_rules_for_scope(transpiler_input.filters, i):
-                scope.expression.transform(
-                    _transformer_filters, i, filter_lookup, copy=False
-                )
+                scope.expression.transform(_transformer_filters, i, filter_lookup, copy=False)
 
     return TranspilerOutput(
         sql_transformed=str(input_sql.sql(OUTPUT_DIALECT)),
         error=None,
     )
 
-def _has_rules_for_scope(rules: list[TranspilerInputRules | TranspilerInputFilters], scope: int) -> bool:
+
+def _has_rules_for_scope(
+    rules: list[TranspilerInputRules | TranspilerInputFilters], scope: int
+) -> bool:
     for rule in rules:
         if rule.scope == scope:
             return True

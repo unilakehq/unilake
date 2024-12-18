@@ -34,6 +34,7 @@ pub struct BackendInstance {
     app_info_model: Arc<Box<MultiLayeredCache<String, AppInfoModel>>>,
     policy_cache: Arc<MultiLayeredCache<u64, CachedPolicyRules>>,
     user_rule_hits: RwLock<HashMap<String, (usize, Arc<Box<dyn Cache<u64, (String, HitRule)>>>)>>,
+    rest_client: reqwest::Client,
 }
 
 impl BackendInstance {
@@ -117,6 +118,10 @@ impl BackendInstance {
         self.app_info_model.clear();
         self.policy_cache.clear();
     }
+
+    pub fn get_rest_client(&self) -> reqwest::Client {
+        self.rest_client.clone()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -138,6 +143,7 @@ pub struct BackendHandler {
     instances: RwLock<HashMap<String, Arc<BackendInstance>>>,
     redis_client: Option<Arc<ClusterClient>>,
     backend_running: RwLock<bool>,
+    rest_client: Option<reqwest::Client>,
 }
 
 impl BackendHandler {
@@ -147,6 +153,7 @@ impl BackendHandler {
             redis_client,
             instances: RwLock::new(HashMap::new()),
             backend_running: RwLock::new(false),
+            rest_client: Some(reqwest::Client::new()),
         }
     }
 
@@ -180,6 +187,12 @@ impl BackendHandler {
         }
     }
 
+    pub fn get_rest_client(&self) -> reqwest::Client {
+        self.rest_client
+            .clone()
+            .unwrap_or_else(|| panic!("No REST client configured"))
+    }
+
     /// Returns either a distributed cache (redis) or a no-op cache (local)
     fn get_distributed_cache<K, V>(
         &self,
@@ -209,38 +222,39 @@ impl BackendHandler {
             user_model: Arc::new(Box::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "user_model".to_owned()),
-                Box::from(RepoRest::new(tenant_id.to_owned())),
+                Box::from(RepoRest::new(tenant_id.to_owned(), self.get_rest_client())),
             ))),
             group_model: Arc::new(Box::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "group_model".to_owned()),
-                Box::from(RepoRest::new(tenant_id.to_owned())),
+                Box::from(RepoRest::new(tenant_id.to_owned(), self.get_rest_client())),
             ))),
             entity_model: Arc::new(Box::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "entity_model".to_owned()),
-                Box::from(RepoRest::new(tenant_id.to_owned())),
+                Box::from(RepoRest::new(tenant_id.to_owned(), self.get_rest_client())),
             ))),
             access_policy_model: Arc::new(Box::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "access_policy_model".to_owned()),
-                Box::from(RepoRest::new(tenant_id.to_owned())),
+                Box::from(RepoRest::new(tenant_id.to_owned(), self.get_rest_client())),
             ))),
             app_info_model: Arc::new(Box::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "app_info_model".to_owned()),
-                Box::from(RepoRest::new(tenant_id.to_owned())),
+                Box::from(RepoRest::new(tenant_id.to_owned(), self.get_rest_client())),
             ))),
             ip_info_model: Arc::new(Box::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "ip_info_model".to_owned()),
-                Box::from(RepoRest::new(tenant_id.to_owned())),
+                Box::from(RepoRest::new(tenant_id.to_owned(), self.get_rest_client())),
             ))),
             policy_cache: Arc::new(MultiLayeredCache::new(
                 local_cap,
                 self.get_distributed_cache(tenant_id.to_owned(), "policy_cache".to_owned()),
-                Box::from(RepoRest::new(tenant_id.to_owned())),
+                Box::from(RepoRest::new(tenant_id.to_owned(), self.get_rest_client())),
             )),
+            rest_client: self.get_rest_client(),
         };
 
         let backend_instance = Arc::new(backend_instance);

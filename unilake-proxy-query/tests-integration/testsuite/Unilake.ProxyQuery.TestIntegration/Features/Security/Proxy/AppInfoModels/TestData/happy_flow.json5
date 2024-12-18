@@ -4,5 +4,11 @@
     "app_id": 1211,
     "app_name": "sqlcmd",
     "app_type": "Test"
+  },
+  {
+    "app_driver": "Unilake.ProxyQuery.Test.Features.Security.Proxy.AppInfoModels.AppDriver",
+    "app_id": 1213,
+    "app_name": "azdata",
+    "app_type": "Test"
   }
 ]

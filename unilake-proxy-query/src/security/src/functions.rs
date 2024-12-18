@@ -13,6 +13,7 @@ pub(crate) fn add_functions(engine: &mut rhai::Engine) {
     engine.register_fn("ConnectedWorkspace", connected_workspace);
     engine.register_fn("TimeBetween", time_between);
     engine.register_fn("Now", now);
+    // todo: add IpMatch: https://github.com/casbin/casbin-rs/blob/c5a05d34894e6a340a7fae5f57d7be0949c74c01/src/model/function_map.rs#L256
 }
 
 /// Get the current (UTC) timestamp
@@ -61,7 +62,8 @@ fn inner_tag_exists(s: Array, tag_name: ImmutableString) -> bool {
     let starred = tag_name.ends_with("*");
     s.iter().any(|v| {
         if let Some(v) = v.clone().try_cast::<ImmutableString>() {
-            return if starred {
+            return if starred && v.contains("::") && tag_name.contains("::") {
+                // unwrap: the existence of "::" is guaranteed above
                 v.split_once("::").unwrap().0 == tag_name.split_once("::").unwrap().0
             } else {
                 v == tag_name

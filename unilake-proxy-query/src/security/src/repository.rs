@@ -105,6 +105,7 @@ pub trait RepoBackend: Send + Sync {
 }
 
 // todo: add auth (service account)
+#[derive(Clone)]
 pub struct RepoRest {
     tenant_id: String,
     api_endpoint: String,
@@ -113,11 +114,11 @@ pub struct RepoRest {
 
 impl RepoRest {
     #[allow(dead_code)]
-    pub fn new(tenant_id: String) -> Self {
+    pub fn new(tenant_id: String, client: reqwest::Client) -> Self {
         let api_endpoint = settings_server_api_endpoint();
         RepoRest {
             tenant_id,
-            client: reqwest::Client::new(),
+            client,
             api_endpoint,
         }
     }
