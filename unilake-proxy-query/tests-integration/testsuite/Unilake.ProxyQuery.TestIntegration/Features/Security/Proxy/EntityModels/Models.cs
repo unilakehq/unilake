@@ -16,9 +16,7 @@ public class ProxyEntityModelDto
 
     [JsonProperty("tags")] public string[] Tags { get; set; }
 
-    [JsonProperty("attributes")] public List<KeyValuePair<string, string>> Attributes { get; set; }
-
-    [JsonProperty("objects")] public Dictionary<string, ProxyObjectModelDto> Objects { get; set; }
+    [JsonProperty("attributes")] public Dictionary<string, ProxyObjectModelDto> Attributes { get; set; }
 }
 
 public class ProxyObjectModelDto
@@ -29,4 +27,6 @@ public class ProxyObjectModelDto
     [JsonProperty("tags")] public string[] Tags { get; set; }
     [JsonProperty("isAggregated")] public bool IsAggregated { get; set; } = false;
    [JsonProperty("name")] public string Name { get; set; }
+   [JsonProperty("dataType")]
+   public string DataType { get; set; }
 }

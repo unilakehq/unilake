@@ -127,7 +127,7 @@ pub struct EntityModel {
     /// The full name of the entity (e.g., catalog.schema.table)
     #[serde(rename = "fullName")]
     pub full_name: String,
-    /// Object models for this entity (full_name, object_model)
+    /// Entity attribute models for this entity (full_name, entity_attribute_model)
     pub attributes: HashMap<String, EntityAttributeModel>,
 }
 

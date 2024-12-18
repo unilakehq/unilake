@@ -180,6 +180,7 @@ impl StarRocksTdsHandlerFactoryInnnerState {
     /// Send query and its handler to the audit system, the handler can obfuscate sensitive data
     /// and contains all information used in the transpiling process
     async fn audit_on_query<S: SessionInfo>(&self, user_info: &S, query: SecurityHandler) -> () {
+        tracing::debug!("Executing query on backend: {:?}", query.get_output_query());
         if let Err(e) = self
             .server_instance
             .process_message(ServerInstanceMessage::Audit(SessionAuditMessage::SqlQuery(
@@ -187,8 +188,7 @@ impl StarRocksTdsHandlerFactoryInnnerState {
                 query,
             )))
         {
-            //todo(mrhamburg): log this properly
-            todo!()
+            tracing::error!("Failed to send audit query: {}", e);
         }
     }
 
@@ -325,7 +325,13 @@ impl StarRocksTdsHandlerFactory {
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
+        let mut start = std::time::Instant::now();
+        // todo: this currently takes > 25ms, this needs to be optimized
         let mut security_handler = self.get_new_security_handler(session_info).await?;
+        tracing::trace!(
+            "Elapsed time [get_new_security_handler]: {:?}",
+            start.elapsed()
+        );
         let ulid = security_handler.get_query_id();
         query_telemetry.set_query_id(ulid.to_string());
 
@@ -335,6 +341,7 @@ impl StarRocksTdsHandlerFactory {
             SESSION_VARIABLE_DATABASE,
         ]);
 
+        start = std::time::Instant::now();
         let query = security_handler
             .handle_query(
                 query,
@@ -343,6 +350,10 @@ impl StarRocksTdsHandlerFactory {
                 values[SESSION_VARIABLE_DATABASE].as_ref(),
             )
             .await;
+        tracing::trace!(
+            "Elapsed time [SecurityHandler.handle_query]: {:?}",
+            start.elapsed()
+        );
 
         self.inner
             .audit_on_query(session_info, security_handler)
@@ -377,8 +388,7 @@ impl StarRocksTdsHandlerFactory {
         if cfg!(debug_assertions) {
             return settings_server_transparent_mode();
         }
-        // false
-        true
+        false
     }
 
     async fn handle_batch_request<C>(

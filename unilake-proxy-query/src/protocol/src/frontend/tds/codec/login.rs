@@ -684,7 +684,7 @@ impl TdsMessageCodec for LoginMessage {
             match feature_type {
                 FeatureExt::SessionRecovery => continue,
                 FeatureExt::FedAuth => {
-                    let options = buff.get_u8();
+                    let _options = buff.get_u8();
                     let token_len = buff.get_u32_le() as usize;
 
                     let token = {

@@ -1,3 +1,5 @@
+using Unilake.ProxyQuery.TestIntegration.Shared;
+
 namespace Unilake.ProxyQuery.TestIntegration.Features.Security.Proxy.AppInfoModels;
 
 public class Endpoint : Endpoint<ProxyAppInfoModelRequestDto, ProxyAppInfoModelDto>
@@ -17,7 +19,9 @@ public class Endpoint : Endpoint<ProxyAppInfoModelRequestDto, ProxyAppInfoModelD
             "Requesting app info model (tenantId: {ReqTenantId}, appName: {ReqAppName}, clientProgVer: {ReqClientProgVer}, libraryName: {ReqLibraryName})",
             tenantId, appName, req.ClientProgVer, req.LibraryName);
 
-        var found = AppInfoTestData.GetTestData(tenantId).FirstOrDefault(i => i.AppName == appName);
+        var found = (TestData.GetData<ProxyAppInfoModelDto>(tenantId) ?? [])
+            .FirstOrDefault(x => x.AppName == appName);
+
         switch (found != null)
         {
             case true:

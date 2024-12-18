@@ -1,3 +1,5 @@
+using Unilake.ProxyQuery.TestIntegration.Shared;
+
 namespace Unilake.ProxyQuery.TestIntegration.Features.Security.Proxy.GroupModels;
 
 public class Endpoint : Endpoint<GroupModelRequestRouteParams, ProxyGroupModelDto>
@@ -10,7 +12,8 @@ public class Endpoint : Endpoint<GroupModelRequestRouteParams, ProxyGroupModelDt
 
     public override async Task HandleAsync(GroupModelRequestRouteParams req, CancellationToken ct)
     {
-        var found = GroupModelsTestData.GetTestData(req.TenantId).FirstOrDefault(g => g.UserId == req.Id);
+        var found = (TestData.GetData<ProxyGroupModelDto>(req.TenantId) ?? [])
+            .FirstOrDefault(x => x.UserId == req.Id);
         switch (found != null)
         {
             case true:

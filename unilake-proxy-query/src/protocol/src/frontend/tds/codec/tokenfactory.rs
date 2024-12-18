@@ -1,5 +1,5 @@
 use super::TdsToken;
-use crate::frontend::{tds::codec::header, PacketHeader, TdsMessage};
+use crate::frontend::{PacketHeader, TdsMessage};
 use tokio_util::bytes::{Buf, BytesMut};
 use unilake_common::error::TdsWireResult;
 

@@ -266,7 +266,7 @@ impl BackendHandler {
     /// Tenant can get the data from the distribute cache on reconnect. In case this instance is used in
     /// a single tenant environment, you can disable the cache invalidation feature for improved performance.
     pub async fn clear_tenant_instances(&self, tenant_id: &str, forced: bool) {
-        if settings_cache_invalidation_enabled() && !forced {
+        if settings_cache_invalidation_enabled() || forced {
             tracing::warn!(
                 "Invalidating cache for tenant {}, forced: {}",
                 tenant_id,
@@ -280,18 +280,51 @@ impl BackendHandler {
 
     async fn on_sse_event(&self, update: SseEventDto) {
         tracing::info!("Received SSE action: {:?}", update);
-        let instance = self.get_backend_instance(update.tenant_id).await;
-        if let Some(update) = update.invalidation_request {
-            match update.cache_type.as_str() {
-                "user" => instance.user_model.remove_local(&update.key).await,
-                "group" => instance.group_model.remove_local(&update.key).await,
-                "entity" => instance.entity_model.remove_local(&update.key).await,
-                "access_policy" => instance.access_policy_model.remove_local(&update.key).await,
-                "ip_info" => instance.ip_info_model.remove_local(&update.key).await,
-                "app_info" => instance.app_info_model.remove_local(&update.key).await,
+        let instance = self.get_backend_instance(update.tenant_id.clone()).await;
+        if let Some(invalidation_reques) = update.invalidation_request {
+            match invalidation_reques.cache_type.as_str() {
+                "user" => {
+                    instance
+                        .user_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "group" => {
+                    instance
+                        .group_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "entity" => {
+                    instance
+                        .entity_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "access_policy" => {
+                    instance
+                        .access_policy_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "ip_info" => {
+                    instance
+                        .ip_info_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "app_info" => {
+                    instance
+                        .app_info_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
                 "policy" => instance.policy_cache.clear(),
+                "all" => {
+                    self.clear_tenant_instances(&update.tenant_id, true).await;
+                }
                 _ => {
-                    tracing::warn!("Unknown cache type: {}", update.cache_type);
+                    tracing::warn!("Unknown cache type: {}", invalidation_reques.cache_type);
                 }
             }
         }

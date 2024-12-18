@@ -110,6 +110,7 @@ impl PolicyHitManager {
                         // if this happens, clear cache and retry
                         return Ok(PolicyCollectResult::CacheInvalid);
                     } else {
+                        // todo: authorized is false, we need to treat this as an unauthorized access request
                         // todo: this should then be an automated hidden policy?
                         // or just report no access to this attribute id
                     }

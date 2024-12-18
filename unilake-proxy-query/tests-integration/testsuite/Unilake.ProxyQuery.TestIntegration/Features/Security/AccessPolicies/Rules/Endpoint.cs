@@ -1,3 +1,5 @@
+using Unilake.ProxyQuery.TestIntegration.Shared;
+
 namespace Unilake.ProxyQuery.TestIntegration.Features.Security.AccessPolicies.Rules;
 
 public class Endpoint : Endpoint<AccessPolicyRuleRequestRouteParams, AccessPolicyVersionDto>
@@ -22,7 +24,7 @@ public class Endpoint : Endpoint<AccessPolicyRuleRequestRouteParams, AccessPolic
             return;
         }
 
-        var found = AccessPolicyRuleTestData.GetTestData(req.TenantId);
+        var found = TestData.GetData<AccessPolicyVersionRuleDto>(req.TenantId);
         if (found.Length == 0)
             Logger.LogWarning("Could not find policy with ID {ReqId} for tenant {ReqTenantId}", req.VersionId,
                 req.TenantId);

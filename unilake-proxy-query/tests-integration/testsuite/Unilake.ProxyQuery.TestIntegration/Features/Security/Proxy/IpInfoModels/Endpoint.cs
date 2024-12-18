@@ -1,3 +1,5 @@
+using Unilake.ProxyQuery.TestIntegration.Shared;
+
 namespace Unilake.ProxyQuery.TestIntegration.Features.Security.Proxy.IpInfoModels;
 
 public class Endpoint : Endpoint<ProxyIpInfoModelRequestRouteParams, ProxyIpInfoModelDto>
@@ -10,7 +12,9 @@ public class Endpoint : Endpoint<ProxyIpInfoModelRequestRouteParams, ProxyIpInfo
 
     public override async Task HandleAsync(ProxyIpInfoModelRequestRouteParams req, CancellationToken ct)
     {
-        var found = ProxyIpInfoModelTestData.GetTestData(req.TenantId).FirstOrDefault(x => x.IpV4 == req.Ipv4);
+        var found = (TestData.GetData<ProxyIpInfoModelDto>(req.TenantId) ?? [])
+            .FirstOrDefault(x => x.IpV4 == req.Ipv4);
+
         switch (found != null)
         {
             case true:

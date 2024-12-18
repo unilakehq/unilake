@@ -22,7 +22,12 @@ public class Endpoint : EndpointWithoutRequest
         while (!ct.IsCancellationRequested)
         {
             await Task.Delay(30000, ct);
-            yield return new SseEventDto { TenantId = "some_tenant_id"};
+            yield return new SseEventDto
+            {
+                TenantId = "7507f433-1943-4a7a-85e2-b8a441688709",
+                InvalidationRequest = new InvalidationRequestDto
+                    { CacheType = "all", Key = string.Empty }
+            };
         }
     }
 }

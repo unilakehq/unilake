@@ -227,7 +227,7 @@ impl ServerInstance {
         self.default_model.clone()
     }
 
-    async fn inner_process_message(&self, msg: ServerInstanceMessage) {
+    async fn inner_process_message(&self, _msg: ServerInstanceMessage) {
         tracing::error!(message = "Received server instance message, processing has not been implemented, dropping message!".to_string());
     }
 

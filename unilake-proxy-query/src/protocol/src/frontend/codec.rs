@@ -246,7 +246,7 @@ where
         }
     };
 
-    let mut tcp_socket = Framed::new(
+    let tcp_socket = Framed::new(
         tcp_socket,
         TdsWireMessageServerCodec::new(session_info.packet_size()),
     );
@@ -294,41 +294,41 @@ impl SslRequest {
     pub const BODY_SIZE: usize = 8;
 }
 
-async fn peek_for_sslrequest<S>(
-    socket: &mut Framed<TcpStream, TdsWireMessageServerCodec>,
-    ssl_supported: bool,
-) -> Result<bool, IOError>
-where
-    S: SessionInfo,
-{
-    let ssl = false;
-    if is_sslrequest_pending(socket.get_ref()).await? {
-        // consume request
-        socket.next().await;
+// async fn peek_for_sslrequest<S>(
+//     socket: &mut Framed<TcpStream, TdsWireMessageServerCodec>,
+//     ssl_supported: bool,
+// ) -> Result<bool, IOError>
+// where
+//     S: SessionInfo,
+// {
+//     let ssl = false;
+//     if is_sslrequest_pending(socket.get_ref()).await? {
+//         // consume request
+//         socket.next().await;
+//
+//         let _response = if ssl_supported {
+//             // ssl = true;
+//             // TdsWireBackendMessage::SslResponse(SslResponse::Accept)
+//             todo!()
+//         } else {
+//             // TdsWireBackendMessage::SslResponse(SslResponse::Refuse)
+//             todo!()
+//         };
+//         // socket.send(response).await?;
+//     }
+//     Ok(ssl)
+// }
 
-        let _response = if ssl_supported {
-            // ssl = true;
-            // TdsWireBackendMessage::SslResponse(SslResponse::Accept)
-            todo!()
-        } else {
-            // TdsWireBackendMessage::SslResponse(SslResponse::Refuse)
-            todo!()
-        };
-        // socket.send(response).await?;
-    }
-    Ok(ssl)
-}
-
-async fn is_sslrequest_pending(tcp_socket: &TcpStream) -> Result<bool, IOError> {
-    let mut buf = [0u8; SslRequest::BODY_SIZE];
-    let mut buf = ReadBuf::new(&mut buf);
-    while buf.filled().len() < SslRequest::BODY_SIZE {
-        if poll_fn(|cx| tcp_socket.poll_peek(cx, &mut buf)).await? == 0 {
-            // the tcp_stream has ended
-            return Ok(false);
-        }
-    }
-
-    let _buf = BytesMut::from(buf.filled());
-    Ok(false)
-}
+// async fn is_sslrequest_pending(tcp_socket: &TcpStream) -> Result<bool, IOError> {
+//     let mut buf = [0u8; SslRequest::BODY_SIZE];
+//     let mut buf = ReadBuf::new(&mut buf);
+//     while buf.filled().len() < SslRequest::BODY_SIZE {
+//         if poll_fn(|cx| tcp_socket.poll_peek(cx, &mut buf)).await? == 0 {
+//             // the tcp_stream has ended
+//             return Ok(false);
+//         }
+//     }
+//
+//     let _buf = BytesMut::from(buf.filled());
+//     Ok(false)
+// }

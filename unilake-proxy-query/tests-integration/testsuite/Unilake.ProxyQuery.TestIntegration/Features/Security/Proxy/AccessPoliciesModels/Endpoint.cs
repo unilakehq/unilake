@@ -1,6 +1,8 @@
+using Unilake.ProxyQuery.TestIntegration.Shared;
+
 namespace Unilake.ProxyQuery.TestIntegration.Features.Security.Proxy.AccessPoliciesModels;
 
-public class Endpoint: Endpoint<AccessPolicyModelRequestRouteParams, AccessPolicyModelDto>
+public class Endpoint : Endpoint<AccessPolicyModelRequestRouteParams, AccessPolicyModelDto>
 {
     public override void Configure()
     {
@@ -10,14 +12,18 @@ public class Endpoint: Endpoint<AccessPolicyModelRequestRouteParams, AccessPolic
 
     public override async Task HandleAsync(AccessPolicyModelRequestRouteParams req, CancellationToken ct)
     {
-        var found = AccessPoliciesTestData.GetTestData(req.TenantId).FirstOrDefault(x => x.PolicyId == req.Id);
-        switch (found!= null)
+        var found = (TestData.GetData<AccessPolicyModelDto>(req.TenantId) ?? [])
+            .FirstOrDefault(x => x.PolicyId == req.Id);
+
+        switch (found != null)
         {
             case true:
+                found.ExpireDatetimeUtc += DateTime.UtcNow.GetUnixTimestamp();
                 await SendAsync(found, cancellation: ct);
                 break;
             case false:
-                Logger.LogWarning("Could not find access policy with ID {ReqId} for tenant {ReqTenantId}", req.Id, req.TenantId);
+                Logger.LogWarning("Could not find access policy with ID {ReqId} for tenant {ReqTenantId}", req.Id,
+                    req.TenantId);
                 await SendNotFoundAsync(cancellation: ct);
                 break;
         }

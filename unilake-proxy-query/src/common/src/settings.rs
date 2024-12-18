@@ -38,7 +38,7 @@ pub fn settings_server_api_endpoint() -> String {
 pub fn settings_cache_invalidation_enabled() -> bool {
     global_config()
         .get::<bool>("cache_invalidation")
-        .unwrap_or(false)
+        .unwrap_or(true)
 }
 
 pub fn settings_cache_redis_host() -> Option<String> {

@@ -1,3 +1,5 @@
+using Unilake.ProxyQuery.TestIntegration.Shared;
+
 namespace Unilake.ProxyQuery.TestIntegration.Features.Security.Proxy.UserModels;
 
 public class Endpoint : Endpoint<UserModelRequestRouteParams, ProxyUserModelDto>
@@ -10,7 +12,9 @@ public class Endpoint : Endpoint<UserModelRequestRouteParams, ProxyUserModelDto>
 
     public override async Task HandleAsync(UserModelRequestRouteParams req, CancellationToken ct)
     {
-        var found = UserModelsTestData.GetTestData(req.TenantId).FirstOrDefault(i => i.Id == req.Id);
+        var found = (TestData.GetData<ProxyUserModelDto>(req.TenantId) ?? [])
+            .FirstOrDefault(x => x.Id == req.Id);
+
         switch (found != null)
         {
             case true:

@@ -22,7 +22,7 @@ pub fn run_scan_operation(
             .call1((query, dialect, catalog, database))?;
 
         let elapsed_time = std::time::Instant::now().duration_since(start_time);
-        tracing::info!("Elapsed time [Scan]: {:?}", elapsed_time);
+        tracing::trace!("Elapsed time [Scan]: {:?}", elapsed_time);
 
         Ok(result.extract::<ScanOutput>()?)
     })
@@ -45,7 +45,7 @@ pub fn run_transpile_operation(
             .unwrap();
 
         let elapsed_time = std::time::Instant::now().duration_since(start_time);
-        tracing::info!("Elapsed time [Transpile]: {:?}", elapsed_time);
+        tracing::trace!("Elapsed time [Transpile]: {:?}", elapsed_time);
 
         Ok(result.extract::<TranspilerOutput>()?)
     })
@@ -64,7 +64,7 @@ pub fn run_secure_operation(input: &str) -> PyResult<String> {
             .unwrap();
 
         let elapsed_time = std::time::Instant::now().duration_since(start_time);
-        println!("Elapsed time [Secure]: {:?}", elapsed_time);
+        tracing::trace!("Elapsed time [Secure]: {:?}", elapsed_time);
 
         Ok(result.extract::<String>()?)
     })

@@ -96,7 +96,7 @@ fn set_statement(req: &BatchRequest) -> Option<FedResult> {
     Some(FedResult::Empty)
 }
 
-fn backup_info(req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn backup_info(_req: &BatchRequest) -> TdsWireResult<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("Within 24hrs"),
@@ -174,14 +174,6 @@ fn session_properties(_: &BatchRequest) -> TdsWireResult<FedResult> {
         .add_column(None, TypeInfo::new_int(false), DataFlags::default())
         .add_row(&[ColumnData::I32(1), ColumnData::I32(1)]);
 
-    Ok(FedResult::Tabular(result_set.result))
-}
-
-fn hello_world(_: &BatchRequest) -> TdsWireResult<FedResult> {
-    let result_set = ResultSetBuilder::new()
-        .add_column(Some("Hello"), TypeInfo::new_bit(), DataFlags::default())
-        .add_column(Some("World"), TypeInfo::new_bit(), DataFlags::default())
-        .add_row(&[ColumnData::Bit(true), ColumnData::Bit(false)]);
     Ok(FedResult::Tabular(result_set.result))
 }
 

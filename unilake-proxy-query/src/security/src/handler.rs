@@ -12,6 +12,7 @@ use crate::{HitRule, ABAC_MODEL};
 use casbin::{Cache, CachedEnforcer, CoreApi, DefaultModel};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
+use tracing::instrument;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
 use unilake_common::model::{
@@ -419,6 +420,10 @@ impl SecurityHandler {
         self.query_id
     }
 
+    pub fn get_output_query(&self) -> Option<Arc<str>> {
+        self.output_query.clone()
+    }
+
     /// Checks if the current user has access to the entity involved with the given intent.
     async fn check_user_access(&self, scan_output: &ScanOutput) -> bool {
         if scan_output.query_type == SELECT {
@@ -617,6 +622,17 @@ impl<'a> QueryPolicyDecision<'a> {
                 let object_model = match self.get_object_model(entity_model, &entity_attribute_name)
                 {
                     None => {
+                        let keys: String = entity_model
+                            .attributes
+                            .keys()
+                            .cloned()
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        tracing::error!(
+                            models = keys,
+                            entity = entity_attribute_name,
+                            "Entity not found in the provided entity model"
+                        );
                         return Err(SecurityHandlerResult::EntityNotFound(entity_attribute_name));
                     }
                     Some(om) => om,
