@@ -23,8 +23,9 @@ class ErrorMessage:
             "start_context": self.start_context,
             "highlight": self.highlight,
             "end_context": self.end_context,
-            "into_expression": self.into_expression
+            "into_expression": self.into_expression,
         }
+
 
 @dataclass
 class ParserError:
@@ -36,7 +37,7 @@ class ParserError:
         return {
             "error_type": self.error_type,
             "message": self.message,
-            "errors": [error.to_json() for error in self.errors]
+            "errors": [error.to_json() for error in self.errors],
         }
 
     @staticmethod
@@ -44,39 +45,49 @@ class ParserError:
         return ParserError(
             error_type="PARSE_ERROR",
             message="",
-            errors=[ErrorMessage(**error_info) for error_info in error.errors]
+            errors=[ErrorMessage(**error_info) for error_info in error.errors],
         )
 
     @staticmethod
     def from_sqlglot_optimize_error(error: sqlglot.errors.OptimizeError) -> "ParserError":
         x = error.args
-        return ParserError(
-            error_type="PARSE_ERROR",
-            message=str(error.args),
-            errors=[]
-        )
+        return ParserError(error_type="PARSE_ERROR", message=str(error.args), errors=[])
 
 
 @dataclass
 class ScanEntity:
-    catalog: str
-    db: str
+    # Catalog name, can be empty in case of cte's
+    catalog: str | None
+    # Database/schema name, can be empty in case of cte's
+    db: str | None
     name: str
     alias: str
 
     def to_json(self):
-        return {"catalog": self.catalog, "db": self.db, "entity": self.name, "alias": self.alias}
+        return {"catalog": self.catalog, "db": self.db, "name": self.name, "alias": self.alias}
+
+    def __hash__(self):
+        return hash((self.catalog, self.db, self.name))
+
+    def __eq__(self, other):
+        return (self.catalog, self.db, self.name) == (other.catalog, other.db, other.name)
 
 
 @dataclass
 class ScanAttribute:
-    entity_alias: str
+    # Name of the attribute
     name: str
-    alias: str
+    # Entity alias where the attribute is defined
+    entity_alias: str
 
     def to_json(self) -> dict:
-        return {"entity_alias": self.entity_alias, "name": self.name, "alias": self.alias}
+        return {"entity_alias": self.entity_alias, "name": self.name}
 
+    def __hash__(self):
+        return hash((self.entity_alias, self.name))
+
+    def __eq__(self, other):
+        return (self.entity_alias, self.name) == (other.entity_alias, other.name)
 
 @dataclass
 class ScanOutputType(str, Enum):
@@ -103,8 +114,8 @@ class ScanOutputType(str, Enum):
 @dataclass
 class ScanOutputObject:
     scope: int
-    entities: list[ScanEntity]
-    attributes: list[ScanAttribute]
+    entities: set[ScanEntity]
+    attributes: set[ScanAttribute]
     is_agg: bool
 
     def to_json(self):
@@ -147,6 +158,7 @@ class ScanOutput:
             target_entity=None,
         )
 
+
 @dataclass
 class TranspilerInputRules:
     scope: int
@@ -155,6 +167,7 @@ class TranspilerInputRules:
     policy_id: str
     rule_definition: dict
 
+
 @dataclass
 class TranspilerInputFilters:
     scope: int
@@ -162,6 +175,7 @@ class TranspilerInputFilters:
     attribute_id: str
     policy_id: str
     filter_definition: dict
+
 
 @dataclass
 class TranspilerInput:
@@ -210,7 +224,4 @@ class TranspilerOutput:
 
     @staticmethod
     def from_parser_error(parser_error: ParserError) -> "TranspilerOutput":
-        return TranspilerOutput(
-            sql_transformed="",
-            error=parser_error
-        )
+        return TranspilerOutput(sql_transformed="", error=parser_error)

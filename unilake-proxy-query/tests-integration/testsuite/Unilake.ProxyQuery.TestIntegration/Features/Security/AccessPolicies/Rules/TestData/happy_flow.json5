@@ -12,6 +12,22 @@
   },
   {
     "e": "allow",
+    "f": '{"expression":"? > 30"}',
+    "o": "*.AccountKey",
+    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+    "t": "p",
+    "s": "true"
+  },
+  {
+    "e": "allow",
+    "f": '{"expression":"? < 70"}',
+    "o": "*.AccountKey",
+    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+    "t": "p",
+    "s": "true"
+  },
+  {
+    "e": "allow",
     // "f": '{"name": "replace_string","properties": {"replacement": "[REDACTED]"}}',
     "f": '{"name": "xxhash3"}',
     // "f": '{"name": "hidden"}',
@@ -22,8 +38,8 @@
   },
   {
     "e": "allow",
-    // "f": '{"name": "replace_string","properties": {"replacement": "[REDACTED]"}}',
-    "f": '{"name": "xxhash3"}',
+     "f": '{"name": "replace_string","properties": {"replacement": "[REDACTED]"}}',
+    // "f": '{"name": "xxhash3"}',
     // "f": '{"name": "hidden"}',
     "o": "*.OrganizationKey",
     "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",

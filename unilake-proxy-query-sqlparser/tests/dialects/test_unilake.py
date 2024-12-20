@@ -3,6 +3,7 @@ from typing import Type
 from sqlglot import parse_one
 from sqlparser.dialects import Unilake
 
+
 class TestDialectUnilake(unittest.TestCase):
     def test_parse_transpile_stmt(self):
         query = "TRANSPILE SELECT COUNT(1) FROM my_table"
@@ -23,6 +24,7 @@ class TestDialectUnilake(unittest.TestCase):
         self.assertEqual(result.args["name"], "my_tag")
         self.assertEqual(result.args["description"], "example tag")
         pass
+
 
 def _get_dialect(dialect: str) -> str | Type[Unilake]:
     if dialect == "unilake":

@@ -5,7 +5,14 @@ from sqlparser import transpile, scan
 
 # todo: make sure transpiling of windows functions are supported! so order by x is also hashed(x)
 # todo: also make sure that the order of unpacking a star is consistent with the input schema
-
+# todo: add tests for window functions, expressions:
+#   - order by
+#   - group by
+#   - partition by
+#   - window clause, over
+#   - select 1
+#   - select some, 1
+#   - select count(*)
 
 class TestTranspile(unittest.TestCase):
     def test_transpile_empty_input(self):
@@ -105,6 +112,7 @@ class TestTranspile(unittest.TestCase):
             "SELECT XX_HASH3_128(`b`.`a`) AS `a`, `b`.`b` AS `b` FROM `catalog`.`database`.`b` AS `b`",
             output.sql_transformed,
         )
+        print(query.to_json())
 
     def test_transpile_star_expand_with_filter(self):
         query = scan("SELECT * from b", "unilake", "catalog", "database")

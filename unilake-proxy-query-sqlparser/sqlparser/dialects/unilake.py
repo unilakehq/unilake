@@ -113,6 +113,7 @@ class Unilake(Dialect):
         def tag_sql(self, expression: exp.Create):
             pass
 
+
 # TRANSPILE <SQL STATEMENT>
 
 # CREATE TAG [category].[name] (WITH DESCRIPTION 'Example Tag');

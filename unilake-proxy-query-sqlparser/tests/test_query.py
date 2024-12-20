@@ -1,8 +1,11 @@
 import unittest
 from sqlparser import scan, transpile, TranspilerOutput, ScanOutput
 
+
 class TestQuery(unittest.TestCase):
-    def run_test_with_filter_rule(self, filters: dict, input_query: str, expected_output: str) -> (ScanOutput, TranspilerOutput):
+    def run_test_with_filter_rule(
+        self, filters: dict, input_query: str, expected_output: str
+    ) -> (ScanOutput, TranspilerOutput):
         return self.run_test(
             input_query,
             expected_output,
@@ -11,6 +14,7 @@ class TestQuery(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
+                    "attribute_id": "some_guid",
                     "policy_id": "some_guid",
                     "filter_definition": filters,
                 }
@@ -19,7 +23,9 @@ class TestQuery(unittest.TestCase):
             else [],
         )
 
-    def run_test_with_custom_filter_rule(self, filters: [], input_query: str, expected_output: str) -> (ScanOutput, TranspilerOutput):
+    def run_test_with_custom_filter_rule(
+        self, filters: [], input_query: str, expected_output: str
+    ) -> (ScanOutput, TranspilerOutput):
         return self.run_test(input_query, expected_output, [], filters)
 
     def run_test_with_masking_rule(

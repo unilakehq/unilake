@@ -124,8 +124,8 @@ pub struct ScanOutputObject {
 
 #[derive(FromPyObject)]
 pub struct ScanEntity {
-    pub catalog: String,
-    pub db: String,
+    pub catalog: Option<String>,
+    pub db: Option<String>,
     pub name: String,
     pub alias: String,
 }
@@ -133,7 +133,12 @@ pub struct ScanEntity {
 impl ScanEntity {
     /// Full name <catalog>.<db>.<entity_name>
     pub fn get_full_name(&self) -> String {
-        format!("{}.{}.{}", self.catalog, self.db, self.name)
+        format!(
+            "{}.{}.{}",
+            self.catalog.clone().unwrap_or("".to_string()),
+            self.db.clone().unwrap_or("".to_string()),
+            self.name
+        )
     }
 }
 
@@ -141,7 +146,6 @@ impl ScanEntity {
 pub struct ScanAttribute {
     pub entity_alias: String,
     pub name: String,
-    pub alias: String,
 }
 
 impl ScanAttribute {

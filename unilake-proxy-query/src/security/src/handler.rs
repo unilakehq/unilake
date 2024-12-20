@@ -12,7 +12,6 @@ use crate::{HitRule, ABAC_MODEL};
 use casbin::{Cache, CachedEnforcer, CoreApi, DefaultModel};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
-use tracing::instrument;
 use ulid::Ulid;
 use unilake_common::error::{TdsWireError, TokenError};
 use unilake_common::model::{
@@ -27,6 +26,16 @@ use unilake_sql::{
 };
 
 const SELECT: &str = "SELECT";
+
+#[derive(Debug, PartialEq, Eq)]
+enum AttributeScanType {
+    /// Attribute is explicitly stated in the request
+    Explicit,
+    /// Attribute is implicitly stated in the request (e.g., `*`)
+    Implicit,
+    /// Attribute is needed for filtering, but is not explicitly nor implicitly stated in the request
+    Filtering,
+}
 
 pub enum HandleResult {
     /// The query that should be executed
@@ -608,7 +617,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
             // process all attributes for policy enforcement
             let mut results: HashMap<&str, bool> = HashMap::new();
-            for (scan_entity, attribute, is_starred) in items.iter() {
+            for (scan_entity, attribute, scan_type) in items.iter() {
                 let scan_entity = scan_entity.ok_or_else(|| {
                     SecurityHandlerResult::EntityNotFoundFromAttribute(
                         attribute.get_name().to_owned(),
@@ -639,8 +648,8 @@ impl<'a> QueryPolicyDecision<'a> {
                 };
 
                 // check access based on policy
-                for context in policy_enforce_context {
-                    if let Some((user_model, group_model, session_model)) = context {
+                for execution_context in policy_enforce_context {
+                    if let Some((user_model, group_model, session_model)) = execution_context {
                         match enforcer.enforce((
                             user_model,
                             group_model,
@@ -649,17 +658,21 @@ impl<'a> QueryPolicyDecision<'a> {
                             &policies,
                         )) {
                             Ok(status) => {
-                                if !status && !*is_starred {
+                                match (status, scan_type) {
                                     // explicitly requested entity attribute
                                     // will be handled later (when processing policies found)
-                                    results.insert(object_model.id.as_ref(), false);
-                                } else if !status {
-                                    // implicitly requested starred entity attribute
-                                    exclude_attributes_visible_map
-                                        .insert(entity_attribute_name.clone());
-                                    results.insert(object_model.id.as_ref(), true);
-                                } else {
-                                    results.insert(object_model.id.as_ref(), true);
+                                    (false, AttributeScanType::Explicit) => {
+                                        results.insert(object_model.id.as_ref(), false);
+                                    }
+                                    // implicitly requested starred entity attribute (implicit or filtering)
+                                    (false, _) => {
+                                        exclude_attributes_visible_map
+                                            .insert(entity_attribute_name.clone());
+                                        results.insert(object_model.id.as_ref(), true);
+                                    }
+                                    _ => {
+                                        results.insert(object_model.id.as_ref(), true);
+                                    }
                                 }
                             }
                             Err(err) => {
@@ -706,7 +719,7 @@ impl<'a> QueryPolicyDecision<'a> {
                     .check_policy_rules_prio(&rules, impersonate_session_model.is_some())
                     .await?;
 
-                let (object_name, att_name, from_star) =
+                let (object_name, att_name, scan_type) =
                     Self::find_star_and_attribute_name(items, &object_models, &object_id)?;
 
                 // check if there are any deny rules
@@ -720,7 +733,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 if let Some(rule) =
                     PolicyHitManager::resolve_masking_policy_conflict(&rules, prio_stricter)
                 {
-                    match Self::get_attribute_access_status(rule, from_star) {
+                    match Self::get_attribute_access_status(rule, scan_type) {
                         AttributeAccess::Allowed => masking_rules.push((
                             scope,
                             object_id.clone(),
@@ -896,11 +909,11 @@ impl<'a> QueryPolicyDecision<'a> {
     }
 
     /// Gets the full object name, attribute name and whether it's a starred attribute
-    fn find_star_and_attribute_name(
-        entities_and_attributes: &[(Option<&ScanEntity>, &ScanAttribute, bool)],
+    fn find_star_and_attribute_name<'b>(
+        entities_and_attributes: &'b [(Option<&ScanEntity>, &ScanAttribute, AttributeScanType)],
         objects: &Vec<&EntityAttributeModel>,
         object_id: &str,
-    ) -> Result<(String, String, bool), SecurityHandlerResult> {
+    ) -> Result<(String, String, &'b AttributeScanType), SecurityHandlerResult> {
         let object_model = objects
             .iter()
             .find(|object| object.id == object_id)
@@ -910,13 +923,13 @@ impl<'a> QueryPolicyDecision<'a> {
                 )
             })?;
 
-        let (_, attribute, star) = entities_and_attributes
+        let (_, attribute, scan_type) = entities_and_attributes
             .iter()
-            .find_map(|(entity, attr, star)| {
+            .find_map(|(entity, attr, scan_type)| {
                 if let Some(entity) = entity {
                     let full_name = format!("{}.{}", entity.get_full_name(), attr.name);
                     if full_name == object_model.full_name {
-                        return Some((entity, attr, star));
+                        return Some((entity, attr, scan_type));
                     }
                 }
                 None
@@ -927,7 +940,11 @@ impl<'a> QueryPolicyDecision<'a> {
                 )
             })?;
 
-        Ok((object_model.full_name.clone(), attribute.get_name(), *star))
+        Ok((
+            object_model.full_name.clone(),
+            attribute.get_name(),
+            scan_type,
+        ))
     }
 
     fn set_deny_access_cause(
@@ -989,10 +1006,10 @@ impl<'a> QueryPolicyDecision<'a> {
     /// ## Returned tuple:
     /// - Optional Entity,
     /// - Attribute,
-    /// - Star flag (defaults false)
+    /// - Attribute Scan Type (defaults to AttributeScanType::Explicit)
     fn get_entity_attributes(
         input: &Vec<ScanOutputObject>,
-    ) -> Vec<(Option<&ScanEntity>, &ScanAttribute, bool)> {
+    ) -> Vec<(Option<&ScanEntity>, &ScanAttribute, AttributeScanType)> {
         input
             .iter()
             .flat_map(|i| {
@@ -1002,8 +1019,8 @@ impl<'a> QueryPolicyDecision<'a> {
                         i.entities
                             .iter()
                             .find(|e| e.alias == a.entity_alias)
-                            .map(|e| (Some(e), a, false))
-                            .or_else(|| Some((None, a, false)))
+                            .map(|e| (Some(e), a, AttributeScanType::Explicit))
+                            .or_else(|| Some((None, a, AttributeScanType::Explicit)))
                     })
                     .collect::<Vec<_>>()
             })
@@ -1012,7 +1029,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
     /// Searches for star entities and replaces them with their known attributes
     async fn fill_star_attributes<'b>(
-        items: &mut Vec<(Option<&ScanEntity>, &'b ScanAttribute, bool)>,
+        items: &mut Vec<(Option<&ScanEntity>, &'b ScanAttribute, AttributeScanType)>,
         found_attributes: &'b HashMap<String, Vec<ScanAttribute>>,
     ) -> Result<(), SecurityHandlerResult> {
         let mut star_attributes = Vec::new();
@@ -1029,7 +1046,7 @@ impl<'a> QueryPolicyDecision<'a> {
                         star_attributes.extend(
                             found
                                 .iter()
-                                .map(|i| (Some(*entity), i, true))
+                                .map(|i| (Some(*entity), i, AttributeScanType::Implicit))
                                 .collect::<Vec<_>>(),
                         );
                     }
@@ -1081,7 +1098,6 @@ impl<'a> QueryPolicyDecision<'a> {
                         // todo: check if this works with spaces in the name
                         entity_alias: entity_alias.to_owned(),
                         name: obj.name.to_owned(),
-                        alias: obj.name.to_owned(),
                     });
                 } else {
                     return Err(SecurityHandlerResult::EntityNotFound(
@@ -1101,12 +1117,14 @@ impl<'a> QueryPolicyDecision<'a> {
     /// - Allowed: we can further process this attribute as is and use it in the visible schema
     /// - Hidden: we need to hide this attribute from the visible schema
     /// - Denied: we are trying to access an attribute we don't have access to
-    fn get_attribute_access_status(policy: &PolicyFound, from_star: bool) -> AttributeAccess {
+    fn get_attribute_access_status(
+        policy: &PolicyFound,
+        scan_type: &AttributeScanType,
+    ) -> AttributeAccess {
         if policy.get_name() == "hidden" {
-            return if from_star {
-                AttributeAccess::Hidden
-            } else {
-                AttributeAccess::Denied
+            return match scan_type {
+                AttributeScanType::Explicit => AttributeAccess::Denied,
+                _ => AttributeAccess::Hidden,
             };
         }
         AttributeAccess::Allowed
@@ -1125,7 +1143,9 @@ impl<'a> QueryPolicyDecision<'a> {
 mod tests {
     use crate::adapter::cached_adapter::{CachedAdapter, CachedPolicyRules};
     use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
-    use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerResult};
+    use crate::handler::{
+        AttributeScanType, CacheContainer, QueryPolicyDecision, SecurityHandlerResult,
+    };
     use crate::repository::RepoBackend;
     use crate::{HitRule, ABAC_MODEL};
     use async_trait::async_trait;
@@ -1601,11 +1621,10 @@ mod tests {
         objects.attributes.push(ScanAttribute {
             entity_alias: "b".to_string(),
             name: "id".to_string(),
-            alias: "id".to_string(),
         });
         objects.entities.push(ScanEntity {
-            catalog: "catalog".to_string(),
-            db: "schema".to_string(),
+            catalog: Some("catalog".to_string()),
+            db: Some("schema".to_string()),
             name: "orders".to_string(),
             alias: "b".to_string(),
         });
@@ -1640,11 +1659,10 @@ mod tests {
         objects.attributes.push(ScanAttribute {
             entity_alias: "b".to_string(),
             name: "id".to_string(),
-            alias: "id".to_string(),
         });
         objects.entities.push(ScanEntity {
-            catalog: "catalog".to_string(),
-            db: "schema".to_string(),
+            catalog: Some("catalog".to_string()),
+            db: Some("schema".to_string()),
             name: "orders".to_string(),
             alias: "b".to_string(),
         });
@@ -1719,8 +1737,8 @@ mod tests {
             objects: vec![ScanOutputObject {
                 scope: 0,
                 entities: vec![ScanEntity {
-                    catalog: "catalog".to_string(),
-                    db: "schema".to_string(),
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
                 }],
@@ -1728,17 +1746,14 @@ mod tests {
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "firstname".to_string(),
-                        alias: "firstname".to_string(),
                     },
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "lastname".to_string(),
-                        alias: "lastname".to_string(),
                     },
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "email".to_string(),
-                        alias: "email".to_string(),
                     },
                 ],
                 is_agg: false,
@@ -1779,15 +1794,14 @@ mod tests {
             objects: vec![ScanOutputObject {
                 scope: 0,
                 entities: vec![ScanEntity {
-                    catalog: "catalog".to_string(),
-                    db: "schema".to_string(),
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
                 }],
                 attributes: vec![ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "*".to_string(),
-                    alias: "".to_string(),
                 }],
                 is_agg: false,
             }],
@@ -1844,15 +1858,14 @@ mod tests {
             objects: vec![ScanOutputObject {
                 scope: 0,
                 entities: vec![ScanEntity {
-                    catalog: "catalog".to_string(),
-                    db: "schema".to_string(),
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
                 }],
                 attributes: vec![ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "*".to_string(),
-                    alias: "".to_string(),
                 }],
                 is_agg: false,
             }],
@@ -1922,15 +1935,14 @@ mod tests {
             objects: vec![ScanOutputObject {
                 scope: 0,
                 entities: vec![ScanEntity {
-                    catalog: "catalog".to_string(),
-                    db: "schema".to_string(),
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
                 }],
                 attributes: vec![ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "*".to_string(),
-                    alias: "".to_string(),
                 }],
                 is_agg: false,
             }],
@@ -2000,8 +2012,8 @@ mod tests {
             objects: vec![ScanOutputObject {
                 scope: 0,
                 entities: vec![ScanEntity {
-                    catalog: "catalog".to_string(),
-                    db: "schema".to_string(),
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
                 }],
@@ -2009,12 +2021,10 @@ mod tests {
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "firstname".to_string(),
-                        alias: "firstname".to_string(),
                     },
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "lastname".to_string(),
-                        alias: "lastname".to_string(),
                     },
                 ],
                 is_agg: false,
@@ -2048,7 +2058,9 @@ mod tests {
         let found = QueryPolicyDecision::get_entity_attributes(&scan_output.objects);
         assert_eq!(found.len(), 4);
         assert!(found.iter().map(|(x, _, _)| x.is_some()).all(|b| b));
-        assert!(found.iter().all(|(_, _, x)| !*x));
+        assert!(found
+            .iter()
+            .all(|(_, _, x)| *x == AttributeScanType::Explicit));
     }
 
     #[tokio::test]
@@ -2070,17 +2082,14 @@ mod tests {
             ScanAttribute {
                 entity_alias: "customers".to_string(),
                 name: "id".to_string(),
-                alias: "a".to_string(),
             },
             ScanAttribute {
                 entity_alias: "customers".to_string(),
                 name: "first_name".to_string(),
-                alias: "first_name".to_string(),
             },
             ScanAttribute {
                 entity_alias: "customers".to_string(),
                 name: "last_name".to_string(),
-                alias: "last_name".to_string(),
             },
         ];
 
@@ -2099,7 +2108,9 @@ mod tests {
             0
         );
         // all stars are marked as star origins
-        assert!(attributes.iter().all(|(_, _, x)| *x));
+        assert!(attributes
+            .iter()
+            .all(|(_, _, x)| *x == AttributeScanType::Implicit));
     }
 
     #[tokio::test]
@@ -2109,7 +2120,6 @@ mod tests {
         let star_attributes = vec![ScanAttribute {
             entity_alias: "customers".to_string(),
             name: "id".to_string(),
-            alias: "a".to_string(),
         }];
 
         let mut items = HashMap::new();
@@ -2124,6 +2134,139 @@ mod tests {
                 _ => unreachable!(), // Handle any other unexpected errors
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_filter_non_explicit_attribute() {
+        // test: attribute is marked as filtered, but not requested
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.lastname",
+                "true",
+                "allow",
+                // {"expression": "? <> 'Hello World'"}
+                "eyJleHByZXNzaW9uIjogIj8gPD4gJ0hlbGxvIFdvcmxkJyJ9",
+                "filter_id",
+            ),
+        ];
+
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }],
+                attributes: vec![ScanAttribute {
+                    entity_alias: "a".to_string(),
+                    name: "firstname".to_string(),
+                }],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some("SELECT firstname FROM catalog.schema.customers as a".to_string()),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
+
+        // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
+        assert!(result.is_ok());
+
+        let result = result.ok().unwrap();
+        // expecting a filter for lastname even though it's not explicitly requested
+        assert_eq!(result.filters.len(), 1);
+        let filter = result.filters.first().unwrap();
+        assert_eq!(filter.attribute_id, "filter_id");
+    }
+
+    #[tokio::test]
+    async fn test_query_policy_decision_filter_hidden_attribute() {
+        // test: attribute is marked as filtered and also marked as hidden (filter should remain applicable)
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.lastname",
+                "true",
+                "allow",
+                // {"name": "hidden"}
+                "eyJuYW1lIjogImhpZGRlbiJ9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.lastname",
+                "true",
+                "allow",
+                // {"expression": "? <> 'Hello World'"}
+                "eyJleHByZXNzaW9uIjogIj8gPD4gJ0hlbGxvIFdvcmxkJyJ9",
+                "filter_id",
+            ),
+        ];
+
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: vec![ScanEntity {
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }],
+                attributes: vec![ScanAttribute {
+                    entity_alias: "a".to_string(),
+                    name: "*".to_string(),
+                }],
+                is_agg: false,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some("SELECT * FROM catalog.schema.customers as a".to_string()),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
+
+        // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
+        assert!(result.is_ok());
+
+        let result = result.ok().unwrap();
+        // expecting a filter for lastname even though it's not explicitly requested
+        assert_eq!(result.filters.len(), 1);
+        let filter = result.filters.first().unwrap();
+        assert_eq!(filter.attribute_id, "filter_id");
     }
 
     fn get_default_policy() -> Vec<PolicyRule> {
@@ -2178,8 +2321,8 @@ mod tests {
             objects: vec![ScanOutputObject {
                 scope: 0,
                 entities: vec![ScanEntity {
-                    catalog: "catalog".to_string(),
-                    db: "schema".to_string(),
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
                 }],
@@ -2187,22 +2330,18 @@ mod tests {
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "user_id".to_string(),
-                        alias: "uid".to_string(),
                     },
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "firstname".to_string(),
-                        alias: "firstname".to_string(),
                     },
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "lastname".to_string(),
-                        alias: "lastname".to_string(),
                     },
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "email".to_string(),
-                        alias: "email".to_string(),
                     },
                 ],
                 is_agg: false,
@@ -2220,15 +2359,14 @@ mod tests {
             objects: vec![ScanOutputObject {
                 scope: 0,
                 entities: vec![ScanEntity {
-                    catalog: "catalog".to_string(),
-                    db: "schema".to_string(),
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "customers".to_string(),
                 }],
                 attributes: vec![ScanAttribute {
                     entity_alias: "customers".to_string(),
                     name: "*".to_string(),
-                    alias: "".to_string(),
                 }],
                 is_agg: false,
             }],

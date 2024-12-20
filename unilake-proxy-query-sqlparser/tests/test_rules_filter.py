@@ -37,13 +37,15 @@ class TestRulesFilter(TestQuery):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "filter_id": "some_guid",
+                    "attribute_id": "some_guid",
+                    "policy_id": "some_guid",
                     "filter_definition": {"expression": "? > 0"},
                 },
                 {
                     "scope": 0,
+                    "attribute_id": "some_guid",
                     "attribute": '"b"."b"',
-                    "filter_id": "some_guid",
+                    "policy_id": "some_guid",
                     "filter_definition": {"expression": "? < 1000"},
                 },
             ],
@@ -51,19 +53,43 @@ class TestRulesFilter(TestQuery):
             "SELECT `b`.`a` AS `a`, `b`.`b` AS `b` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`a` > 0 AND `b`.`b` < 1000",
         )
 
-    def test_rules_filter_multi_next_to_existing_filters(self):
+    def test_rules_filter_multi_on_same_entity(self):
         self.run_test_with_custom_filter_rule(
             [
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
-                    "filter_id": "some_guid",
+                    "attribute_id": "some_guid",
+                    "policy_id": "some_guid",
                     "filter_definition": {"expression": "? > 0"},
                 },
                 {
                     "scope": 0,
+                    "attribute_id": "some_guid",
+                    "attribute": '"b"."a"',
+                    "policy_id": "some_guid",
+                    "filter_definition": {"expression": "? < 1000"},
+                },
+            ],
+            "SELECT a,b from b",
+            "SELECT `b`.`a` AS `a`, `b`.`b` AS `b` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`a` > 0 AND `b`.`a` < 1000",
+        )
+
+    def test_rules_filter_multi_next_to_existing_filters(self):
+        self.run_test_with_custom_filter_rule(
+            [
+                {
+                    "scope": 0,
+                    "attribute_id": "some_guid",
+                    "attribute": '"b"."a"',
+                    "policy_id": "some_guid",
+                    "filter_definition": {"expression": "? > 0"},
+                },
+                {
+                    "scope": 0,
+                    "attribute_id": "some_guid",
                     "attribute": '"b"."b"',
-                    "filter_id": "some_guid",
+                    "policy_id": "some_guid",
                     "filter_definition": {"expression": "? < 1000"},
                 },
             ],
@@ -76,8 +102,9 @@ class TestRulesFilter(TestQuery):
             [
                 {
                     "scope": 1,
+                    "attribute_id": "some_guid",
                     "attribute": '"b"."a"',
-                    "filter_id": "some_guid",
+                    "policy_id": "some_guid",
                     "filter_definition": {"expression": "? > 0"},
                 }
             ],
@@ -144,15 +171,15 @@ class TestRulesFilter(TestQuery):
             [
                 {
                     "scope": 0,
+                    "attribute_id": "some_guid",
                     "attribute": '"test2"."a"',
-                    "filter_id": "some_guid",
+                    "policy_id": "some_guid",
                     "filter_definition": {"expression": "? > 0"},
                 }
             ],
             "INSERT INTO test (a, b) SELECT a,b from test2",
             "INSERT INTO `catalog`.`database`.`test` (`a`, `b`) SELECT `test2`.`a` AS `a`, `test2`.`b` AS `b` FROM `catalog`.`database`.`test2` AS `test2` WHERE `test2`.`a` > 0",
         )
-
 
     @unittest.skip("Tests not implemented yet")
     def test_rules_filter_delete_from_cte(self):

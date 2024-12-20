@@ -71,18 +71,24 @@ pub trait SessionInfo: Send + Sync {
     fn set_session_variable(&mut self, name: String, value: SessionVariable);
 
     /// Get session variable
-    fn get_session_variable(&self, name: &str) -> &SessionVariable {
+    fn get_session_variable(&self, name: &str, expected: bool) -> &SessionVariable {
         if let Some(value) = self.get_session_variables().get(name) {
             return value;
         }
-        self.report_value_not_set(name, &SessionVariable::None);
+        if expected {
+            self.report_value_not_set(name, &SessionVariable::None);
+        }
         &SessionVariable::None
     }
 
-    fn get_values_or_default<'a>(&self, default_values: &[&'a str]) -> HashMap<&'a str, Arc<str>> {
+    fn get_values_or_default<'a>(
+        &self,
+        default_values: &[&'a str],
+        expected: bool,
+    ) -> HashMap<&'a str, Arc<str>> {
         let mut values = HashMap::new();
         for v in default_values {
-            let item = self.get_session_variable(v);
+            let item = self.get_session_variable(v, expected);
             self.report_value_not_set(*v, item);
             values.insert(*v, item.get_value_or_default());
         }

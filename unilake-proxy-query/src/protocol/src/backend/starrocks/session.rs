@@ -193,7 +193,7 @@ impl StarRocksSession {
 
         // get impersonate user id, if available
         let impersonate_user_id = if let SessionVariable::Some(v) =
-            self.get_session_variable(SESSION_VARIABLE_SECURITY_IMPERSONATE)
+            self.get_session_variable(SESSION_VARIABLE_SECURITY_IMPERSONATE, false)
         {
             Some(v.to_string())
         } else {

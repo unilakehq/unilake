@@ -333,11 +333,14 @@ impl StarRocksTdsHandlerFactory {
         let ulid = security_handler.get_query_id();
         query_telemetry.set_query_id(ulid.to_string());
 
-        let values = session_info.get_values_or_default(&[
-            SESSION_VARIABLE_DIALECT,
-            SESSION_VARIABLE_CATALOG,
-            SESSION_VARIABLE_DATABASE,
-        ]);
+        let values = session_info.get_values_or_default(
+            &[
+                SESSION_VARIABLE_DIALECT,
+                SESSION_VARIABLE_CATALOG,
+                SESSION_VARIABLE_DATABASE,
+            ],
+            true,
+        );
 
         start = std::time::Instant::now();
         let query = security_handler
@@ -480,7 +483,7 @@ impl StarRocksTdsHandlerFactory {
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
         if session
-            .get_session_variable(SESSION_VARIABLE_SEND_TELEMETRY)
+            .get_session_variable(SESSION_VARIABLE_SEND_TELEMETRY, false)
             .get_value_or_default()
             .as_ref()
             != "true"
