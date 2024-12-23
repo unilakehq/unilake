@@ -27,7 +27,7 @@ use unilake_sql::{
 
 const SELECT: &str = "SELECT";
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum AttributeScanType {
     /// Attribute is explicitly stated in the request
     Explicit,
@@ -579,6 +579,7 @@ impl<'a> QueryPolicyDecision<'a> {
         enforcer.set_effector(effector);
         add_functions(enforcer.get_mut_engine());
 
+        // todo: this should perhaps be based on entities instead and then get the attributes?
         // get all entity attributes by scope, for processing
         for (scope, ref mut items) in scan_output.objects.iter().map(|objects| {
             (
@@ -594,7 +595,7 @@ impl<'a> QueryPolicyDecision<'a> {
             enforcer.set_logger(logger);
             enforcer.enable_log(true);
 
-            // unpack stars
+            // set starmap
             let mut star_map = HashMap::new();
             for entity in items.iter().map(|(e, att, _)| {
                 e.ok_or_else(|| {
@@ -613,7 +614,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 star_map.insert(entity.get_full_name(), found.1);
                 entities.insert(entity.get_full_name(), found.0);
             }
-            Self::fill_star_attributes(items, &star_map).await?;
+            Self::fill_star_attributes(items, &star_map)?;
 
             // process all attributes for policy enforcement
             let mut results: HashMap<&str, bool> = HashMap::new();
@@ -698,11 +699,7 @@ impl<'a> QueryPolicyDecision<'a> {
                     return Err(SecurityHandlerResult::InvalidCacheError);
                 }
                 PolicyCollectResult::NotFound => {
-                    // todo: this can also be a valid result, for example "select 1", we need to handle this scenario and a combination of expressions and literals correctly
-                    return Err(SecurityHandlerResult::PolicyError(
-                        "Could not find any policy results, are the policies loaded correctly?"
-                            .to_string(),
-                    ));
+                    vec![]
                 }
             };
 
@@ -1003,32 +1000,85 @@ impl<'a> QueryPolicyDecision<'a> {
     }
 
     /// Extracts the combinations entity and attribute from the given (ScanOutput) scope
+    /// These include:
+    ///     - Explicitly defined attributes
+    ///     - Implicitly derived attributes (stars)
+    ///     - Filtered attributes (none of the above, but needed for filtering purposes)
     /// ## Returned tuple:
-    /// - Optional Entity,
+    /// - Entity,
     /// - Attribute,
-    /// - Attribute Scan Type (defaults to AttributeScanType::Explicit)
-    fn get_entity_attributes(
+    /// - Attribute Scan Type
+    async fn get_entity_attributes(
         input: &Vec<ScanOutputObject>,
-    ) -> Vec<(Option<&ScanEntity>, &ScanAttribute, AttributeScanType)> {
-        input
+        // todo: send all entity models based on input, just keep track and keep adding when missing on each scope (can be reused)
+        entity_models: &HashMap<String, EntityModel>,
+    ) -> Result<Vec<(ScanEntity, ScanAttribute, AttributeScanType)>, SecurityHandlerResult> {
+        let mut items_found = HashMap::new();
+        // HashMap<string_att_full_name, (scanentity, attribute)>
+        // based on input (so, something.schema. {ScanEntity(catalog='catalog', db='database', name='some_table', alias='a')}
+        let hypo_input: Vec<(&ScanEntity, &ScanAttribute)>;
+        input.iter().flat_map(|o| o.attributes).map(|att| {
+            let scan_entity = input.iter().find(|o| *o. == att.entity_alias).unwrap();
+        })
+
+
+        hypo_input
             .iter()
-            .flat_map(|i| {
-                i.attributes
-                    .iter()
-                    .filter_map(|a| {
-                        i.entities
-                            .iter()
-                            .find(|e| e.alias == a.entity_alias)
-                            .map(|e| (Some(e), a, AttributeScanType::Explicit))
-                            .or_else(|| Some((None, a, AttributeScanType::Explicit)))
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect()
+            // get all applicable entities
+            // todo: don't filter, fail if not found (cannot find entity, name of entity)
+            .map(
+                | (entity, attribute)| 
+                        entity_models
+                            .get(&entity.get_full_name())
+                            .map(|em| (*entity, *attribute, em, match attribute.name == "*" {
+                                true => AttributeScanType::Implicit,
+                                false => AttributeScanType::Explicit,
+                            }))
+                            .unwrap()
+            )
+            .filter(|(_, att, _, _)| att.name!= "*")
+            // (entity, attribute, entity_model, scan_type)
+            .flat_map(
+                |(entity, attribute, entity_model, scan_type)| 
+                        entity_model.attributes.iter().map(|(_, att)| {
+                            match att.name == attribute.name {
+                                true => (entity.clone(), attribute.clone(), scan_type),
+                                false => (
+                                    entity.clone(),
+                                    ScanAttribute {
+                                        entity_alias: attribute.entity_alias.clone(),
+                                        name: att.name.clone(),
+                                    },
+                                    match scan_type {
+                                        AttributeScanType::Explicit => AttributeScanType::Filtering,
+                                        _ => AttributeScanType::Implicit, 
+                                    }
+                                ),
+                            }
+                        })
+            ) // (entity, attribute, scan_type)
+            .for_each(|(entity, attribute, scan_type)| {
+                let (_, _, current_scan_type) = items_found
+                    .entry(attribute.get_name())
+                    .or_insert((entity, attribute, scan_type.clone()));
+
+                match (scan_type.clone(), current_scan_type) {
+                    (AttributeScanType::Explicit, _)
+                    | (AttributeScanType::Implicit, AttributeScanType::Filtering) => {
+                        *current_scan_type = scan_type;
+                    }
+                    (_, _) => {}
+                }
+            });
+
+        
+        Ok(items_found.drain()
+            .map(|(_, (entity, attribute, scan_type))| (entity, attribute, scan_type))
+            .collect())
     }
 
     /// Searches for star entities and replaces them with their known attributes
-    async fn fill_star_attributes<'b>(
+    fn fill_star_attributes<'b>(
         items: &mut Vec<(Option<&ScanEntity>, &'b ScanAttribute, AttributeScanType)>,
         found_attributes: &'b HashMap<String, Vec<ScanAttribute>>,
     ) -> Result<(), SecurityHandlerResult> {
@@ -1152,7 +1202,7 @@ mod tests {
     use casbin::{Cache, DefaultCache, DefaultModel};
     use serde::de::DeserializeOwned;
     use serde::Serialize;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::hash::Hash;
     use std::sync::Arc;
     use unilake_common::model::{
@@ -1618,11 +1668,11 @@ mod tests {
 
         let mut scan_output = get_scan_default_output();
         let objects = scan_output.objects.first_mut().unwrap();
-        objects.attributes.push(ScanAttribute {
+        objects.attributes.insert(ScanAttribute {
             entity_alias: "b".to_string(),
             name: "id".to_string(),
         });
-        objects.entities.push(ScanEntity {
+        objects.entities.insert(ScanEntity {
             catalog: Some("catalog".to_string()),
             db: Some("schema".to_string()),
             name: "orders".to_string(),
@@ -1656,11 +1706,11 @@ mod tests {
 
         let mut scan_output = get_scan_default_output();
         let objects = scan_output.objects.first_mut().unwrap();
-        objects.attributes.push(ScanAttribute {
+        objects.attributes.insert(ScanAttribute {
             entity_alias: "b".to_string(),
             name: "id".to_string(),
         });
-        objects.entities.push(ScanEntity {
+        objects.entities.insert(ScanEntity {
             catalog: Some("catalog".to_string()),
             db: Some("schema".to_string()),
             name: "orders".to_string(),
@@ -1736,13 +1786,13 @@ mod tests {
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![
+                }]),
+                attributes: HashSet::from([
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "firstname".to_string(),
@@ -1755,7 +1805,7 @@ mod tests {
                         entity_alias: "a".to_string(),
                         name: "email".to_string(),
                     },
-                ],
+                ]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -1793,16 +1843,16 @@ mod tests {
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![ScanAttribute {
+                }]),
+                attributes: HashSet::from([ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "*".to_string(),
-                }],
+                }]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -1857,16 +1907,16 @@ mod tests {
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![ScanAttribute {
+                }]),
+                attributes: HashSet::from([ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "*".to_string(),
-                }],
+                }]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -1934,16 +1984,16 @@ mod tests {
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![ScanAttribute {
+                }]),
+                attributes: HashSet::from([ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "*".to_string(),
-                }],
+                }]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -2011,13 +2061,13 @@ mod tests {
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![
+                }]),
+                attributes: HashSet::from([
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "firstname".to_string(),
@@ -2026,7 +2076,7 @@ mod tests {
                         entity_alias: "a".to_string(),
                         name: "lastname".to_string(),
                     },
-                ],
+                ]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -2137,6 +2187,65 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_query_policy_decision_select_star_literals() {
+        // test: either select star or literals only
+        let policies = vec![
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.*",
+                "true",
+                "allow",
+                // {"full_access": true}
+                "eyJmdWxsX2FjY2VzcyI6IHRydWV9",
+                "policy_id",
+            ),
+            PolicyRule::new(
+                "p",
+                "catalog.schema.customers.lastname",
+                "true",
+                "allow",
+                // {"expression": "? <> 'Hello World'"}
+                "eyJleHByZXNzaW9uIjogIj8gPD4gJ0hlbGxvIFdvcmxkJyJ9",
+                "filter_id",
+            ),
+        ];
+
+        let scan_output = ScanOutput {
+            objects: vec![ScanOutputObject {
+                scope: 0,
+                entities: HashSet::from([ScanEntity {
+                    catalog: Some("catalog".to_string()),
+                    db: Some("schema".to_string()),
+                    name: "customers".to_string(),
+                    alias: "a".to_string(),
+                }]),
+                attributes: HashSet::new(),
+                is_agg: true,
+            }],
+            dialect: "tsql".to_string(),
+            query: Some("SELECT count(a.*) FROM catalog.schema.customers as a".to_string()),
+            query_type: "SELECT".to_string(),
+            error: None,
+            target_entity: None,
+        };
+
+        let result =
+            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
+
+        // check results
+        if !result.is_ok() {
+            println!("{:?}", result);
+        }
+        assert!(result.is_ok());
+
+        let result = result.ok().unwrap();
+        // expecting a filter for lastname even though it's not explicitly requested
+        assert_eq!(result.filters.len(), 1);
+        let filter = result.filters.first().unwrap();
+        assert_eq!(filter.attribute_id, "filter_id");
+    }
+
+    #[tokio::test]
     async fn test_query_policy_decision_filter_non_explicit_attribute() {
         // test: attribute is marked as filtered, but not requested
         let policies = vec![
@@ -2163,16 +2272,16 @@ mod tests {
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![ScanAttribute {
+                }]),
+                attributes: HashSet::from([ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "firstname".to_string(),
-                }],
+                }]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -2234,16 +2343,16 @@ mod tests {
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![ScanAttribute {
+                }]),
+                attributes: HashSet::from([ScanAttribute {
                     entity_alias: "a".to_string(),
                     name: "*".to_string(),
-                }],
+                }]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -2320,13 +2429,13 @@ mod tests {
         ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "a".to_string(),
-                }],
-                attributes: vec![
+                }]),
+                attributes: HashSet::from([
                     ScanAttribute {
                         entity_alias: "a".to_string(),
                         name: "user_id".to_string(),
@@ -2343,7 +2452,7 @@ mod tests {
                         entity_alias: "a".to_string(),
                         name: "email".to_string(),
                     },
-                ],
+                ]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),
@@ -2358,16 +2467,16 @@ mod tests {
         ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
-                entities: vec![ScanEntity {
+                entities: HashSet::from([ScanEntity {
                     catalog: Some("catalog".to_string()),
                     db: Some("schema".to_string()),
                     name: "customers".to_string(),
                     alias: "customers".to_string(),
-                }],
-                attributes: vec![ScanAttribute {
+                }]),
+                attributes: HashSet::from([ScanAttribute {
                     entity_alias: "customers".to_string(),
                     name: "*".to_string(),
-                }],
+                }]),
                 is_agg: false,
             }],
             dialect: "tsql".to_string(),

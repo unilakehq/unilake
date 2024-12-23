@@ -29,37 +29,30 @@ def _get_dialect(dialect: str) -> str | Type[Unilake]:
     return dialect
 
 
-def _scan_transform(node, scope_id: int, entities, attributes, aggregates):
+def _scan_transform(node, scope_id: int, entities: list[set], attributes: list[set], aggregates):
     node_type = type(node)
 
     # Get tables
     if node_type is exp.Table:
-        entities[scope_id].append(ScanEntity(node.catalog, node.db, node.name, node.alias))
+        entities[scope_id].add(ScanEntity(catalog=node.catalog or None, db=node.db or None, name=node.name, alias=node.alias))
 
     # Get columns
-    elif node_type is exp.Column:
-        alias = node.parent.alias
-        if not alias:
-            alias = node.table
-        attributes[scope_id].append(ScanAttribute(node.table, node.name, alias))
+    elif node_type is exp.Column and not node.is_star:
+        attributes[scope_id].add(ScanAttribute(entity_alias=node.table, name=node.name))
 
     # Get Stars
     elif node_type is exp.Select and node.is_star:
         found_from = node.find(exp.From)
 
         if found_from:
-            attributes[scope_id].append(
-                ScanAttribute(found_from.this.name, "*", found_from.this.alias)
+            attributes[scope_id].add(
+                ScanAttribute(entity_alias=found_from.this.alias, name="*")
             )
-
-        if "joins" in node.args:
-            joins = [join for join in node.args["joins"] if join.this.alias]
-            for join in joins:
-                attributes[scope_id].append(ScanAttribute(join.this.name, "*", join.this.alias))
 
     # Get groupBy check indicator
     elif node_type is exp.Group:
         aggregates.append(scope_id)
+
     return node
 
 
@@ -79,8 +72,8 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
     parsed = qualify(parsed, catalog=catalog, db=database)
     scoped = traverse_scope(parsed)
 
-    entities = [[]]
-    attributes = [[]]
+    entities: list[set] = [set()]
+    attributes: list[set] = [set()]
     aggregates = []
 
     query_type = ScanOutputType.from_key(parsed.key)
@@ -95,8 +88,8 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
     # scoped query
     if scoped:
         for i, scope in enumerate(scoped):
-            entities.append([])
-            attributes.append([])
+            entities.append(set())
+            attributes.append(set())
             scope.expression.transform(_scan_transform, i, entities, attributes, aggregates)
             objects.append(
                 ScanOutputObject(
@@ -136,10 +129,11 @@ def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: dict):
             continue
 
         node_str = str(found_column)
-        found = filter_lookup.get(hash((scope_id, node_str)))
-        if found:
-            cond = maybe_parse(found["expression"], into=exp.Condition, dialect=OUTPUT_DIALECT)
-            filters.append(replace_placeholders(cond, found_column))
+        filtered_list = filter_lookup.get(hash((scope_id, node_str)))
+        if filtered_list:
+            for found_filter in filtered_list:
+                cond = maybe_parse(found_filter["expression"], into=exp.Condition, dialect=OUTPUT_DIALECT)
+                filters.append(replace_placeholders(cond, found_column))
 
     if filters:
         node.where(*filters, append=True, dialect=OUTPUT_DIALECT, copy=False)
@@ -436,10 +430,12 @@ def inner_transpile(
     rule_lookup = {
         hash((rule.scope, rule.attribute)): rule.rule_definition for rule in transpiler_input.rules
     }
-    filter_lookup = {
-        hash((filter.scope, filter.attribute)): filter.filter_definition
-        for filter in transpiler_input.filters
-    }
+    filter_lookup = {}
+    for entity_filter in transpiler_input.filters:
+        key = hash((entity_filter.scope, entity_filter.attribute))
+        if key not in filter_lookup:
+            filter_lookup[key] = []
+        filter_lookup[key].append(entity_filter.filter_definition)
 
     # transform input
     input_sql = Expression.load(transpiler_input.query)

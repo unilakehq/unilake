@@ -46,6 +46,18 @@ class TestScan(unittest.TestCase):
         self.assertSetEqual(actual_output.objects[0].entities, expected_entities)
         self.assertSetEqual(actual_output.objects[0].attributes, expected_attributes)
 
+    def test_output_select_to_json(self):
+        actual_output = scan("select count(a.*) from some_table as a", "unilake", "catalog", "database")
+        expected_entities = {
+            ScanEntity(catalog='catalog', db='database', name='some_table', alias='some_table'),
+        }
+        expected_attributes = {
+            ScanAttribute(entity_alias='some_table', name='*'),
+        }
+
+        print(actual_output.to_json())
+
+
     def test_output_select_aliased(self):
         actual_output = scan("select b.* from some_table as b", "unilake", "catalog", "database")
         expected_entities = {

@@ -4,7 +4,7 @@
 use pyo3::prelude::*;
 use serde::Serialize;
 use serde_json;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn run_scan_operation(
     query: &str,
@@ -117,12 +117,12 @@ impl ScanOutput {
 #[derive(FromPyObject)]
 pub struct ScanOutputObject {
     pub scope: i32,
-    pub entities: Vec<ScanEntity>,
-    pub attributes: Vec<ScanAttribute>,
+    pub entities: HashSet<ScanEntity>,
+    pub attributes: HashSet<ScanAttribute>,
     pub is_agg: bool,
 }
 
-#[derive(FromPyObject)]
+#[derive(FromPyObject, PartialEq, Eq, Hash, Clone)]
 pub struct ScanEntity {
     pub catalog: Option<String>,
     pub db: Option<String>,
@@ -142,7 +142,7 @@ impl ScanEntity {
     }
 }
 
-#[derive(FromPyObject)]
+#[derive(FromPyObject, PartialEq, Eq, Hash, Clone)]
 pub struct ScanAttribute {
     pub entity_alias: String,
     pub name: String,
