@@ -707,7 +707,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 // todo: this unwrap needs to be fail-safe/errored
                 let found_scan_entity = object_models.get(&object_id).unwrap();
                 let object_name = found_scan_entity.attribute_model.full_name.clone();
-                let att_name = found_scan_entity.scan_attribute.name.clone();
+                let att_name = found_scan_entity.scan_attribute.get_name();
                 let scan_type = &found_scan_entity.scan_type;
 
                 // check if there are any deny rules
@@ -730,7 +730,6 @@ impl<'a> QueryPolicyDecision<'a> {
                         )),
                         AttributeAccess::Hidden => {
                             exclude_attributes_visible_map.insert(object_name.clone());
-                            continue;
                         }
                         AttributeAccess::Denied => {
                             self.set_deny_access_cause(
@@ -749,7 +748,7 @@ impl<'a> QueryPolicyDecision<'a> {
                     .filter(|p| p.policy_type == PolicyType::FilterRule);
 
                 filter_rule.for_each(|p| {
-                    // todo: check if this will work with duplicate hits on filter rules
+                    // todo: this does not go well with duplicates, dedup using hashmap or something
                     filter_rules.push((scope, object_id.clone(), att_name.clone(), p.clone()))
                 });
             }
@@ -1022,6 +1021,7 @@ impl<'a> QueryPolicyDecision<'a> {
                 (
                     // todo: errors on this unwrap
                     // SecurityHandlerResult::EntityNotFoundFromAttribute(att.get_name().to_owned())
+                    // todo: this one fails here: select top 1 [AccountKey], count(1) from [FactFinance] group by 1 order by 2 desc
                     *entities.get(att.entity_alias.as_str()).unwrap(),
                     att,
                     scantype,
@@ -1072,7 +1072,10 @@ impl<'a> QueryPolicyDecision<'a> {
                                     entity_alias: attribute.entity_alias.clone(),
                                     name: att.name.clone(),
                                 },
-                                scan_type,
+                                match scan_type {
+                                    AttributeScanType::Explicit => &AttributeScanType::Filtering,
+                                    _ => scan_type,
+                                },
                             )
                         }
                     }
@@ -2241,6 +2244,17 @@ mod tests {
             ),
         ];
 
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "filter_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "filter_id".to_string(),
+                prio_strict: true,
+                expire_datetime_utc: 0,
+                normalized_name: "filtered_name".to_string(),
+            },
+        );
+
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
@@ -2263,8 +2277,16 @@ mod tests {
             target_entity: None,
         };
 
-        let result =
-            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
+        let result = run_default_test(
+            policies,
+            Some(scan_output),
+            None,
+            None,
+            None,
+            Some(policy_models),
+            None,
+        )
+        .await;
 
         // check results
         if !result.is_ok() {
@@ -2276,7 +2298,8 @@ mod tests {
         // expecting a filter for lastname even though it's not explicitly requested
         assert_eq!(result.filters.len(), 1);
         let filter = result.filters.first().unwrap();
-        assert_eq!(filter.attribute_id, "filter_id");
+        assert_eq!(filter.policy_id, "filter_id");
+        assert_eq!(filter.attribute_id, "object_id_3");
     }
 
     #[tokio::test]
@@ -2312,6 +2335,17 @@ mod tests {
             ),
         ];
 
+        let mut policy_models = get_policy_model_input();
+        policy_models.insert(
+            "filter_id".to_string(),
+            AccessPolicyModel {
+                policy_id: "filter_id".to_string(),
+                prio_strict: true,
+                expire_datetime_utc: 0,
+                normalized_name: "filtered_name".to_string(),
+            },
+        );
+
         let scan_output = ScanOutput {
             objects: vec![ScanOutputObject {
                 scope: 0,
@@ -2334,8 +2368,16 @@ mod tests {
             target_entity: None,
         };
 
-        let result =
-            run_default_test(policies, Some(scan_output), None, None, None, None, None).await;
+        let result = run_default_test(
+            policies,
+            Some(scan_output),
+            None,
+            None,
+            None,
+            Some(policy_models),
+            None,
+        )
+        .await;
 
         // check results
         if !result.is_ok() {
@@ -2347,7 +2389,8 @@ mod tests {
         // expecting a filter for lastname even though it's not explicitly requested
         assert_eq!(result.filters.len(), 1);
         let filter = result.filters.first().unwrap();
-        assert_eq!(filter.attribute_id, "filter_id");
+        assert_eq!(filter.policy_id, "filter_id");
+        assert_eq!(filter.attribute_id, "object_id_3");
     }
 
     fn get_default_policy() -> Vec<PolicyRule> {
