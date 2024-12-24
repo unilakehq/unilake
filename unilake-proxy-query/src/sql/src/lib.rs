@@ -131,7 +131,7 @@ pub struct ScanEntity {
 }
 
 impl ScanEntity {
-    /// Full name <catalog>.<db>.<entity_name>
+    /// Full name `<catalog>.<db>.<entity_name>`
     pub fn get_full_name(&self) -> String {
         format!(
             "{}.{}.{}",
