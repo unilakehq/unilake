@@ -588,14 +588,14 @@ impl<'a> QueryPolicyDecision<'a> {
         add_functions(enforcer.get_mut_engine());
 
         // get all entity attributes by scope, for processing
-        for (scope, ref mut items) in scan_output.objects.iter().map(|objects| {
+        for (scope, ref items) in scan_output.objects.iter().map(|objects| {
             (
                 objects.scope,
                 Self::get_entity_attributes(&objects.entities, &objects.attributes, &entities),
             )
         }) {
             // check results
-            let mut items = match items {
+            let items = match items {
                 Ok(v) => v,
                 Err(e) => todo!(),
             };
@@ -748,7 +748,6 @@ impl<'a> QueryPolicyDecision<'a> {
                     .filter(|p| p.policy_type == PolicyType::FilterRule);
 
                 filter_rule.for_each(|p| {
-                    // todo: this does not go well with duplicates, dedup using hashmap or something
                     filter_rules.push((scope, object_id.clone(), att_name.clone(), p.clone()))
                 });
             }
@@ -768,12 +767,13 @@ impl<'a> QueryPolicyDecision<'a> {
                 ))
             }
             Some(query) => query,
-        };
+        }
+        .clone();
 
         Ok(TranspilerInput {
             cause,
             request_url,
-            query: query.clone(),
+            query,
             rules: masking_rules
                 .iter()
                 .map(|(scope, att_id, att_name, rule)| TranspilerInputRule {

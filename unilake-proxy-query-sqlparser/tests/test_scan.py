@@ -138,9 +138,25 @@ class TestScan(unittest.TestCase):
             WHERE
                 Table_A.col3 = 1
             """
+        expected_entities = {
+            ScanEntity(catalog='catalog', db='database', name='some_table', alias='table_a'),
+            ScanEntity(catalog='catalog', db='database', name='other_table', alias='table_b'),
+        }
+        expected_attributes = {
+            ScanAttribute(entity_alias='table_a', name='col1'),
+            ScanAttribute(entity_alias='table_a', name='col2'),
+            ScanAttribute(entity_alias='table_a', name='col3'),
+            ScanAttribute(entity_alias='table_b', name='col1'),
+            ScanAttribute(entity_alias='table_b', name='col2'),
+            ScanAttribute(entity_alias='table_a', name='id'),
+            ScanAttribute(entity_alias='table_b', name='id'),
+        }
+
         actual_output = scan(sql, "tsql", "catalog", "database")
         self.assertIsNone(actual_output.error)
         self.assertEqual(actual_output.type.value, "UPDATE")
+        self.assertSetEqual(actual_output.objects[0].entities, expected_entities)
+        self.assertSetEqual(actual_output.objects[0].attributes, expected_attributes)
 
     def test_output_ctas(self):
         sql = "create table some_table as select * from employees"
@@ -189,13 +205,36 @@ class TestScan(unittest.TestCase):
         self.assertSetEqual(actual_output.objects[0].entities, expected_entities)
         self.assertSetEqual(actual_output.objects[0].attributes, expected_attributes)
 
-    def test_scan_tsql_multi_scoped_query(self):
-        sql = "with src as (SELECT a as [Some_A] from b), second as (select b as [Some_B] from b) select distinct * from src cross join second"
+    def test_scan_tsql_multi_scoped_subquery(self):
+        sql = "select distinct * from (SELECt a as [Some_A] from b) as a join (select b as [Some_B] from b) as b on a.[Some_A] = b.[Some_B]"
+        expected_entities = {
+            ScanEntity(catalog='catalog', db='database', name='b', alias='b'),
+        }
+        expected_attributes_0 = {
+            ScanAttribute(entity_alias='b', name='a'),
+        }
+        expected_attributes_1 = {
+            ScanAttribute(entity_alias='b', name='b'),
+        }
+
+        actual_output = scan(sql, "tsql", "catalog", "database")
+        self.assertIsNone(actual_output.error)
+        self.assertEqual(len(actual_output.objects), 3)
+        self.assertSetEqual(actual_output.objects[0].entities, expected_entities)
+        self.assertSetEqual(actual_output.objects[1].entities, expected_entities)
+        self.assertSetEqual(actual_output.objects[2].entities, set())
+
+        self.assertSetEqual(actual_output.objects[0].attributes, expected_attributes_0)
+        self.assertSetEqual(actual_output.objects[1].attributes, expected_attributes_1)
+        self.assertSetEqual(actual_output.objects[2].attributes, set())
+        self.assertEqual(actual_output.type, ScanOutputType.SELECT)
+
+    def test_scan_tsql_multi_scoped_query_cte(self):
+        sql = "with src as (SELECT a as [Some_A] from b), second as (select b as [Some_B] from b) select distinct * from src as a join second as b on a.[Some_A] = b.[Some_B]"
         expected_entities = {
             ScanEntity(catalog='catalog', db='database', name='b', alias='b'),
         }
         expected_entities_2 = {
-            ScanEntity(catalog='catalog', db='database', name='b', alias='b'),
             ScanEntity(catalog=None, db=None, name='second', alias='second'),
             ScanEntity(catalog=None, db=None, name='src', alias='src')
         }
@@ -206,10 +245,8 @@ class TestScan(unittest.TestCase):
             ScanAttribute(entity_alias='b', name='b'),
         }
         expected_attributes_2 = {
-            ScanAttribute(entity_alias='src', name='Some_A'),
-            ScanAttribute(entity_alias='second', name='Some_B'),
-            ScanAttribute(entity_alias='b', name='a'),
-            ScanAttribute(entity_alias='b', name='b')
+            ScanAttribute(entity_alias='a', name='Some_A'),
+            ScanAttribute(entity_alias='b', name='Some_B'),
         }
 
         actual_output = scan(sql, "tsql", "catalog", "database")
@@ -488,7 +525,7 @@ class TestScan(unittest.TestCase):
         self.assertEqual(testing.sql_transformed, sql)
 
         self.assertEqual(len(result.objects[0].entities), 1)
-        self.assertEqual(len(result.objects[0].attributes), 3)
+        self.assertEqual(len(result.objects[0].attributes), 2)
         self.assertSetEqual(result.objects[0].entities, expected_entities)
         self.assertEqual(result.target_entity, '"catalog"."database"."k2_order"')
 

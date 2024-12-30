@@ -8,6 +8,5 @@ pub mod handler;
 mod policies;
 pub mod repository;
 mod scanner;
-
 // re-exports
 pub use crate::policies::HitRule;

@@ -28,13 +28,13 @@ def _get_dialect(dialect: str) -> str | Type[Unilake]:
         return Unilake
     return dialect
 
-
 def _scan_transform(node, scope_id: int, entities: list[set], attributes: list[set], aggregates):
     node_type = type(node)
 
     # Get tables
     if node_type is exp.Table:
-        entities[scope_id].add(ScanEntity(catalog=node.catalog or None, db=node.db or None, name=node.name, alias=node.alias))
+        if node.alias:
+            entities[scope_id].add(ScanEntity(catalog=node.catalog or None, db=node.db or None, name=node.name, alias=node.alias))
 
     # Get columns
     elif node_type is exp.Column and not node.is_star:
@@ -90,21 +90,34 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         for i, scope in enumerate(scoped):
             entities.append(set())
             attributes.append(set())
-            scope.expression.transform(_scan_transform, i, entities, attributes, aggregates)
+            found_entities = set()
+
+            # get tables
+            for table in scope.tables:
+                entities[i].add(ScanEntity(catalog=table.catalog or None, db=table.db or None, name=table.name, alias=table.alias))
+                found_entities.add(table.alias)
+
+            # get columns
+            for column in scope.columns:
+                if column.table in found_entities:
+                    attributes[i].add(ScanAttribute(entity_alias=column.table, name=column.name))
+
+            # get stars
+            for star in scope.find_all(exp.Select):
+                if not star.is_star:
+                    continue
+
+                found_from = star.find(exp.From)
+                if found_from:
+                    attributes[i].add(ScanAttribute(entity_alias=found_from.this.alias, name="*"))
+
+            # get groupBy check indicator
+            is_agg = scope.find(exp.Group) is not None
             objects.append(
                 ScanOutputObject(
-                    scope=i, entities=entities[i], attributes=attributes[i], is_agg=i in aggregates
+                    scope=i, entities=entities[i], attributes=attributes[i], is_agg=is_agg
                 )
             )
-
-        return ScanOutput(
-            objects=objects,
-            dialect=dialect,
-            query=json.dumps(parsed.dump()),
-            type=query_type,
-            error=None,
-            target_entity=target_entity,
-        )
     # non-scoped query
     else:
         parsed.transform(_scan_transform, 0, entities, attributes, aggregates)
@@ -120,20 +133,23 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
             target_entity=target_entity,
         )
 
+    return ScanOutput(
+        objects=objects,
+        dialect=dialect,
+        query=json.dumps(parsed.dump()),
+        type=query_type,
+        error=None,
+        target_entity=target_entity,
+    )
 
-def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: dict):
+def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: list):
     filters = []
-    for select in node.selects:
-        found_column = select.find(exp.Column)
-        if found_column is None:
+    for (scope, column, filter_definition) in filter_lookup:
+        if scope != scope_id:
             continue
 
-        node_str = str(found_column)
-        filtered_list = filter_lookup.get(hash((scope_id, node_str)))
-        if filtered_list:
-            for found_filter in filtered_list:
-                cond = maybe_parse(found_filter["expression"], into=exp.Condition, dialect=OUTPUT_DIALECT)
-                filters.append(replace_placeholders(cond, found_column))
+        cond = maybe_parse(filter_definition["expression"], into=exp.Condition, dialect=OUTPUT_DIALECT)
+        filters.append(replace_placeholders(cond, column))
 
     if filters:
         node.where(*filters, append=True, dialect=OUTPUT_DIALECT, copy=False)
@@ -382,7 +398,7 @@ def _hide_literals(node: exp.Literal):
     return node
 
 
-def _transformer_filters(node, scope_id: int, filter_lookup: dict):
+def _transformer_filters(node, scope_id: int, filter_lookup: list):
     if isinstance(node, exp.Select):
         return _transform_filters(node, scope_id, filter_lookup)
     return node
@@ -430,12 +446,11 @@ def inner_transpile(
     rule_lookup = {
         hash((rule.scope, rule.attribute)): rule.rule_definition for rule in transpiler_input.rules
     }
-    filter_lookup = {}
+    filter_lookup = list()
     for entity_filter in transpiler_input.filters:
-        key = hash((entity_filter.scope, entity_filter.attribute))
-        if key not in filter_lookup:
-            filter_lookup[key] = []
-        filter_lookup[key].append(entity_filter.filter_definition)
+        # scope, column, rule_definition (tuple)
+        column = exp.to_column(entity_filter.attribute)
+        filter_lookup.append((entity_filter.scope, column, entity_filter.filter_definition))
 
     # transform input
     input_sql = Expression.load(transpiler_input.query)

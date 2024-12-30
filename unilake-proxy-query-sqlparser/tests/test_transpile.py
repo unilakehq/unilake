@@ -82,6 +82,59 @@ class TestTranspile(unittest.TestCase):
             output.sql_transformed,
         )
 
+    def test_transpile_add_filter_non_selected_column(self):
+        query = scan("SELECT c from b", "unilake", "catalog", "database")
+        input = {
+            "rules": [],
+            "filters": [{
+                "scope": 0,
+                "attribute_id": "some_guid",
+                "attribute": '"b"."a"',
+                "policy_id": "some_guid",
+                "filter_definition": {"expression": "? > 0"},
+            }],
+            "star_expand": [],
+            "cause": None,
+            "query": query.query,
+            "request_url": None,
+        }
+        output = transpile(input)
+        self.assertIsNone(output.error)
+        self.assertEqual(
+            "SELECT `b`.`c` AS `c` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`a` > 0",
+            output.sql_transformed,
+        )
+
+    def test_transpile_multiple_filters_remove_duplicates(self):
+        query = scan("SELECT a, a as x, a as xx, a as xxx, from b", "unilake", "catalog", "database")
+        input = {
+            "rules": [],
+            "filters": [{
+                "scope": 0,
+                "attribute_id": "some_guid",
+                "attribute": '"b"."a"',
+                "policy_id": "some_guid",
+                "filter_definition": {"expression": "? > 0"},
+                },
+                {
+                "scope": 0,
+                "attribute_id": "some_guid",
+                "attribute": '"b"."a"',
+                "policy_id": "another_guid",
+                "filter_definition": {"expression": "? < 10"},
+            }],
+            "star_expand": [],
+            "cause": None,
+            "query": query.query,
+            "request_url": None,
+        }
+        output = transpile(input)
+        self.assertIsNone(output.error)
+        self.assertEqual(
+            "SELECT `b`.`a` AS `a`, `b`.`a` AS `x`, `b`.`a` AS `xx`, `b`.`a` AS `xxx` FROM `catalog`.`database`.`b` AS `b` WHERE `b`.`a` > 0 AND `b`.`a` < 10",
+            output.sql_transformed,
+        )
+
     def test_transpile_star_expand_with_mask(self):
         query = scan("SELECT * from b", "unilake", "catalog", "database")
         input = {
