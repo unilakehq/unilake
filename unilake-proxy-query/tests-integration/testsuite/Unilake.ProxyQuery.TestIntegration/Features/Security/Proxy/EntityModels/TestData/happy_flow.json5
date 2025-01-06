@@ -1,0 +1,193 @@
+[
+  {
+    "fullName": "default_catalog.dwh.DimAccount",
+    "id": "a6881ca2-3b2a-4c94-9e78-38d9c541048f",
+    "tags": [
+      "tag1",
+      "tag2"
+    ],
+    "attributes": {
+      "default_catalog.dwh.DimAccount.AccountKey": {
+        "id": "1",
+        "fullName": "default_catalog.dwh.DimAccount.AccountKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "AccountKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.DimAccount.ParentAccountKey": {
+        "id": "2",
+        "fullName": "default_catalog.dwh.DimAccount.ParentAccountKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "ParentAccountKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.DimAccount.AccountCodeAlternateKey": {
+        "id": "3",
+        "fullName": "default_catalog.dwh.DimAccount.AccountCodeAlternateKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "AccountCodeAlternateKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.DimAccount.AccountDescription": {
+        "id": "4",
+        "fullName": "default_catalog.dwh.DimAccount.AccountDescription",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "AccountDescription",
+        "dataType": "STRING"
+      },
+      "default_catalog.dwh.DimAccount.AccountType": {
+        "id": "5",
+        "fullName": "default_catalog.dwh.DimAccount.AccountType",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "AccountType",
+        "dataType": "STRING"
+      },
+      "default_catalog.dwh.DimAccount.Operator": {
+        "id": "6",
+        "fullName": "default_catalog.dwh.DimAccount.Operator",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "Operator",
+        "dataType": "STRING"
+      },
+      "default_catalog.dwh.DimAccount.CustomMembers": {
+        "id": "7",
+        "fullName": "default_catalog.dwh.DimAccount.CustomMembers",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "CustomMembers",
+        "dataType": "STRING"
+      },
+      "default_catalog.dwh.DimAccount.ValueType": {
+        "id": "8",
+        "fullName": "default_catalog.dwh.DimAccount.ValueType",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "ValueType",
+        "dataType": "STRING"
+      },
+      "default_catalog.dwh.DimAccount.CustomMemberOptions": {
+        "id": "9",
+        "fullName": "default_catalog.dwh.DimAccount.CustomMemberOptions",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "CustomMemberOptions",
+        "dataType": "STRING"
+      },
+    }
+  },
+  {
+
+    "fullName": "default_catalog.dwh.FactFinance",
+    "id": "d98f9032-799b-425a-8c67-c955bfbf1eab",
+    "tags": [
+      "tag1",
+      "tag2"
+    ],
+    "attributes": {
+      "default_catalog.dwh.FactFinance.FinanceKey": {
+        "id": "10",
+        "fullName": "default_catalog.dwh.FactFinance.FinanceKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "FinanceKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.FactFinance.DateKey": {
+        "id": "11",
+        "fullName": "default_catalog.dwh.FactFinance.DateKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "DateKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.FactFinance.OrganizationKey": {
+        "id": "12",
+        "fullName": "default_catalog.dwh.FactFinance.OrganizationKey",
+        "tags": [
+          "pii::hash_me"
+        ],
+        "isAggregated": false,
+        "name": "OrganizationKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.FactFinance.DepartmentGroupKey": {
+        "id": "13",
+        "fullName": "default_catalog.dwh.FactFinance.DepartmentGroupKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "DepartmentGroupKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.FactFinance.ScenarioKey": {
+        "id": "14",
+        "fullName": "default_catalog.dwh.FactFinance.ScenarioKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "ScenarioKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.FactFinance.AccountKey": {
+        "id": "15",
+        "fullName": "default_catalog.dwh.FactFinance.AccountKey",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "AccountKey",
+        "dataType": "INT"
+      },
+      "default_catalog.dwh.FactFinance.Amount": {
+        "id": "16",
+        "fullName": "default_catalog.dwh.FactFinance.Amount",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "Amount",
+        "dataType": "NUMBER"
+      },
+      "default_catalog.dwh.FactFinance.Date": {
+        "id": "17",
+        "fullName": "default_catalog.dwh.FactFinance.Date",
+        "tags": [
+          "custom::no_tag"
+        ],
+        "isAggregated": false,
+        "name": "Date",
+        "dataType": "DATE"
+      },
+    }
+  }
+]

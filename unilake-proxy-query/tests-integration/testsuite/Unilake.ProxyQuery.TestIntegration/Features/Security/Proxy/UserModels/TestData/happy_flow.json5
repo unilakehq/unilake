@@ -1,0 +1,17 @@
+[
+  {
+    "id": "500efbea-0bfd-49b3-88ab-090cff23cab6",
+    "principalName": "testuser@example.com",
+    "roles": [
+      "admin",
+      "data_analyst"
+    ],
+    "tags": [
+      "pii::firstname",
+      "pii::lastname"
+    ],
+    "accessPolicyIds": [
+      "afe6f97a-b3b6-41b1-b4be-5c3c100e567c"
+    ]
+  }
+]

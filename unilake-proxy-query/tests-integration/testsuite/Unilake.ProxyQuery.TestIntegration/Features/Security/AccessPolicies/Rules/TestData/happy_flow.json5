@@ -1,0 +1,58 @@
+[
+//  {
+//    "e": "allow",
+//    // "f": '{"name": "replace_string","properties": {"replacement": "[REDACTED]"}}',
+//    // "f": '{"name": "xxhash3"}',
+//    // "f": '{"name": "hidden"}',
+//    "f": '{"name": "full_access"}',
+//    "o": "*",
+//    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+//    "t": "p",
+//    "s": "true"
+//  },
+//  {
+//    "e": "allow",
+//    "f": '{"expression":"? > 30"}',
+//    "o": "*.AccountKey",
+//    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+//    "t": "p",
+//    "s": "true"
+//  },
+//  {
+//    "e": "allow",
+//    "f": '{"expression":"? < 70"}',
+//    "o": "*.AccountKey",
+//    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+//    "t": "p",
+//    "s": "true"
+//  },
+//  {
+//    "e": "allow",
+//    // "f": '{"name": "replace_string","properties": {"replacement": "[REDACTED]"}}',
+//    // "f": '{"name": "xxhash3"}',
+//    "f": '{"name": "hidden"}',
+//    "o": "*.AccountKey",
+//    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+//    "t": "p",
+//    "s": "true"
+//  },
+//  {
+//    "e": "allow",
+//     "f": '{"name": "replace_string","properties": {"replacement": "[REDACTED]"}}',
+//    // "f": '{"name": "xxhash3"}',
+//    // "f": '{"name": "hidden"}',
+//    "o": "*.OrganizationKey",
+//    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+//    "t": "p",
+//    "s": "true"
+//  },
+//  {
+//    "e": "allow",
+//    "f": '{"name": "xxhash3"}',
+//    "o": "*",
+//    "i": "afe6f97a-b3b6-41b1-b4be-5c3c100e567c",
+//    "t": "p",
+//    //"s": "try { return TagExistszzzzz(r.object, \"pii::hash_me\"); } catch { return false; }",
+//    "s": "TagExists(r.object, \"pii::hash_me\")",
+//  }
+]

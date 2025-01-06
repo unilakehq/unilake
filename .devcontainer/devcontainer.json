@@ -17,7 +17,7 @@
 		"vscode": {
 			"extensions": [
 				"rust-lang.rust-analyzer",
-				"serayuzgur.crates",
+				"fill-labs.dependi",
 				"vadimcn.vscode-lldb",
 				"ms-dotnettools.csdevkit"
 			],

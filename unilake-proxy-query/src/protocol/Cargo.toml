@@ -1,0 +1,40 @@
+[package]
+name = "unilake-protocol"
+version = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+publish = { workspace = true }
+
+[dependencies]
+# internal
+unilake-common = { workspace = true }
+unilake-security = { workspace = true }
+unilake-sql = { workspace = true }
+
+# crates
+casbin = { workspace = true }
+redis = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+async-stream = { workspace = true }
+enumflags2 = { workspace = true }
+encoding = { workspace = true }
+byteorder = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+tokio-util = { workspace = true }
+tokio-rustls = { workspace = true }
+derive-new = { workspace = true }
+futures = { workspace = true }
+rand = { workspace = true }
+async-trait = { workspace = true }
+ulid = { workspace = true }
+mysql_async = { workspace = true }
+chrono = { workspace = true }
+bigdecimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+reqwest-eventsource = { workspace = true }
