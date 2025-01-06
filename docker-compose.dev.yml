@@ -1,0 +1,72 @@
+#
+# docker-compose LOCAL DEVELOPMENT file
+#
+
+services:
+  db:
+    extends:
+       file: docker-compose.base.yml
+       service: db
+    ports:
+      - 5432:5432
+
+  redis:
+    extends:
+       file: docker-compose.base.yml
+       service: redis 
+    ports:
+      - 6379:6379
+
+  minio:
+    extends:
+       file: docker-compose.base.yml
+       service: minio 
+    ports:
+      - 9001:9001
+
+  starrocks-fe:
+    extends:
+       file: docker-compose.base.yml
+       service: starrocks-fe 
+    depends_on:
+      - minio
+    ports:
+      - 8030:8030
+      - 9020:9020
+      - 9030:9030
+
+  starrocks-cn:
+    extends:
+       file: docker-compose.base.yml
+       service: starrocks-cn
+    depends_on:
+      - starrocks-fe
+
+  opensearch:
+    extends:
+       file: docker-compose.base.yml
+       service: opensearch
+    ports:
+      - 9200:9200
+      - 9600:9600
+
+  zookeeper:
+    extends:
+       file: docker-compose.base.yml
+       service: zookeeper 
+
+  kafka:
+    extends:
+       file: docker-compose.base.yml
+       service: kafka 
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+
+  kafka_ui:
+    extends:
+       file: docker-compose.base.yml
+       service: kafka_ui 
+    ports:
+      - 8080:8080
