@@ -70,3 +70,11 @@ services:
        service: kafka_ui 
     ports:
       - 8080:8080
+  
+  gravitino:
+    extends:
+       file: docker-compose.base.yml
+       service: gravitino 
+    ports:
+      - 8090:8090
+      - 9002:9001

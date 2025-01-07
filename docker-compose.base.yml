@@ -4,7 +4,7 @@
 
 services:
   db:
-    container_name: unilake-db
+    container_name: unilake_db
     image: postgres:17-alpine3.21
     restart: always
     environment:
@@ -16,7 +16,7 @@ services:
         timeout: 5s
 
   redis:
-      container_name: unilake-redis
+      container_name: unilake_redis
       image: redis:8.0-M02-alpine
       restart: on-failure
       command: redis-server --maxmemory-policy allkeys-lru --maxmemory 200mb
@@ -27,7 +27,7 @@ services:
           retries: 10
 
   minio:
-    container_name: unilake-minio 
+    container_name: unilake_minio 
     image: minio/minio:latest
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -36,7 +36,7 @@ services:
     command: '-c ''mkdir -p /minio_data/starrocks && minio server /minio_data --console-address ":9001"'''
 
   starrocks-fe:
-    container_name: starrocks-fe
+    container_name: unilake_starrocks_fe
     image: starrocks/fe-ubuntu:3.3-latest
     hostname: starrocks-fe
     user: root
@@ -54,9 +54,11 @@ services:
       timeout: 5s
       retries: 3
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
 
   starrocks-cn:
+    container_name: unilake_starrocks_cn
     image: starrocks/cn-ubuntu:3.3-latest
     command:
       - /bin/bash
@@ -66,11 +68,12 @@ services:
         mysql --connect-timeout 2 -h starrocks-fe -P9030 -uroot -e "ALTER SYSTEM ADD COMPUTE NODE \"starrocks-cn:9050\";"
         /opt/starrocks/cn/bin/start_cn.sh
     hostname: starrocks-cn
-    container_name: starrocks-cn
     user: root
     depends_on:
-      - starrocks-fe
-      - minio
+      starrocks-fe:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     healthcheck:
       test: 'mysql -uroot -h starrocks-fe -P 9030 -e "SHOW COMPUTE NODES\G" |grep "Alive: true"'
       interval: 10s
@@ -78,8 +81,8 @@ services:
       retries: 3
 
   opensearch:
+    container_name: unilake_opensearch
     image: opensearchproject/opensearch:latest
-    container_name: opensearch
     environment:
       - cluster.name=opensearch-cluster 
       - node.name=opensearch-node1 
@@ -97,15 +100,18 @@ services:
         hard: 65536
 
   zookeeper:
+    container_name: unilake_zookeeper
     image: confluentinc/cp-zookeeper:latest
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
+    container_name: unilake_kafka
     image: confluentinc/cp-kafka:latest
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -115,9 +121,23 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   kafka_ui:
+      container_name: unilake_kafka_ui
       image: provectuslabs/kafka-ui:latest
       restart: on-failure
       environment:
           KAFKA_CLUSTERS_0_NAME: local
           KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
           DYNAMIC_CONFIG_ENABLED: 'true'
+
+  gravitino:
+    container_name: unilake_gravitino 
+    image: apache/gravitino:0.7.0-incubating
+    entrypoint: /bin/bash /tmp/gravitino/init.sh
+    volumes:
+      - ./conf/gravitino:/tmp/gravitino
+    healthcheck:
+      test: ["CMD", "/tmp/gravitino/healthcheck.sh"]
+      interval: 5s
+      timeout: 60s
+      retries: 5
+      start_period: 20s
