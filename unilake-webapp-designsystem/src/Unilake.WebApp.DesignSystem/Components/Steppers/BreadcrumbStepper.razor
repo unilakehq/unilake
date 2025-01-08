@@ -1,0 +1,36 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Unilake.WebApp.DesignSystem.Components.Steppers
+@inherits StepperBaseComponent
+
+@* todo: improve dark mode *@
+<ol class="flex items-center w-full p-3 space-x-2 text-default font-normal text-center
+text-typography-body bg-neutral-background-default
+      shadow-[0px_1px_2px_0px_rgba(0,0,0,0.08)] border border-neutral-background-border-divider rounded-lg
+dark:text-gray-400 sm:text-base dark:bg-gray-800 dark:border-gray-700 sm:p-4 sm:space-x-4 rtl:space-x-reverse">
+    @for (var step = 0; step < Steps.Length; step++)
+    {
+        <li class="@GetStepCss(step)">
+            <span class="@GetStepSpan(step)">
+                @(step+1)
+            </span>
+            <span class="whitespace-nowrap">@(Steps[step].Text)</span>
+            @if (!IsLastStep(step))
+            {
+                <span class="ml-4">
+                    <Icon IconInstance="EnronIcons.ChevronsRight" Color="text-typography-icon" Size="12"></Icon>
+                </span>
+            }
+        </li>
+    }
+</ol>
+
+@code{
+    private string GetStepCss(int step) => new ClassBuilder("flex items-center")
+        .AddIf("text-brand-light-interaction dark:text-blue-500", IsActiveStep(step))
+        .ToString();
+
+    private string GetStepSpan(int step) => new ClassBuilder("flex items-center justify-center w-5 h-5 me-2 text-xs border rounded-full shrink-0")
+        .AddIf("border-brand-light-interaction dark:border-blue-500", IsActiveStep(step))
+        .AddIf("border-typography-body dark:border-gray-400", !IsActiveStep(step))
+        .ToString();
+}
