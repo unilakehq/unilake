@@ -6,3 +6,6 @@
 **/.idea/
 **/.vscode/
 **/Folder.DotSettings.user
+**/node_modules/
+
+*.user
