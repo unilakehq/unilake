@@ -11,7 +11,7 @@ dark:text-gray-400 sm:text-base dark:bg-gray-800 dark:border-gray-700 sm:p-4 sm:
     {
         <li class="@GetStepCss(step)">
             <span class="@GetStepSpan(step)">
-                @(step+1)
+                @(step + 1)
             </span>
             <span class="whitespace-nowrap">@(Steps[step].Text)</span>
             @if (!IsLastStep(step))
@@ -25,6 +25,7 @@ dark:text-gray-400 sm:text-base dark:bg-gray-800 dark:border-gray-700 sm:p-4 sm:
 </ol>
 
 @code{
+
     private string GetStepCss(int step) => new ClassBuilder("flex items-center")
         .AddIf("text-brand-light-interaction dark:text-blue-500", IsActiveStep(step))
         .ToString();
@@ -33,4 +34,5 @@ dark:text-gray-400 sm:text-base dark:bg-gray-800 dark:border-gray-700 sm:p-4 sm:
         .AddIf("border-brand-light-interaction dark:border-blue-500", IsActiveStep(step))
         .AddIf("border-typography-body dark:border-gray-400", !IsActiveStep(step))
         .ToString();
+
 }
