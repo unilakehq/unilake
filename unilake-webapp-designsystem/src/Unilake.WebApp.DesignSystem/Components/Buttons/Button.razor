@@ -1,0 +1,89 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<button Tag="@HtmlTag"
+        class="font-semibold leading-normal me-2 mb-2 overflow-hidden items-center justify-start inline-flex
+                gap-2 @ClassNames"
+        type="@InputType"
+        href="@Href"
+        value="@Text"
+        @onclick="OnClick"
+        @attributes="@UnmatchedParameters"
+        disabled="@(Disabled)">
+
+    @if (LeftIcon != null)
+    {
+        @LeftIcon
+    }
+    @if (ChildContent == null)
+    {
+        @Text
+    }
+    else
+    {
+        @ChildContent
+    }
+    @if (RightIcon != null)
+    {
+        @RightIcon
+    }
+
+</button>
+
+@code {
+    [Parameter] public string Text { get; set; } = string.Empty;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool IsIcon { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter] public ButtonSize Size { get; set; } = ButtonSize.Default;
+    [Parameter] public ButtonType Type { get; set; } = ButtonType.Button;
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Alpha;
+    [Parameter] public IIcon? LeftIcon { get; set; }
+    [Parameter] public IIcon? RightIcon { get; set; }
+    [Parameter] public string LinkTo { get; set; } = string.Empty;
+
+    private string HtmlTag => Type switch
+    {
+        ButtonType.Input => "input",
+        ButtonType.Link => "a",
+        ButtonType.Submit => "input",
+        ButtonType.Reset => "input",
+        _ => "button"
+    };
+
+    private string InputType => Type switch
+    {
+        ButtonType.Input => "button",
+        ButtonType.Button => "button",
+        ButtonType.Submit => "submit",
+        ButtonType.Reset => "reset",
+        _ => string.Empty
+    };
+
+    private string Href => Type == ButtonType.Link
+        ? LinkTo
+        : string.Empty;
+
+    protected override string ClassNames => ClassBuilder
+        .AddCompare("text-neutral-0 bg-brand-alpha-300 " +
+                    "hover:bg-brand-light-interaction-hover " +
+                    // todo: design fix focus coloring
+                    // "focus:bg-brand-light-interaction-hover focus:border-brand-light-interaction-focus/25 focus:border-4 " +
+                    // todo: darkmode
+                    "dark:hover:bg-brand-dark-interaction-hover dark:focus:bg-brand-dark-interaction-focus", Variant, ButtonVariant.Alpha)
+        .AddCompare("bg-neutral-background-default text-typography-headline stroke-neutral-background-border-divider border-1 " +
+                    "hover:text-brand-alpha-300 hover:bg-neutral-background-faded " +
+                    // todo: design fix focus coloring
+                    // "focus:border-brand-light-interaction-focus/25 focus:border-4 focus:bg-neutral-background-default " +
+                    // todo: darkmode
+                    "", Variant, ButtonVariant.Bravo)
+        .AddCompare("px-4 py-1 text-small", Size, ButtonSize.XSmall)
+        .AddCompare("px-4 py-2 text-small", Size, ButtonSize.Small)
+        .AddCompare("px-5 py-3 text-default", Size, ButtonSize.Default)
+        .AddCompare("px-6 py-4 text-large", Size, ButtonSize.Large)
+        .AddIf("cursor-not-allowed", () => Disabled || IsLoading)
+        .AddIfElse("rounded-full", IsIcon, "rounded-lg")
+        .ToString();
+
+}

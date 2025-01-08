@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*!* Inter - regular, bold, link *!*/
+/*@layer base {*/
+/*    @font-face {*/
+/*        font-family: 'Inter';*/
+/*    }*/
+/*}*/
