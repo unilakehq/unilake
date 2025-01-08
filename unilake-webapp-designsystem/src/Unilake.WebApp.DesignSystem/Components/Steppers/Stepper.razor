@@ -1,0 +1,37 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Unilake.WebApp.DesignSystem.Components.Steppers
+@inherits StepperBaseComponent
+
+<ol class="flex items-center w-full text-sm font-semibold leading-normal text-center text-neutral-background-border-divider dark:text-gray-400 sm:text-base">
+    @for (var step = 0; step < Steps.Length; step++)
+    {
+        <li class="@GetStepCss(step)">
+                <span class="@GetStepSpan(step)">
+                    @if (IsActiveStep(step))
+                    {
+                        <Icon IconInstance="EnronIcons.SuccessBadge" Color="text-brand-light-interaction"
+                              Size="20"></Icon>
+                    }
+                    <span
+                        class="@(IsActiveStep(step) ? "ml-1" : "") whitespace-nowrap">@(Steps[step].Text)</span>
+                </span>
+        </li>
+    }
+</ol>
+
+@code {
+    private string GetStepCss(int step) =>
+        new ClassBuilder("flex items-center")
+            .AddIf("text-brand-light-interaction " +
+                   "dark:text-blue-500", IsActiveStep(step))
+            .AddIf("md:w-full sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden " +
+                   "sm:after:inline-block after:mx-6 dark:after:border-gray-700", IsActiveStep(step) && !IsLastStep(step))
+            .AddIf("text-typography-body", !IsActiveStep(step) && IsLastStep(step))
+            .AddIf("text-typography-body w-full " +
+                   "after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden " +
+                   "sm:after:inline-block after:mx-6 dark:after:border-gray-700", IsRegularStep(step)).ToString();
+
+    private string GetStepSpan(int step) => new ClassBuilder().AddIfElse(
+        "flex items-center after:content-['/'] sm:after:hidden after:mx-2 after:text-gray-200 dark:ater:text-gray-500",
+        IsActiveStep(step), "whitespace-nowrap after:text-gray-200 dark:after:text-gray-500").ToString();
+}
