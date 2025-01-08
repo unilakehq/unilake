@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: ["./**/*.{razor,html,cshtml}", "./node_modules/flowbite/**/*.js"],
+    content: ["./Components/**/*.{razor,html,cshtml}", "./node_modules/flowbite/**/*.js"],
     darkMode: 'class',
     // todo: this can be removed when bootstrap is removed as well from Unilake.WebApp
     important: true,

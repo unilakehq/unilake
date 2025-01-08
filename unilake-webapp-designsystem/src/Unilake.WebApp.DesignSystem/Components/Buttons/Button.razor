@@ -13,7 +13,7 @@
 
     @if (LeftIcon != null)
     {
-        @LeftIcon
+        <Icon IconInstance="LeftIcon" Size="IconSize"></Icon>
     }
     @if (ChildContent == null)
     {
@@ -23,9 +23,13 @@
     {
         @ChildContent
     }
-    @if (RightIcon != null)
+    @if (RightIcon != null && !IsLoading)
     {
-        @RightIcon
+        <Icon IconInstance="RightIcon" Size="IconSize"></Icon>
+    }
+    else if (IsLoading)
+    {
+        // todo: add default loading spinner, once spinners/icons are implemented
     }
 
 </button>
@@ -61,6 +65,13 @@
         _ => string.Empty
     };
 
+    private int IconSize => Size switch
+    {
+        ButtonSize.Default => 16,
+        ButtonSize.Large => 20,
+        _=> 12
+    };
+
     private string Href => Type == ButtonType.Link
         ? LinkTo
         : string.Empty;
@@ -85,5 +96,4 @@
         .AddIf("cursor-not-allowed", () => Disabled || IsLoading)
         .AddIfElse("rounded-full", IsIcon, "rounded-lg")
         .ToString();
-
 }
