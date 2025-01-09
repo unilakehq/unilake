@@ -1,0 +1,51 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode *@
+<div class="flex items-center mb-4">
+    <div @onclick="ToggleState" class="@ClassNames">
+        <Icon IconInstance="@GetIcon()" Size="10" Color="text-neutral-background-default" class="@IconClass()"></Icon>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsDisabled { get; set; }
+    [Parameter] public bool? IsToggledOn { get; set; }
+    [Parameter] public EventCallback<bool?> ValueChanged { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private string IconClass() => new ClassBuilder().AddIf("hidden", DeselectedSate).ToString();
+
+    private bool EmptyState => !IsToggledOn.HasValue;
+    private bool SelectedSate => IsToggledOn.HasValue && IsToggledOn.Value;
+    private bool DeselectedSate => IsToggledOn.HasValue && !IsToggledOn.Value;
+
+    protected override string ClassNames => ClassBuilder
+        .Add("w-4 h-4 rounded border border-neutral-background-border-divider hover:border-feedback-info-background flex-col justify-center items-center inline-flex")
+        .AddIf("bg-feedback-info-background", EmptyState)
+        .AddIf("bg-feedback-info-background", SelectedSate)
+        .AddIf("text-neutral-background-default", DeselectedSate)
+        .AddIf("cursor-not-allowed", IsDisabled)
+        .AddIf("cursor-pointer", !IsDisabled)
+        .ToString();
+
+    private IIcon GetIcon() => IsToggledOn switch
+    {
+        true => EnronIcons.Check,
+        false => EnronIcons.Check,
+        null => EnronIcons.Minus
+    };
+
+    private async Task ToggleState()
+    {
+        if (IsDisabled) return;
+        IsToggledOn = IsToggledOn switch
+        {
+            true => false,
+            false => true,
+            null => true
+        };
+        await ValueChanged.InvokeAsync(IsToggledOn);
+        await Changed.InvokeAsync();
+    }
+}
