@@ -1,0 +1,63 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: proper dark mode *@
+<label class="inline-flex items-start cursor-pointer">
+    <input type="checkbox" checked="@IsToggledOn" @onclick="ToggleState" disabled="@IsDisabled" class="sr-only peer">
+    <div class="@DivClass()"></div>
+    <span class="@SpanClass()">
+        <span class="@LabelTextClass()">
+        @if (!string.IsNullOrWhiteSpace(LabelText))
+            {
+                @LabelText
+            }
+            else
+            {
+                @ChildContent
+            }
+        </span>
+        <span class="font-normal text-typography-body">@HelperText</span>
+    </span>
+</label>
+
+@code {
+    [Parameter] public bool IsDisabled { get; set; }
+    [Parameter] public bool IsToggledOn { get; set; }
+    [Parameter] public string? LabelText { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public CheckboxSize Size { get; set; } = CheckboxSize.Small;
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    protected async Task ToggleState()
+    {
+        IsToggledOn = !IsToggledOn;
+        await ValueChanged.InvokeAsync(IsToggledOn);
+        await Changed.InvokeAsync();
+    }
+
+    private string DivClass() => new ClassBuilder("relative rounded-full peer after:top-[2px] after:start-[2px]")
+        .Add("peer-checked:after:translate-x-full after:content-['']")
+        .Add("after:absolute after:border after:rounded-full after:transition-all")
+        .Add("rtl:peer-checked:after:-translate-x-full")
+        .Add("dark:bg-gray-700 dark:border-gray-600 peer-checked:after:bg-neutral-background-default after:bg-white after:border-gray-300")
+        .AddIf("bg-neutral-background-faded peer-checked:bg-feedback-info-background", !IsDisabled)
+        .AddIf("bg-neutral-background-disabled peer-checked:bg-neutral-background-disabled cursor-not-allowed", IsDisabled)
+        .AddCompare("w-9 h-5 after:h-4 after:w-4", Size, CheckboxSize.Small)
+        .AddCompare("w-11 h-6 after:h-5 after:w-5", Size, CheckboxSize.Medium)
+        .AddCompare("w-14 h-7 after:h-6 after:w-6", Size, CheckboxSize.Big)
+        .AddIfElse("mt-0.5", string.IsNullOrWhiteSpace(HelperText), "mt-1")
+        .ToString();
+
+    private string SpanClass() => new ClassBuilder("flex-col justify-start items-start gap-0.5 inline-flex align-top ms-2 font-medium")
+        .AddCompare("text-small", Size, CheckboxSize.Small)
+        .AddCompare("text-default", Size, CheckboxSize.Medium)
+        .AddCompare("text-default", Size, CheckboxSize.Big)
+        .ToString();
+
+    private string LabelTextClass() => new ClassBuilder()
+        .AddIf("text-typography-faded", IsDisabled)
+        .AddIf("text-typography-headline", !IsDisabled)
+        .ToString();
+
+}
