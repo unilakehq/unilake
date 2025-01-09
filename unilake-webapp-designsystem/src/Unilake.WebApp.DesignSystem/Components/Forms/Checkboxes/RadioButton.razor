@@ -1,0 +1,56 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode *@
+<div class="flex">
+    <div class="flex items-center h-5 mt-0.5">
+        <input id="@_elementId" aria-describedby="helper-radio-text" type="radio" class="@InputClass()"
+               @onclick="ToggleState">
+    </div>
+    <div class="ms-2 text-default">
+        <label for="@_elementId" class="@LabelClass()">@LabelText</label>
+        <p id="helper-radio-text" class="@HelperTextClass()">@HelperText</p>
+    </div>
+</div>
+
+@code {
+    private string _elementId;
+
+    public RadioButton()
+    {
+        _elementId = Guid.NewGuid().ToString();
+    }
+
+    [EditorRequired] [Parameter] public required string LabelText { get; set; }
+    [Parameter] public string HelperText { get; set; } = string.Empty;
+    [Parameter] public bool IsDisabled { get; set; }
+    [Parameter] public bool IsToggledOn { get; set; }
+    [Parameter] public string GroupName { get; set; } = Guid.NewGuid().ToString();
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private string InputClass() => new ClassBuilder("w-4 h-4 focus:ring-0 focus:ring-offset-0")
+        .Add("ring-offset-neutral-background-default border-neutral-background-border-divider bg-neutral-background-default")
+        .AddIf("rounded-full border-feedback-info-background border-4", IsToggledOn)
+        .AddIf("cursor-not-allowed", IsDisabled)
+        .ToString();
+
+    private string LabelClass() => new ClassBuilder("font-medium")
+        .AddIf("text-typography-headline dark:text-gray-300", !IsDisabled)
+        .AddIf("text-typography-faded", IsDisabled)
+        .ToString();
+
+    private string HelperTextClass() => new ClassBuilder("text-small font-normal")
+        .AddIf("text-typography-body dark:text-gray-300", !IsDisabled)
+        .AddIf("text-typography-fade dark:text-gray-300", IsDisabled)
+        .ToString();
+
+    private async Task ToggleState()
+    {
+        if (IsDisabled) return;
+        IsToggledOn = !IsToggledOn;
+        await ValueChanged.InvokeAsync(IsToggledOn);
+        await Changed.InvokeAsync();
+    }
+
+}
