@@ -79,14 +79,12 @@
     protected override string ClassNames => ClassBuilder
         .AddCompare("text-neutral-0 bg-brand-alpha-300 " +
                     "hover:bg-brand-light-interaction-hover " +
-                    // todo: design fix focus coloring
-                    // "focus:bg-brand-light-interaction-hover focus:border-brand-light-interaction-focus/25 focus:border-4 " +
+                    "focus:bg-brand-light-interaction-hover ring-brand-light-interaction-focus/25 focus:ring-4 focus:outline-none " +
                     // todo: darkmode
                     "dark:hover:bg-brand-dark-interaction-hover dark:focus:bg-brand-dark-interaction-focus", Variant, ButtonVariant.Alpha)
         .AddCompare("bg-neutral-background-default text-typography-headline stroke-neutral-background-border-divider border-1 " +
                     "hover:text-brand-alpha-300 hover:bg-neutral-background-faded " +
-                    // todo: design fix focus coloring
-                    // "focus:border-brand-light-interaction-focus/25 focus:border-4 focus:bg-neutral-background-default " +
+                    "ring-brand-light-interaction-focus/25 focus:ring-4 focus:bg-neutral-background-default focus:outline-none " +
                     // todo: darkmode
                     "", Variant, ButtonVariant.Bravo)
         .AddCompare("px-4 py-1 text-small", Size, ButtonSize.XSmall)
