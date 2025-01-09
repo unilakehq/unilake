@@ -1898,6 +1898,15 @@ input:checked + .toggle-bg {
   outline-style: solid !important;
 }
 
+.ring-black {
+  --tw-ring-opacity: 1 !important;
+  --tw-ring-color: rgb(0 0 0 / var(--tw-ring-opacity, 1)) !important;
+}
+
+.ring-brand-light-interaction-focus\/25 {
+  --tw-ring-color: rgb(255 104 73 / 0.25) !important;
+}
+
 .blur {
   --tw-blur: blur(8px) !important;
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow) !important;
@@ -2119,6 +2128,10 @@ input:checked + .toggle-bg {
 .focus\:ring-gray-200:focus {
   --tw-ring-opacity: 1 !important;
   --tw-ring-color: rgb(229 231 235 / var(--tw-ring-opacity, 1)) !important;
+}
+
+.focus\:ring-brand-light-interaction-focus\/25:focus {
+  --tw-ring-color: rgb(255 104 73 / 0.25) !important;
 }
 
 .dark\:border-blue-500:is(.dark *) {

@@ -1,0 +1,33 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Unilake.WebApp.DesignSystem.Components.Steppers
+@inherits StepperBaseComponent
+
+@* todo: fix dark-mode *@
+<ol class="items-center w-full space-y-4 sm:flex sm:space-x-8 sm:space-y-0 rtl:space-x-reverse ">
+    @for (var step = 0; step < Steps.Length; step++)
+    {
+        <li class="@GetStepCss(step)">
+            <span class="@GetStepSpan(step)">
+                @(step + 1)
+            </span>
+            <span>
+                <h3 class="font-medium leading-tight">@(Steps[step].Text)</h3>
+                <p class="text-sm">@(Steps[step].HelpText)</p>
+            </span>
+        </li>
+    }
+</ol>
+
+@code {
+
+    private string GetStepCss(int step) => new ClassBuilder("flex items-center space-x-2.5 rtl:space-x-reverse")
+        .AddIf("text-brand-light-interaction dark:text-blue-500", IsActiveStep(step))
+        .AddIf("text-typography-body dark:text-gray-400", !IsActiveStep(step))
+        .ToString();
+
+    private string GetStepSpan(int step) => new ClassBuilder("flex items-center justify-center w-8 h-8 border rounded-full shrink-0")
+        .AddIf("text-brand-light-interaction border-brand-light-interaction", IsActiveStep(step))
+        .AddIf("text-typography-body border-typography-body", !IsActiveStep(step))
+        .ToString();
+
+}
