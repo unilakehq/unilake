@@ -26,7 +26,6 @@
     [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public bool IsToggledOn { get; set; }
     [Parameter] public EventCallback<bool> ValueChanged { get; set; }
-    [Parameter] public EventCallback Changed { get; set; }
 
     private string InputClass() => new ClassBuilder("w-4 h-4 focus:ring-0 focus:ring-offset-0")
         .Add("ring-offset-neutral-background-default border-neutral-background-border-divider bg-neutral-background-default")
@@ -49,7 +48,7 @@
         if (IsDisabled) return;
         IsToggledOn = !IsToggledOn;
         await ValueChanged.InvokeAsync(IsToggledOn);
-        await Changed.InvokeAsync();
+        await OnClick.InvokeAsync();
     }
 
 }

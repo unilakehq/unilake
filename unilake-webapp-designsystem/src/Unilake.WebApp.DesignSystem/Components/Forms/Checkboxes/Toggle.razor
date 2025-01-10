@@ -27,13 +27,12 @@
     [Parameter] public string? HelperText { get; set; }
     [Parameter] public CheckboxSize Size { get; set; } = CheckboxSize.Small;
     [Parameter] public EventCallback<bool> ValueChanged { get; set; }
-    [Parameter] public EventCallback Changed { get; set; }
 
     protected async Task ToggleState()
     {
         IsToggledOn = !IsToggledOn;
         await ValueChanged.InvokeAsync(IsToggledOn);
-        await Changed.InvokeAsync();
+        await OnClick.InvokeAsync();
     }
 
     private string DivClass() => new ClassBuilder("relative rounded-full peer after:top-[2px] after:start-[2px]")
