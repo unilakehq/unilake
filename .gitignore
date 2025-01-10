@@ -7,5 +7,6 @@
 **/.vscode/
 **/Folder.DotSettings.user
 **/node_modules/
+**/*.min.css
 
 *.user
