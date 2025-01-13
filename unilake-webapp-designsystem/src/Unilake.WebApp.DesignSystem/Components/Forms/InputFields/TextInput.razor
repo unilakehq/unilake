@@ -3,8 +3,11 @@
 
 @* todo: dark mode implementation *@
 <div class="relative text-typography-body">
-    <label for="@_elementId"
-           class="@LabelClassNames()">@LabelText</label>
+    @if (!string.IsNullOrWhiteSpace(LabelText))
+    {
+        <label for="@_elementId"
+               class="@LabelClassNames()">@LabelText</label>
+    }
     @if (LeftIcon != null)
     {
         <div class="@LeftIconClassNames()">
@@ -15,6 +18,7 @@
            class="@InputClassNames()"
            @onmouseenter="() => OnMouseEnter(true)"
            @onmouseleave="() => OnMouseEnter(false)"
+           @oninput="@OnInput"
            @bind=@ValueText
            disabled="@IsDisabled"
            placeholder="@PlaceholderText">
@@ -23,7 +27,7 @@
         <span class="@RightIconClassNames()"
               @onmouseenter="() => OnMouseEnter(true)"
               @onmouseleave="() => OnMouseEnter(false)">
-                    @if (IsClearable || OnClick.HasDelegate)
+            @if (IsClearable || OnClick.HasDelegate)
             {
                 <Icon OnClick="RightIconClick" IconInstance="RightIcon" Size="16"></Icon>
             }
@@ -31,7 +35,7 @@
             {
                 <Icon IconInstance="RightIcon" Size="16"></Icon>
             }
-                </span>
+        </span>
     }
     @if (!string.IsNullOrWhiteSpace(HelperText))
     {
@@ -48,6 +52,7 @@
     private readonly string _elementId = Guid.NewGuid().ToString();
     private bool _isInUse;
 
+    [Parameter] public EventCallback<ChangeEventArgs> OnInput { get; set; }
     [Parameter] public IIcon? LeftIcon { get; set; }
 
     [Parameter]
@@ -106,15 +111,16 @@
 
     private string LabelClassNames() => new ClassBuilder("block mb-2 text-sm font-bold text-typography-headline").ToString();
 
-    private string InputClassNames() => new ClassBuilder("block w-full p-2 border rounded-lg")
-        .Add("focus:text-typography-headline hover:bg-neutral-background-faded focus:border-1")
+    private string InputClassNames() => ClassBuilder
+        .Add("block")
+        .AddIf("p-2 w-full border rounded-lg text-sm", string.IsNullOrWhiteSpace(ProvidedCssClasses))
+        .Add("text-typography-body focus:text-typography-headline hover:bg-neutral-background-faded focus:border-1")
         .Add("focus:ring-0 focus:ring-offset-0 focus:outline-none")
         .AddIf("ps-10", LeftIcon != null)
-        .Add("text-sm text-typography-body")
         .AddIf("border-neutral-background-border-divider", !IsSuccess && !IsErrored)
         .AddIf("border-feedback-success-background", IsSuccess)
         .AddIf("border-feedback-error-background", IsErrored)
-        .AddIf("cursor-not-allowed", IsDisabled)
+        .AddIf("cursor-not-allowed bg-neutral-background-faded", IsDisabled)
         .ToString();
 
     private string HelperTextClassNames() => new ClassBuilder("mt-2 text-sm")

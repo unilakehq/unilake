@@ -2,14 +2,13 @@
 @inherits UnilakeBaseComponent
 
 <button Tag="@HtmlTag"
-        class="font-semibold leading-normal me-2 mb-2 overflow-hidden items-center justify-start inline-flex
-                gap-2 @ClassNames"
+        class="@ClassNames"
         type="@InputType"
         href="@Href"
         value="@Text"
         @onclick="OnClick"
         @attributes="@UnmatchedParameters"
-        disabled="@(Disabled)">
+        disabled="@(IsDisabled)">
 
     @if (LeftIcon != null)
     {
@@ -36,7 +35,7 @@
 
 @code {
     [Parameter] public string Text { get; set; } = string.Empty;
-    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public bool IsIcon { get; set; }
     [Parameter] public bool IsLoading { get; set; }
 
@@ -72,11 +71,19 @@
         _=> 12
     };
 
+    private string SizeClass() => new ClassBuilder()
+        .AddCompare("px-4 py-1 text-small", Size, ButtonSize.XSmall)
+        .AddCompare("px-4 py-2 text-small", Size, ButtonSize.Small)
+        .AddCompare("px-5 py-3 text-default", Size, ButtonSize.Default)
+        .AddCompare("px-6 py-4 text-large", Size, ButtonSize.Large)
+        .ToString();
+
     private string Href => Type == ButtonType.Link
         ? LinkTo
         : string.Empty;
 
     protected override string ClassNames => ClassBuilder
+        .AddIf("font-semibold leading-normal me-2 mb-2 overflow-hidden items-center justify-start inline-flex gap-2", Variant != ButtonVariant.Custom)
         .AddCompare("text-neutral-0 bg-brand-alpha-300 " +
                     "hover:bg-brand-light-interaction-hover " +
                     "focus:bg-brand-light-interaction-hover ring-brand-light-interaction-focus/25 focus:ring-4 focus:outline-none " +
@@ -87,11 +94,9 @@
                     "ring-brand-light-interaction-focus/25 focus:ring-4 focus:bg-neutral-background-default focus:outline-none " +
                     // todo: darkmode
                     "", Variant, ButtonVariant.Bravo)
-        .AddCompare("px-4 py-1 text-small", Size, ButtonSize.XSmall)
-        .AddCompare("px-4 py-2 text-small", Size, ButtonSize.Small)
-        .AddCompare("px-5 py-3 text-default", Size, ButtonSize.Default)
-        .AddCompare("px-6 py-4 text-large", Size, ButtonSize.Large)
-        .AddIf("cursor-not-allowed", Disabled || IsLoading)
-        .AddIfElse("rounded-full", IsIcon, "rounded-lg")
+        .AddIf(SizeClass(), Variant != ButtonVariant.Custom)
+        .AddIf("cursor-not-allowed", IsDisabled || IsLoading)
+        .AddIf("rounded-full", IsIcon)
+        .AddIf("rounded-lg", !IsIcon && Variant != ButtonVariant.Custom)
         .ToString();
 }

@@ -1,0 +1,60 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode implementation *@
+<div class="items-end relative flex-col inline-flex">
+    <div class="self-stretch items-center inline-flex">
+        <TextInput IsDisabled="IsDisabled" ValueText="@Amount" InputType="number"
+                   class="@ClassNames"
+                   PlaceholderText="@PlaceholderText"></TextInput>
+        <Button IsDisabled="IsDisabled" RightIcon="RightIcon" Variant="ButtonVariant.Custom" Size="ButtonSize.Small"
+                class="flex gap-2 py-1.5 px-2 rounded-tr-lg border-l-0 rounded-br-lg text-default items-center bg-neutral-background-faded border border-neutral-background-border-divider text-typography-headline"
+                OnClick="ToggleDropdown">@CurrentUnit</Button>
+    </div>
+    <div @onmouseleave="ToggleDropdown"
+         class="@DropdownCss() z-20 absolute top-12 right-0 bg-white divide-y divide-gray-100 rounded-lg shadow">
+        <ul class="text-default">
+            @foreach (var unit in Units)
+            {
+                <li>
+                    <button @onclick="@(() => ChangeCurrentUnit(unit))" type="button"
+                            class="inline-flex w-full px-4 py-2 text-typography-body hover:bg-neutral-background-faded">
+                        <div class="inline-flex">
+                            @unit
+                            @if (unit == CurrentUnit)
+                            {
+                                <Icon class="ml-2 text-feedback-info-text" Size="16"
+                                      IconInstance="EnronIcons.Check"></Icon>
+                            }
+                        </div>
+                    </button>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+@code {
+    [EditorRequired] [Parameter] public required string[] Units { get; set; }
+    [EditorRequired] [Parameter] public required string CurrentUnit { get; set; }
+    [Parameter] public string PlaceholderText { get; set; } = String.Empty;
+    [Parameter] public string Amount { get; set; } = "0";
+    [Parameter] public bool IsDisabled { get; set; }
+    private IIcon RightIcon => IsToggleDropdown ? EnronIcons.ChevronUp : EnronIcons.ChevronDown;
+    private bool IsToggleDropdown { get; set; }
+    protected override string ClassNames => ClassBuilder.Add("block p-2 ps-2 text-sm rounded-s-lg border-e-1 border").ToString();
+    private string DropdownCss() => new ClassBuilder().AddIf("hidden", !IsToggleDropdown).ToString();
+
+    private async Task ToggleDropdown()
+    {
+        IsToggleDropdown = !IsToggleDropdown;
+        await OnClick.InvokeAsync();
+    }
+
+    private Task ChangeCurrentUnit(string unit)
+    {
+        CurrentUnit = unit;
+        return Task.CompletedTask;
+    }
+
+}
