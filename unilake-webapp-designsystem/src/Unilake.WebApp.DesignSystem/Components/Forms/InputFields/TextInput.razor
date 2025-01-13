@@ -1,0 +1,126 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode implementation *@
+<div class="relative text-typography-body">
+    <label for="@_elementId"
+           class="@LabelClassNames()">@LabelText</label>
+    @if (LeftIcon != null)
+    {
+        <div class="@LeftIconClassNames()">
+            <Icon IconInstance="LeftIcon" Size="16"></Icon>
+        </div>
+    }
+    <input type="@InputType" id="@_elementId"
+           class="@InputClassNames()"
+           @onmouseenter="() => OnMouseEnter(true)"
+           @onmouseleave="() => OnMouseEnter(false)"
+           @bind=@ValueText
+           disabled="@IsDisabled"
+           placeholder="@PlaceholderText">
+    @if (RightIcon != null)
+    {
+        <span class="@RightIconClassNames()"
+              @onmouseenter="() => OnMouseEnter(true)"
+              @onmouseleave="() => OnMouseEnter(false)">
+                    @if (IsClearable || OnClick.HasDelegate)
+            {
+                <Icon OnClick="RightIconClick" IconInstance="RightIcon" Size="16"></Icon>
+            }
+            else
+            {
+                <Icon IconInstance="RightIcon" Size="16"></Icon>
+            }
+                </span>
+    }
+    @if (!string.IsNullOrWhiteSpace(HelperText))
+    {
+        <p class="@HelperTextClassNames()">@HelperText</p>
+    }
+    else if (ChildContent != null)
+    {
+        <p class="@HelperTextClassNames()">@ChildContent</p>
+    }
+</div>
+
+@code {
+    private IIcon? _rightIcon;
+    private readonly string _elementId = Guid.NewGuid().ToString();
+    private bool _isInUse;
+
+    [Parameter] public IIcon? LeftIcon { get; set; }
+
+    [Parameter]
+    public IIcon? RightIcon
+    {
+        set
+        {
+            _rightIcon = value;
+            _isInUse = true;
+        }
+        get => _rightIcon ?? (IsClearable ? EnronIcons.Cross : _rightIcon);
+    }
+
+    [Parameter] public string? LabelText { get; set; }
+    [Parameter] public string? PlaceholderText { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public bool IsClearable { get; set; }
+    [Parameter] public bool IsDisabled { get; set; }
+    [Parameter] public bool IsSuccess { get; set; }
+    [Parameter] public bool IsErrored { get; set; }
+    [Parameter] public string ValueText { get; set; } = string.Empty;
+    [Parameter] public string? InputType { get; set; }
+
+    private async Task RightIconClick()
+    {
+        if (IsClearable) ValueText = String.Empty;
+        await OnClick.InvokeAsync();
+    }
+
+    private void OnMouseEnter(bool isInUse)
+    {
+        if (_rightIcon == null && !string.IsNullOrWhiteSpace(ValueText))
+            _isInUse = isInUse;
+    }
+
+    private bool HasLabelText => !string.IsNullOrWhiteSpace(LabelText);
+    private bool HasHelperText => !string.IsNullOrWhiteSpace(HelperText) || ChildContent != null;
+
+    private string LeftIconClassNames() => new ClassBuilder("absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none")
+        .AddIf("focus:text-typography-icon", !IsDisabled)
+        .AddIf("text-typography-disabled", IsDisabled)
+        .AddIf("mb-5", HasHelperText && !HasLabelText)
+        .AddIf("pt-2", !HasHelperText && !HasLabelText)
+        .AddIf("pt-7", !HasHelperText && HasLabelText)
+        .ToString();
+
+    private string RightIconClassNames() => new ClassBuilder("absolute end-1 rounded-lg px-4 py-2")
+        .AddIf("focus:text-typography-icon", !IsDisabled)
+        .AddIf("text-typography-disabled", IsDisabled)
+        .AddIf("hidden", !_isInUse || IsDisabled)
+        .AddIf("bottom-[31px]", HasLabelText && HasHelperText)
+        .AddIf("bottom-[31px]", !HasLabelText && HasHelperText)
+        .AddIf("bottom-[2px]", HasLabelText && !HasHelperText)
+        .AddIf("bottom-[2px]", !HasHelperText && !HasLabelText)
+        .ToString();
+
+    private string LabelClassNames() => new ClassBuilder("block mb-2 text-sm font-bold text-typography-headline").ToString();
+
+    private string InputClassNames() => new ClassBuilder("block w-full p-2 border rounded-lg")
+        .Add("focus:text-typography-headline hover:bg-neutral-background-faded focus:border-1")
+        .Add("focus:ring-0 focus:ring-offset-0 focus:outline-none")
+        .AddIf("ps-10", LeftIcon != null)
+        .Add("text-sm text-typography-body")
+        .AddIf("border-neutral-background-border-divider", !IsSuccess && !IsErrored)
+        .AddIf("border-feedback-success-background", IsSuccess)
+        .AddIf("border-feedback-error-background", IsErrored)
+        .AddIf("cursor-not-allowed", IsDisabled)
+        .ToString();
+
+    private string HelperTextClassNames() => new ClassBuilder("mt-2 text-sm")
+        .AddIf("text-typography-disabled", IsDisabled)
+        .AddIf("text-feedback-error-contrast", IsErrored)
+        .AddIf("text-feedback-success-contrast", IsSuccess)
+        .ToString();
+
+}
