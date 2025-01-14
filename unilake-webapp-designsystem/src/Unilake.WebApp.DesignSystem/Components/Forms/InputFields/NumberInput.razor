@@ -45,7 +45,9 @@
     private IIcon RightIcon => IsToggleDropdown ? EnronIcons.ChevronUp : EnronIcons.ChevronDown;
     private bool IsToggleDropdown { get; set; }
     protected override string ClassNames => ClassBuilder.Add("block p-2 ps-2 text-sm rounded-s-lg border-e-1 border").ToString();
-    private string DropdownCss() => new ClassBuilder("z-20 absolute top-12 right-0 bg-white divide-y divide-gray-100 rounded-lg shadow").AddIf("hidden", !IsToggleDropdown).ToString();
+    private string DropdownCss() => new ClassBuilder("z-20 absolute top-12 right-0 bg-white divide-y divide-gray-100 rounded-lg shadow")
+        .AddIf("hidden", !IsToggleDropdown)
+        .ToString();
 
     private async Task ToggleDropdown()
     {
