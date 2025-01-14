@@ -1,0 +1,143 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode implementation *@
+<div class="flex-col gap-2 inline-flex relative">
+    @if (!string.IsNullOrWhiteSpace(LabelText))
+    {
+        <div class="@LabelClass()">
+            @LabelText
+            @if (!string.IsNullOrWhiteSpace(TooltipText))
+            {
+                <Icon class="@LabelIconClass()" IconInstance="EnronIcons.SuccessBadge" Size="12"></Icon>
+            }
+        </div>
+    }
+    <div @onclick="ToggleDropdown" class="@ClassNames">
+        @if (LeftIcon != null)
+        {
+            <div class="mr-2 hover:text-typography-icon">
+                <Icon IconInstance="LeftIcon" Size="16"></Icon>
+            </div>
+        }
+        <div class="mr-2">@CurrentSelection.Label</div>
+        <div class="ml-auto hover:text-typography-icon">
+            <Icon IconInstance="GetRightIcon()" Size="16"></Icon>
+        </div>
+    </div>
+    @if (ChildContent != null)
+    {
+        <div class="@HelperClass()">
+            @ChildContent
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(HelperText))
+    {
+        <div class="@HelperClass()">
+            @HelperText
+        </div>
+    }
+    <div @onmouseleave="ToggleDropdown" class="@DropdownCss()">
+        <ul>
+            @foreach (var option in Options.Where(x => !x.IsPLaceholder))
+            {
+                <li>
+                    <button type="button"
+                            @onclick="@(async () => await ChangeSelection(option))"
+                            class="inline-flex items-center w-full px-4 py-2 text-typography-body hover:bg-neutral-background-faded">
+                        @if (option.LeftIcon != null)
+                        {
+                            <Icon class="mr-2 text-typography-icon" IconInstance="option.LeftIcon" Size="16"></Icon>
+                        }
+                        @option.Label
+                        <div class="ml-auto">
+                            @if (option.Value == CurrentSelection.Value)
+                            {
+                                <Icon class="text-feedback-info-text mr-2" Size="16"
+                                      IconInstance="EnronIcons.Check"></Icon>
+                            }
+                        </div>
+                    </button>
+                </li>
+            }
+        </ul>
+
+    </div>
+</div>
+
+@code {
+    private bool _showDropdown;
+    [Parameter][EditorRequired] public required SelectInputOption[] Options { get; set; }
+    [Parameter][EditorRequired] public required SelectInputOption CurrentSelection { get; set; }
+    [Parameter] public EventCallback<SelectInputOption> OnInput { get; set; }
+    [Parameter] public IIcon? LeftIcon { get; set; } = EnronIcons.SuccessBadge;
+    [Parameter] public IIcon? RightIcon { get; set; }
+    [Parameter] public string LabelText { get; set; } = string.Empty;
+    [Parameter] public string HelperText { get; set; } = string.Empty;
+    [Parameter] public string TooltipText { get; set; } = string.Empty;
+    [Parameter] public bool IsDisabled { get; set; }
+    [Parameter] public bool IsErrored { get; set; }
+    [Parameter] public bool IsSuccess { get; set; }
+    [Parameter] public string Width { get; set; } = "250";
+
+    private Task ToggleDropdown()
+    {
+        if (!IsDisabled)
+            _showDropdown = !_showDropdown;
+        return Task.CompletedTask;
+    }
+
+    private async Task ChangeSelection(SelectInputOption option)
+    {
+        if (!IsDisabled)
+        {
+            CurrentSelection = option;
+            await OnInput.InvokeAsync(option);
+        }
+    }
+
+    private IIcon GetRightIcon() => RightIcon ?? (_showDropdown ? EnronIcons.ChevronUp : EnronIcons.ChevronDown);
+
+    private string HelperClass() => new ClassBuilder("text-small")
+        .AddIf("text-typography-disabled", IsDisabled)
+        .AddIf("text-typography-body", !IsDisabled)
+        .ToString();
+
+    private string LabelClass() => new ClassBuilder("flex items-center font-medium")
+        .AddIf("text-typography-headline", !IsDisabled)
+        .AddIf("text-typography-disabled", IsDisabled)
+        .ToString();
+
+    private string LabelIconClass() => new ClassBuilder("ml-2")
+        .AddIf("text-typography-faded", !IsDisabled)
+        .AddIf("text-typography-disabled", IsDisabled)
+        .ToString();
+
+    private string DropdownCss() => new ClassBuilder()
+        .Add("z-20 absolute left-0 w-full shadow rounded-lg bg-neutral-background-default border border-neutral-background-border-divider")
+        .AddIf("top-20", !string.IsNullOrWhiteSpace(LabelText))
+        .AddIf("top-12", string.IsNullOrWhiteSpace(LabelText))
+        .AddIf("hidden", !_showDropdown)
+        .ToString();
+
+    private string DisabledClassNames() => new ClassBuilder("cursor-not-allowed bg-neutral-background-faded text-typography-disabled")
+        .ToString();
+
+    private string NotDisabledClassNames() => new ClassBuilder("cursor-pointer")
+        .AddIf("text-typography-faded", CurrentSelection.IsPLaceholder)
+        .AddIf("text-typography-headline", !CurrentSelection.IsPLaceholder)
+        .AddIf("border-neutral-background-invert", _showDropdown && !(IsSuccess || IsErrored))
+        .AddIf("border-neutral-background-border-divider", !_showDropdown && !(IsSuccess || IsErrored))
+        .AddIf("border-feedback-error-background", IsErrored)
+        .AddIf("border-feedback-success-background", IsSuccess)
+        .AddIf("bg-neutral-background-faded text-typography-headline", _showDropdown)
+        .AddIf("bg-neutral-background-default hover:bg-neutral-background-faded hover:text-typography-headline", !_showDropdown)
+        .ToString();
+
+    protected override string ClassNames => ClassBuilder.Add("flex items-center border rounded-lg pr-4 pl-4 py-2")
+        .Add($"w-[{Width}px]")
+        .AddIf(DisabledClassNames(), IsDisabled)
+        .AddIf(NotDisabledClassNames(), !IsDisabled)
+        .ToString();
+
+}

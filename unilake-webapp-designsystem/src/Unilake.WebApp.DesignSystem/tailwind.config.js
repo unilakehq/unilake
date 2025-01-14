@@ -21,6 +21,7 @@ module.exports = {
                     faded: '#EFEEEB',
                     disabled: '#DDDFDA',
                     'border-divider': '#DDDFDA',
+                    invert: '#252532',
                 },
 
                 0: '#F9F8F6',
