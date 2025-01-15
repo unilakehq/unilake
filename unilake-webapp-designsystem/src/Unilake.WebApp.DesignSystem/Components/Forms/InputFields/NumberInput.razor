@@ -3,18 +3,18 @@
 
 @* todo: dark mode implementation *@
 <div class="relative inline-flex text-default">
-    <div class="items-center inline-flex">
-        <TextInput IsDisabled="IsDisabled" ValueText="@Amount" InputType="number"
-                   class="@ClassNames"
-                   IsErrored="IsErrored"
-                   IsSuccess="IsSuccess"
-                   PlaceholderText="@PlaceholderText"></TextInput>
-        <Button IsDisabled="IsDisabled" RightIcon="RightIcon" Variant="ButtonVariant.Custom" Size="ButtonSize.Small"
-                class="flex gap-2 py-1.5 px-2 rounded-tr-lg border-l-0 rounded-br-lg items-center bg-neutral-background-faded border border-neutral-background-border-divider text-typography-headline"
-                OnClick="ToggleDropdown">@CurrentUnit</Button>
-    </div>
-    <div class="@DropdownCss()">
-        <ClickOutside OnClickOutside="ToggleDropdown">
+    <ClickOutside OnClickOutside="ToggleDropdown">
+        <div class="items-center inline-flex">
+            <TextInput IsDisabled="IsDisabled" ValueText="@Amount" InputType="number"
+                       class="@ClassNames"
+                       IsErrored="IsErrored"
+                       IsSuccess="IsSuccess"
+                       PlaceholderText="@PlaceholderText"></TextInput>
+            <Button IsDisabled="IsDisabled" RightIcon="RightIcon" Variant="ButtonVariant.Custom" Size="ButtonSize.Small"
+                    class="flex gap-2 py-1.5 px-2 rounded-tr-lg border-l-0 rounded-br-lg items-center bg-neutral-background-faded border border-neutral-background-border-divider text-typography-headline"
+                    OnClick="ToggleDropdown">@CurrentUnit</Button>
+        </div>
+        <div class="@DropdownCss()">
             <ul>
                 @foreach (var unit in Units)
                 {
@@ -31,8 +31,8 @@
                     </li>
                 }
             </ul>
-        </ClickOutside>
-    </div>
+        </div>
+    </ClickOutside>
 </div>
 
 @code {
