@@ -37,6 +37,8 @@
     [Parameter]
     public ConcurrenceStrategy Concurrence { get; set; } = ConcurrenceStrategy.One;
 
+    [Parameter] public bool IsEnabled { get; set; }
+
     public enum ConcurrenceStrategy
     {
         One = 1,
@@ -55,6 +57,7 @@
     [JSInvokable]
     public async Task InvokeClickOutside()
     {
+        if (!IsEnabled) return;
         await OnClickOutside.InvokeAsync();
     }
 

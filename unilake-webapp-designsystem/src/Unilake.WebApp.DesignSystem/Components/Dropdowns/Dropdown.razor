@@ -6,7 +6,7 @@
     @foreach (var item in Items)
     {
         <li>
-            <button @onclick="@(async () => await OnItemClick.InvokeAsync(item))" class="inline-flex items-center py-2 px-4 hover:bg-neutral-background-faded w-full">
+            <button @onclick="@(async () => await OnItemClick.InvokeAsync(item))" class="inline-flex items-center py-2 px-4 bg-neutral-background-default hover:bg-neutral-background-faded w-full">
                 <Icon class="mr-2 text-typography-faded" IconInstance="@item.LeftIcon" Size="16"></Icon>
                 @item.Label
             </button>

@@ -1,0 +1,36 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<ClickOutside OnClickOutside="Toggle" IsEnabled="_isDropdownVisible" Strategy="ClickOutside.RegisterStrategy.OnClick">
+    <div class="ml-28 relative flex-col inline-flex items-end">
+        <div class="">
+            <Button Variant="ButtonVariant.Bravo" @onclick="Toggle" RightIcon="GetRightIcon()">
+                Button Text
+            </Button>
+        </div>
+        <div class="@ClassNames absolute top-14 right-0 z-20 w-fit">
+            <Dropdown Items="Items" OnItemClick="OnItemClick"></Dropdown>
+        </div>
+    </div>
+</ClickOutside>
+
+@code {
+    private bool _isDropdownVisible;
+
+    [Parameter]
+    [EditorRequired]
+    public required DropdownItem[] Items { get; set; }
+    // [new("Create", EnronIcons.Copy), new("Schema", EnronIcons.Copy), new("Delete", EnronIcons.Copy), new("Fifth action", EnronIcons.Copy)];
+
+    [Parameter]
+    public EventCallback<DropdownItem> OnItemClick { get; set; }
+
+    private IIcon GetRightIcon() => _isDropdownVisible ? EnronIcons.ChevronUp : EnronIcons.ChevronDown;
+    private Task Toggle()
+    {
+        _isDropdownVisible = !_isDropdownVisible;
+        return Task.CompletedTask;
+    }
+    protected override string ClassNames => ClassBuilder.AddIf("hidden", !_isDropdownVisible).ToString();
+
+}

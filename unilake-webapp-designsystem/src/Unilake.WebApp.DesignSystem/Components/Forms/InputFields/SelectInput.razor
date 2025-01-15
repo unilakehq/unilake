@@ -13,7 +13,7 @@
             }
         </div>
     }
-    <ClickOutside OnClickOutside="ToggleDropdown">
+    <ClickOutside OnClickOutside="ToggleDropdown" IsEnabled="_showDropdown">
         <div @onclick="ToggleDropdown" class="@ClassNames">
             @if (LeftIcon != null)
             {
