@@ -29,7 +29,7 @@ window.unilake = {
                 var nowTime = (new Date()).getTime();
                 var diff = Math.abs((nowTime - currentTime) / 1000);
 
-                if (diff < 0.5)
+                if (diff < 0.1)
                     return;
 
                 currentTime = nowTime;
