@@ -1,5 +1,11 @@
 namespace Unilake.WebApp.DesignSystem.Components;
 
+public enum DropdownHorizontalAlign
+{
+    Left,
+    Right
+}
+
 public record DropdownItem(string Label, IIcon LeftIcon);
 
 public class DropdownFilterItem
