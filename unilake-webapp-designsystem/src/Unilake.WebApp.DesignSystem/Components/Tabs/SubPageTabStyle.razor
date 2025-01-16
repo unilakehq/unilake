@@ -1,0 +1,32 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div>
+    <button @onclick="@(() => Tab.SetActiveTab())"
+            class="@ClassNames">
+        @Tab.LabelText
+        @if (Tab.NotificationCount.HasValue)
+        {
+            <div class="ml-2 h-5 w-5 bg-neutral-background-faded rounded-[80px]">
+                <div class="text-typography-body text-xs font-normal mt-[2px]">
+                    @GetNotificationCount()
+                </div>
+            </div>
+        }
+    </button>
+</div>
+
+@code {
+    [CascadingParameter] protected Tabs? Parent { get; set; }
+    [Parameter] public required ITab Tab { get; set; }
+    [Parameter] public string TextColor { get; set; } = "text-typography-faded hover:text-brand-light-link";
+    private bool IsLastTab => Parent?.AttachedTabs.Last() == Tab;
+    private string GetNotificationCount() => (Tab.NotificationCount is < 100 ? Tab.NotificationCount.ToString() : "99+")!;
+
+    protected override string ClassNames => ClassBuilder
+        .Add(TextColor)
+        .Add("px-3 text-default font-medium border-neutral-background-border-divider inline-flex items-center")
+        .AddIf("border-r-2", !IsLastTab)
+        .ToString();
+
+}

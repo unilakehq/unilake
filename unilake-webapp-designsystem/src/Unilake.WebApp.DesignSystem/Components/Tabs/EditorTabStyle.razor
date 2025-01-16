@@ -1,0 +1,28 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="inline-flex gap-2 items-center ml-2 hover:text-brand-light-interaction-hover hover:border-b hover:border-b-brand-light-interaction-hover">
+    <div class="h-5 w-5 bg-neutral-background-faded rounded-[80px] text-typography-icon hover:text-brand-light-interaction-hover">
+        <Icon IconInstance="LeftIcon" Size="12" class="mt-1 ml-1"></Icon>
+    </div>
+    <div class="text-typography-faded hover:text-brand-light-interaction-hover">
+        @Tab.LabelText
+    </div>
+    <div class="text-typography-icon hover:text-brand-light-interaction-hover">
+        <Icon IconInstance="RightIcon" Size="12"></Icon>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] protected Tabs? Parent { get; set; }
+    [Parameter] public required ITab Tab { get; set; }
+
+    public IIcon LeftIcon { get; set; } = EnronIcons.Pages;
+    private IIcon RightIcon { get; set; } = EnronIcons.Cross;
+
+    private bool IsLastTab => Parent?.AttachedTabs.Last() == Tab;
+    protected override string ClassNames => ClassBuilder
+        // .Add("px-3 text-default border-neutral-background-border-divider text-typography-faded hover:text-brand-light-link")
+        // .AddIf("border-r-2", !IsLastTab)
+        .ToString();
+}

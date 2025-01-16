@@ -1,0 +1,13 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div>
+    <button @onclick="@(() => Tab.SetActiveTab())"
+        class="px-3 border-b-2 border-neutral-background-border-divider text-typography-body hover:text-brand-light-interaction hover:border-brand-light-interaction">
+        @Tab.LabelText
+    </button>
+</div>
+
+@code {
+    [Parameter] public required ITab Tab { get; set; }
+}

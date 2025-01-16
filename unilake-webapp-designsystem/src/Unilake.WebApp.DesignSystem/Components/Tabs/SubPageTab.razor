@@ -1,0 +1,12 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits BasePageTab
+
+@if(Parent?.ActiveTab != this)
+    return;
+
+<div class="@ClassNames">
+    @ChildContent
+</div>
+
+@code {
+}

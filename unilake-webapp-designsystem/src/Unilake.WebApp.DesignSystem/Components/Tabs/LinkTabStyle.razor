@@ -1,0 +1,19 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div>
+    <button @onclick="@(() => Tab.SetActiveTab())"
+        class="@ClassNames">
+        @Tab.LabelText
+    </button>
+</div>
+
+@code {
+    [CascadingParameter] protected Tabs? Parent { get; set; }
+    [Parameter] public required ITab Tab { get; set; }
+    private bool IsLastTab => Parent?.AttachedTabs.Last() == Tab;
+    protected override string ClassNames => ClassBuilder
+        .Add("px-3 text-default border-neutral-background-border-divider text-typography-faded hover:text-brand-light-link")
+        .AddIf("border-r-2", !IsLastTab)
+        .ToString();
+}

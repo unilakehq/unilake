@@ -1,0 +1,28 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+@implements ITab
+
+@code {
+    [CascadingParameter]
+	protected Tabs? Parent { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public required string LabelText { get; set; }
+
+    public void SetActiveTab()
+    {
+        if(Parent != null)
+          Parent.ActiveTab = this;
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+            throw new ArgumentNullException(nameof(Parent), "SubPageTab must exist within Tabs component");
+        Parent.AddTab(this);
+    }
+
+    public new string ClassNames => base.ClassNames;
+    public int? NotificationCount { get; } = 0;
+}

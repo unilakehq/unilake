@@ -1,0 +1,43 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode *@
+<div>
+    <button @onclick="@(() => Tab.SetActiveTab())"
+            @onmouseover="ToggleMouseOver"
+            @onmouseout="ToggleMouseOver"
+            class="@ClassNames text-typography-faded hover:text-neutral-0 rounded-lg hover:bg-brand-light-interaction">
+        @Tab.LabelText
+        @if (Tab.NotificationCount.HasValue)
+        {
+            <div class="@PillClassNames">
+                <div class="mt-[2px]">
+                    @GetNotificationCount()
+                </div>
+            </div>
+        }
+    </button>
+</div>
+
+@code {
+    [CascadingParameter] protected Tabs? Parent { get; set; }
+    [Parameter] public required ITab Tab { get; set; }
+    public bool MouseOver { get; set; }
+    private string GetNotificationCount() => (Tab.NotificationCount is < 100 ? Tab.NotificationCount.ToString() : "99+")!;
+
+    private Task ToggleMouseOver()
+    {
+        MouseOver = !MouseOver;
+        return Task.CompletedTask;
+    }
+
+    private string PillClassNames => new ClassBuilder("text-xs font-normal ml-2 h-5 w-5 rounded-[80px]")
+        .AddIf("bg-neutral-0 text-brand-light-interaction", MouseOver)
+        .AddIf("bg-brand-light-interaction text-neutral-0", !MouseOver)
+        .ToString();
+
+    protected override string ClassNames => ClassBuilder
+        .Add("px-3 text-default font-medium border-neutral-background-border-divider inline-flex items-center")
+        .ToString();
+
+}

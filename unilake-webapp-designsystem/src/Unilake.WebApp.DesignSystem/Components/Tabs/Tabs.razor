@@ -1,0 +1,44 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<CascadingValue Value="this">
+    <div class="flex-col">
+        <span class="">I am Tabs</span>
+        <div class="@ClassNames">
+            @foreach (ITab tab in AttachedTabs)
+            {
+                @if (TabStyle != null)
+                {
+                    @TabStyle(tab)
+                }
+                else
+                {
+                    <button type="button" class="mr-2" @onclick="@(() => tab.SetActiveTab())">
+                        @tab.LabelText
+                    </button>
+                }
+            }
+        </div>
+    </div>
+    <div class="">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+
+@code {
+    [Parameter] public ITab? ActiveTab { get; set; }
+    [Parameter] public List<ITab> AttachedTabs { get; set; } = new();
+    [Parameter] public RenderFragment<ITab>? TabStyle { get; set; }
+
+    public void AddTab(ITab tab)
+    {
+        AttachedTabs.Add(tab);
+        if (AttachedTabs.Count == 1)
+            ActiveTab = tab;
+        StateHasChanged();
+    }
+
+    protected override string ClassNames => ClassBuilder.Add("flex").ToString();
+
+}
