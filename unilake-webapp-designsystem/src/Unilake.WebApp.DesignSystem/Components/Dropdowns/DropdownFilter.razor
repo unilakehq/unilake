@@ -1,0 +1,146 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: add dark mode *@
+<div
+    class="@ClassNames p-3 rounded-lg shadow-md border flex-col inline-flex text-typography-headline border-neutral-background-border-divider bg-neutral-background-default text-default gap-3">
+    @if (!string.IsNullOrWhiteSpace(LabelText))
+    {
+        <div class="flex justify-between">
+            <span class="font-medium">@LabelText</span>
+            <a class="@ClearAllCss()" @onclick="ClearAll">Clear all</a>
+        </div>
+    }
+    @if (IsSearchEnabled)
+    {
+        <div>
+            <TextInput PlaceholderText="@SearchPlaceholder" LeftIcon="EnronIcons.Search" IsClearable="@true"
+                       OnInput="OnSearchInput" OnClick="OnSearchClear"></TextInput>
+        </div>
+    }
+    @if (FilteredItems().Any())
+    {
+        <div class="overflow-y-scroll">
+            <ul>
+                <VirtualizeOptional Items="FilteredItems()" Virtualize="IsVirtualized">
+                    <li class="inline-flex w-full pb-1 items-center">
+                        @if (context.IsCategory)
+                        {
+                            @if (!string.IsNullOrWhiteSpace(context.CategoryColor))
+                            {
+                                <div class="@context.CategoryColor mr-2 rounded-lg w-[2px] h-[12px]"></div>
+                            }
+                            else
+                            {
+                                <CheckboxTriState class="mr-2" IsToggledOn="@context.IsSelected"
+                                                  OnClick="@(() => InnerOnItemClick(context))"></CheckboxTriState>
+                            }
+
+                            <button class="inline-flex w-full items-center"
+                                    @onclick="@(() => ToggleCategory(context))">
+                                <div class="text-typography-body">@context.Label</div>
+                                <div class="ml-auto">
+                                    <Icon IconInstance="@(GetCategoryIcon(context.IsCategoryOpen))" Size="16"></Icon>
+                                </div>
+                            </button>
+                        }
+                        else
+                        {
+                            <CheckboxTriState class="mr-2 ml-3" IsToggledOn="@context.IsSelected"
+                                              OnClick="@(() => InnerOnItemClick(context))"></CheckboxTriState>
+                            <button @onclick="@(() => InnerOnItemClick(context))">@context.Label (@context.Count)
+                            </button>
+                        }
+                    </li>
+                </VirtualizeOptional>
+            </ul>
+        </div>
+    }
+    else
+    {
+        <span>No data available</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(ButtonText))
+    {
+        <div>
+            <Button class="w-full text-center" OnClick="ButtonClick" Variant="ButtonVariant" Size="ButtonSize.Small">
+                @ButtonText
+            </Button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] [EditorRequired] public required DropdownFilterItem[] Items { get; set; }
+
+    [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Filter;
+    [Parameter] public bool IsSearchEnabled { get; set; } = true;
+    [Parameter] public string ButtonText { get; set; } = string.Empty;
+    [Parameter] public string LabelText { get; set; } = string.Empty;
+    [Parameter] public bool IsVirtualized { get; set; } = true;
+    [Parameter] public string SearchText { get; set; } = string.Empty;
+    [Parameter] public string SearchPlaceholder { get; set; } = "Search";
+
+    [Parameter] public EventCallback<DropdownFilterItem> OnItemClick { get; set; }
+    [Parameter] public EventCallback ClearAllClicked { get; set; }
+    [Parameter] public EventCallback ButtonClicked { get; set; }
+    [Parameter] public int MaxItemSelection { get; set; } = int.MaxValue;
+
+    protected override string ClassNames => ClassBuilder.Add("rounded-lg shadow-md border flex-col inline-flex text-typography-body border-neutral-background-border-divider text-default").ToString();
+
+    private async Task InnerOnItemClick(DropdownFilterItem filterItem)
+    {
+        var items = FlattenItems(false, false);
+        if (items.Count(x => !x.IsCategory && x.IsSelected.GetValueOrDefault()) + 1 > MaxItemSelection)
+            items.FirstOrDefault(x => !x.IsCategory && x.IsSelected.GetValueOrDefault())!.ToggleSelection();
+        filterItem.ToggleSelection(MaxItemSelection);
+        await OnItemClick.InvokeAsync(filterItem);
+    }
+
+    private async Task ClearAll()
+    {
+        foreach (var item in Items)
+            item.Clear();
+        await ClearAllClicked.InvokeAsync();
+    }
+
+    private async Task ButtonClick(MouseEventArgs args)
+    {
+        await OnClick.InvokeAsync(args);
+        await ButtonClicked.InvokeAsync();
+    }
+
+    private Task ToggleCategory(DropdownFilterItem item)
+    {
+        item.IsCategoryOpen = !item.IsCategoryOpen;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSearchInput(ChangeEventArgs args)
+    {
+        SearchText = args.Value?.ToString() ?? String.Empty;
+        return Task.CompletedTask;
+    }
+
+    private IIcon GetCategoryIcon(bool isOpened) => isOpened ? EnronIcons.ChevronRight : EnronIcons.ChevronDown;
+
+    private Task OnSearchClear() =>
+        OnSearchInput(new()
+        {
+            Value = string.Empty
+        });
+
+    private bool SearchCompare(DropdownFilterItem item) => string.IsNullOrWhiteSpace(SearchText) ||
+                                                           item.Label.ToLowerInvariant().Contains(SearchText.ToLowerInvariant()) ||
+                                                           item.Siblings.Any(SearchCompare);
+
+    private DropdownFilterItem[] FilteredItems() => FlattenItems(string.IsNullOrWhiteSpace(SearchText))
+        .ToArray();
+
+    private DropdownFilterItem[] FlattenItems(bool onlyOpenCategories = true, bool includeSearch = true) => Items
+        .Where(x => !includeSearch || SearchCompare(x))
+        .SelectMany(x => new List<DropdownFilterItem> { x }.Concat(!x.IsCategoryOpen && onlyOpenCategories ? Array.Empty<DropdownFilterItem>() : x.Siblings.Where(s => !includeSearch || SearchCompare(s)))).ToArray();
+
+    private string ClearAllCss() => new ClassBuilder("text-brand-light-link hover:underline cursor-pointer").AddIf("hidden", FlattenItems(false).Count(x => x.IsSelected.GetValueOrDefault() && !x.IsCategory) < 2).ToString();
+
+}
