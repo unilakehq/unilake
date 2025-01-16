@@ -4,6 +4,7 @@ public enum ButtonVariant
 {
     Alpha,
     Bravo,
+    Filter,
+    FilterActive,
     Custom
-
 }
