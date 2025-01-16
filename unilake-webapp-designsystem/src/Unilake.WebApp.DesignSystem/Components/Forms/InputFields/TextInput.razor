@@ -95,7 +95,7 @@
         .AddIf("focus:text-typography-icon", !IsDisabled)
         .AddIf("text-typography-disabled", IsDisabled)
         .AddIf("mb-5", HasHelperText && !HasLabelText)
-        .AddIf("pt-2", !HasHelperText && !HasLabelText)
+        .AddIf("pt-0", !HasHelperText && !HasLabelText)
         .AddIf("pt-7", !HasHelperText && HasLabelText)
         .ToString();
 
