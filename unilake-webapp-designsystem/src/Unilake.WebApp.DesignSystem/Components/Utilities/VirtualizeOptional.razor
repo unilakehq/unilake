@@ -1,0 +1,27 @@
+@*
+    Original source: https://github.com/TabBlazor/TabBlazor/blob/master/src/TabBlazor/Components/Utilities/VirtualizeOptional.razor
+    MIT License
+    Copyright (c) 2020 Joakim Dangården
+*@
+@namespace Unilake.WebApp.DesignSystem.Components
+@typeparam TItem
+
+@if (Virtualize)
+{
+    <Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize
+    Items=Items.ToList() TItem=TItem ChildContent=ChildContent />
+}
+else
+{
+    @foreach (var item in Items)
+    {
+        @ChildContent(item)
+    }
+
+}
+
+@code {
+        [Parameter] public IEnumerable<TItem> Items { get; set; }
+        [Parameter] public RenderFragment<TItem> ChildContent { get; set; }
+        [Parameter] public bool Virtualize { get; set; }
+}
