@@ -13,7 +13,7 @@
     public void SetActiveTab()
     {
         if(Parent != null)
-          Parent.ActiveTab = this;
+            Parent.SetActiveTab(this);
     }
 
     protected override void OnInitialized()
@@ -24,5 +24,5 @@
     }
 
     public new string ClassNames => base.ClassNames;
-    public int? NotificationCount { get; } = 0;
+    public int? NotificationCount { get; } = null;
 }

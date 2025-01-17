@@ -12,7 +12,6 @@ public class LinkPageTab(Tabs parent, string labelText, int? notificationCount =
     public void SetActiveTab()
     {
         //todo: this should be a route/navigation
-        Parent.ActiveTab = this;
     }
 
     public string ClassNames => "";

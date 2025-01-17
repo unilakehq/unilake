@@ -1,14 +1,25 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-<div class="inline-flex gap-2 items-center ml-2 hover:text-brand-light-interaction-hover hover:border-b hover:border-b-brand-light-interaction-hover">
-    <div class="h-5 w-5 bg-neutral-background-faded rounded-[80px] text-typography-icon hover:text-brand-light-interaction-hover">
+<div @onmouseover="@(() => OnMouseOver(true))"
+     @onmouseout="@(() => OnMouseOver(false))"
+     class="inline-flex gap-2 items-center ml-2 cursor-pointer">
+    <div class="@LeftIconClassNames" @ondblclick="OnDoubleClick" @onclick="OnOpenClick">
         <Icon IconInstance="LeftIcon" Size="12" class="mt-1 ml-1"></Icon>
     </div>
-    <div class="text-typography-faded hover:text-brand-light-interaction-hover">
-        @Tab.LabelText
+    <div class="@TabNameClassNames" @ondblclick="OnDoubleClick" @onclick="OnOpenClick">
+        @if (_internalState == EditorTabState.NameChanging)
+        {
+            <input @ref="inputElement" style="all:unset;min-width:10px;max-width:200px" type="text" autofocus="@true" @bind-value="_newName" @bind-value:event="oninput" @onkeydown="OnNameKeyDown"/>
+        }
+        else
+        {
+            <p class="truncate max-w-[240px]">
+                @Tab.LabelText
+            </p>
+        }
     </div>
-    <div class="text-typography-icon hover:text-brand-light-interaction-hover">
+    <div class="@RightIconClassNames" @onclick="OnCloseClick">
         <Icon IconInstance="RightIcon" Size="12"></Icon>
     </div>
 </div>
@@ -16,13 +27,152 @@
 @code {
     [CascadingParameter] protected Tabs? Parent { get; set; }
     [Parameter] public required ITab Tab { get; set; }
-
-    public IIcon LeftIcon { get; set; } = EnronIcons.Pages;
+    [Parameter] public EventCallback<ITab> OnClose { get; set; }
+    [Parameter] public EventCallback<ITab> OnOpen { get; set; }
+    [Parameter] public EventCallback<(ITab, string)> OnNameChange { get; set; }
+    private ElementReference inputElement;
+    private IIcon LeftIcon => EnronIcons.Pages;
+    private EditorTabState _internalState = EditorTabState.Default;
+    private EditorTabState _externalState = EditorTabState.Default;
+    private bool _isDoubleClick = false;
     private IIcon RightIcon { get; set; } = EnronIcons.Cross;
+    private EditorTabState CurrentState
+    {
+        get => _externalState;
+        set
+        {
+            _internalState = value;
+            _externalState = value;
+        }
+    }
+    private string _newName = string.Empty;
 
-    private bool IsLastTab => Parent?.AttachedTabs.Last() == Tab;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            return;
+
+        if (_internalState == EditorTabState.NameChanging)
+            await inputElement.FocusAsync();
+    }
+
     protected override string ClassNames => ClassBuilder
-        // .Add("px-3 text-default border-neutral-background-border-divider text-typography-faded hover:text-brand-light-link")
-        // .AddIf("border-r-2", !IsLastTab)
+        .Add("")
         .ToString();
+
+    private string LeftIconClassNames => new ClassBuilder("h-5 w-5 rounded-[80px]")
+        .Add(IconTextColor)
+        .AddCompare("bg-neutral-background-faded", _internalState, EditorTabState.Default)
+        .AddCompare("bg-brand-light-menu-item-interaction", _internalState, EditorTabState.IsActive)
+        .AddCompare("bg-neutral-background-faded", _internalState, EditorTabState.NameChanging)
+        .AddCompare("bg-brand-light-menu-item-interaction", _internalState, EditorTabState.OnHover)
+        .AddCompare("bg-feedback-warning-background", _internalState, EditorTabState.Warning)
+        .AddCompare("bg-feedback-info-background", _internalState, EditorTabState.Processing)
+        .AddCompare("bg-feedback-success-background", _internalState, EditorTabState.Success)
+        .AddCompare("bg-feedback-error-background", _internalState, EditorTabState.Failed)
+        .ToString();
+
+    private string IconTextColor => _internalState switch
+    {
+        EditorTabState.Failed => "text-feedback-error-contrast",
+        EditorTabState.Success => "text-feedback-success-contrast",
+        EditorTabState.Processing => "text-feedback-info-contrast",
+        EditorTabState.Warning => "text-feedback-warning-contrast",
+        EditorTabState.OnHover => "text-brand-light-interaction-hover",
+        EditorTabState.NameChanging => "text-typography-icon",
+        EditorTabState.IsActive => "text-brand-light-interaction",
+        _ => "text-typography-icon"
+    };
+
+    private string TabNameClassNames => new ClassBuilder(TabNameTextColor).ToString();
+
+    private string TabNameTextColor => _internalState switch
+    {
+        EditorTabState.OnHover => "text-brand-light-interaction-hover",
+        EditorTabState.IsActive => "text-brand-light-interaction",
+        _ => "text-typography-faded"
+    };
+
+    private string RightIconClassNames => new ClassBuilder(IconTextColor).ToString();
+
+    private Task OnMouseOver(bool active)
+    {
+        if (_internalState == EditorTabState.NameChanging)
+            return Task.CompletedTask;
+        ChangeInternalState(active ? EditorTabState.OnHover : CurrentState);
+        return Task.CompletedTask;
+    }
+
+    private async Task OnOpenClick(MouseEventArgs args)
+    {
+        if (_internalState == EditorTabState.NameChanging)
+            return;
+
+        _isDoubleClick = false;
+        await Task.Delay(TimeSpan.FromMilliseconds(250));
+        if (_isDoubleClick)
+            return;
+
+        await OnOpen.InvokeAsync(Tab);
+    }
+
+    private async Task OnCloseClick(MouseEventArgs args)
+    {
+        if (_internalState == EditorTabState.NameChanging)
+        {
+            await CancelEditMode();
+            return;
+        }
+
+        await OnClose.InvokeAsync(Tab);
+    }
+
+    private Task OnDoubleClick(MouseEventArgs args)
+    {
+        _isDoubleClick = true;
+        if (CurrentState != EditorTabState.NameChanging)
+            _newName = Tab.LabelText;
+        ChangeInternalState(EditorTabState.NameChanging);
+        return Task.CompletedTask;
+    }
+
+    private async Task OnNameKeyDown(KeyboardEventArgs args)
+    {
+        switch (args.Code)
+        {
+            case "Enter":
+                ChangeInternalState(CurrentState);
+                await OnNameChange.InvokeAsync((Tab, _newName));
+                _newName = string.Empty;
+                return;
+            case "Escape":
+                await CancelEditMode();
+                break;
+        }
+    }
+
+    private Task CancelEditMode()
+    {
+        ChangeInternalState(CurrentState);
+        _newName = string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private void ChangeInternalState(EditorTabState state)
+    {
+        _internalState = state;
+    }
+
+    public enum EditorTabState
+    {
+        Default,
+        OnHover,
+        IsActive,
+        NameChanging,
+        Warning,
+        Processing,
+        Success,
+        Failed
+    }
+
 }

@@ -2,8 +2,7 @@
 @inherits UnilakeBaseComponent
 
 <CascadingValue Value="this">
-    <div class="flex-col">
-        <span class="">I am Tabs</span>
+    <div class="flex-row">
         <div class="@ClassNames">
             @foreach (ITab tab in AttachedTabs)
             {
@@ -13,15 +12,15 @@
                 }
                 else
                 {
-                    <button type="button" class="mr-2" @onclick="@(() => tab.SetActiveTab())">
+                    <button type="button" class="mr-2" @onclick="@(() => SetActiveTab(tab))">
                         @tab.LabelText
                     </button>
                 }
             }
         </div>
-    </div>
-    <div class="">
-        @ChildContent
+        <div>
+            @ChildContent
+        </div>
     </div>
 </CascadingValue>
 
@@ -36,6 +35,12 @@
         AttachedTabs.Add(tab);
         if (AttachedTabs.Count == 1)
             ActiveTab = tab;
+        StateHasChanged();
+    }
+
+    public void SetActiveTab(ITab tab)
+    {
+        ActiveTab = tab;
         StateHasChanged();
     }
 
