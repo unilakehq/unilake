@@ -1,0 +1,57 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode *@
+<div class="group relative inline-block">
+    @ChildContent
+    <div
+        class="@ClassNames">
+        @if (IsPointerEnabled)
+        {
+        <span class="@SpanClassNames"></span>
+        }
+        @if (TooltipTemplate != null)
+        {
+            @TooltipTemplate
+        }
+        else
+        {
+            @Text
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? TooltipTemplate { get; set; }
+    [Parameter] public string Text { get; set; } = String.Empty;
+    [Parameter] public TooltipPlacement Placement { get; set; } = TooltipPlacement.Top;
+    [Parameter] public bool IsDebug { get; set; } = true;
+    [Parameter] public bool WhitespaceNoWrap { get; set; } = false;
+    [Parameter] public bool IsPointerEnabled { get; set; } = true;
+
+    protected override string ClassNames => ClassBuilder
+        .Add("bg-neutral-background-default shadow absolute z-10 rounded-[5px] py-1.5 px-3.5 opacity-0 group-hover:opacity-100 text-typography-headline")
+        .AddIf("whitespace-nowrap", WhitespaceNoWrap)
+        .AddCompare("bottom-full left-1/2 mb-2 -translate-x-1/2", Placement, TooltipPlacement.Top)
+        .AddCompare("top-full left-1/2 mt-2 -translate-x-1/2", Placement, TooltipPlacement.Bottom)
+        .AddCompare("right-full top-1/2 mr-2 -translate-y-1/2", Placement, TooltipPlacement.Left)
+        .AddCompare("left-full top-1/2 ml-2 -translate-y-1/2", Placement, TooltipPlacement.Right)
+        .ToString();
+
+    private string SpanClassNames => new ClassBuilder()
+        .Add("bg-neutral-background-default absolute -z-10 h-2 w-2")
+        .AddCompare("bottom-[-4px] left-1/2 -translate-x-1/2 rotate-45", Placement, TooltipPlacement.Top)
+        .AddCompare("top-[-4px] right-1/2 -translate-x-1/2 rotate-45", Placement, TooltipPlacement.Bottom)
+        .AddCompare("right-[-4px] top-1/2 -translate-y-1/2 rotate-45", Placement, TooltipPlacement.Left)
+        .AddCompare("left-[-4px] bottom-1/2 -translate-y-1/2 rotate-45", Placement, TooltipPlacement.Right)
+        .ToString();
+
+    public enum TooltipPlacement
+    {
+        Top,
+        Bottom,
+        Left,
+        Right
+    }
+
+}
