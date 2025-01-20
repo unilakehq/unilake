@@ -1,0 +1,71 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="@ClassNames">
+  <div class="flex items-center">
+    <Icon IconInstance="LeftIcon" Size="16" class="mr-2"></Icon>
+    <h3 class="text-large font-medium">@TitleText</h3>
+    <Button IsIcon="@true" LeftIcon="EnronIcons.Cross" Variant="ButtonVariant.Custom" class="ml-auto"
+            OnClick="OnCloseClick"></Button>
+  </div>
+  <div class="mt-2 mb-4 text-sm">
+    @if (ChildContent != null)
+    {
+      @ChildContent
+    }
+    else
+    {
+      @ContentText
+    }
+  </div>
+  @if (!string.IsNullOrEmpty(ButtonText))
+  {
+    <div class="flex">
+      <Button OnClick="OnClick"
+              class="@ButtonClassNames" Variant="ButtonVariant.Custom">
+        <Icon IconInstance="ButtonIcon" class="mr-2" Size="12"></Icon>
+        @ButtonText
+      </Button>
+    </div>
+  }
+</div>
+
+@code {
+  [Parameter] public EventCallback<MouseEventArgs> OnCloseClick { get; set; }
+  [Parameter] public IIcon LeftIcon { get; set; } = EnronIcons.SuccessBadge;
+  [Parameter] [EditorRequired] public required string TitleText { get; set; }
+  [Parameter] public string ContentText { get; set; } = string.Empty;
+  [Parameter] public string ButtonText { get; set; } = string.Empty;
+  [Parameter] public IIcon ButtonIcon { get; set; } = EnronIcons.Eye;
+  [Parameter] public AlertType InstanceType { get; set; } = AlertType.Default;
+
+  protected override string ClassNames => ClassBuilder
+    .Add("p-4 mb-4 rounded-md border border-neutral-background-default")
+    .AddCompare("bg-feedback-success-0 text-feedback-success-text", InstanceType, AlertType.Success)
+    .AddCompare("text-feedback-info-text bg-brand-bravo-0", InstanceType, AlertType.Info)
+    .AddCompare("text-brand-light-interaction bg-brand-alpha-0", InstanceType, AlertType.Brand)
+    .AddCompare("bg-feedback-warning-0 text-feedback-warning-text", InstanceType, AlertType.Warning)
+    .AddCompare("bg-neutral-background-default text-typography-headline", InstanceType, AlertType.Default)
+    .AddCompare("bg-brand-alpha-0 text-feedback-error-text", InstanceType, AlertType.Error)
+    .ToString();
+
+  private string ButtonClassNames => new ClassBuilder("text-white px-3 py-2 font-medium rounded-lg text-xs me-2 text-center inline-flex items-center")
+    .AddCompare("bg-feedback-success-background text-neutral-background-default", InstanceType, AlertType.Success)
+    .AddCompare("bg-feedback-info-background text-neutral-background-default", InstanceType, AlertType.Info)
+    .AddCompare("bg-brand-light-interaction text-neutral-background-default", InstanceType, AlertType.Brand)
+    .AddCompare("text-neutral-background-default bg-feedback-warning-text", InstanceType, AlertType.Warning)
+    .AddCompare("bg-typography-headline text-neutral-background-default", InstanceType, AlertType.Default)
+    .AddCompare("bg-feedback-error-text text-neutral-background-default", InstanceType, AlertType.Error)
+    .ToString();
+
+  public enum AlertType
+  {
+    Success,
+    Info,
+    Brand,
+    Warning,
+    Default,
+    Error
+  }
+
+}
