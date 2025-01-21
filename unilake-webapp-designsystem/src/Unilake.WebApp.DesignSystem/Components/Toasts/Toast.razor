@@ -1,0 +1,112 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Unilake.WebApp.DesignSystem.Components.Toasts
+@using Unilake.WebApp.DesignSystem.Services
+@implements IDisposable
+
+@* todo: dark mode *@
+<div class="@HeaderClassName w-[320px]">
+    <div class="@ClassNames">
+        @if (HasLeftIcon)
+        {
+            <div class="@LeftIconClassNames">
+                <Icon IconInstance="@ToastModel.LeftIcon" Size="20" class=""></Icon>
+            </div>
+        }
+        <div class="@ToastModelTextClassNames">@ToastModel.Message</div>
+        @if (HasCloseIcon)
+        {
+            <Button OnClick="OnClick" Variant="ButtonVariant.Custom" class="ml-auto text-typography-icon">
+                <Icon IconInstance="EnronIcons.Cross" Size="16"></Icon>
+            </Button>
+        }
+    </div>
+    @if (ToastModel.Contents != null)
+    {
+        <div class="@ChildContentClassNames">
+            @ToastModel.Contents
+        </div>
+    }
+</div>
+
+
+@code {
+    [Inject] public required ToastService ToastService { get; set; }
+    [Parameter] public required ToastModel ToastModel { get; set; }
+
+    private CountdownTimer? _countdownTimer;
+    private int _progress = 100;
+
+    private string SimpleClassNames => new ClassBuilder("font-normal border-neutral-background-border-divider").ToString();
+    private string DefaultClassNames => new ClassBuilder("font-normal w-full").ToString();
+    private string NotificationClassNames => new ClassBuilder("font-medium").ToString();
+    private string InteractiveClassNames => new ClassBuilder("font-medium").ToString();
+
+    private bool HasLeftIcon => new[] { ToastVariant.Default, ToastVariant.Simple, ToastVariant.Interactive }.Contains(ToastModel.Variant);
+    private bool HasCloseIcon => new[] { ToastVariant.Default, ToastVariant.Notification, ToastVariant.Interactive }.Contains(ToastModel.Variant);
+    private bool HeaderOnly => new[] { ToastVariant.Notification, ToastVariant.Interactive }.Contains(ToastModel.Variant);
+
+    protected override void OnInitialized()
+    {
+        if (!ToastModel.Options.AutoClose) return;
+        _countdownTimer = new CountdownTimer(ToastModel.Options.Delay * 1000);
+        _countdownTimer.OnTick += CalculateProgress;
+        _countdownTimer.Start();
+    }
+
+    private async void CalculateProgress(int percentComplete)
+    {
+        _progress = 100 - percentComplete;
+        if (percentComplete >= 100)
+            await Close();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Close()
+    {
+        await ToastService.RemoveToastAsync(ToastModel);
+    }
+
+    private void OnClick() => CalculateProgress(100);
+
+    private string ToastModelTextClassNames => new ClassBuilder("text-default")
+        .AddIf("mr-2", HasCloseIcon)
+        .ToString();
+
+    private string ChildContentClassNames => new ClassBuilder("mt-4")
+        .AddIf("ml-12", ToastModel.Variant == ToastVariant.Interactive)
+        .ToString();
+
+    private string LeftIconClassNames => new ClassBuilder("p-2 mr-4")
+        .AddIf(ToastModel.LeftIconTextColor, !string.IsNullOrWhiteSpace(ToastModel.LeftIconTextColor))
+        .AddIf("rounded-lg", !string.IsNullOrWhiteSpace(ToastModel.LeftIconBgColor))
+        .AddIf(ToastModel.LeftIconBgColor, !string.IsNullOrWhiteSpace(ToastModel.LeftIconBgColor))
+        .AddIf("p-2 text-blue-600 rounded-lg", new[] { ToastVariant.Default, ToastVariant.Simple, ToastVariant.Interactive }.Contains(ToastModel.Variant))
+        .ToString();
+
+    private string ClassNames => new ClassBuilder(ToastModel.Css)
+        .Add("flex items-center")
+        .AddCompare(SimpleClassNames, ToastModel.Variant, ToastVariant.Simple)
+        .AddCompare(DefaultClassNames, ToastModel.Variant, ToastVariant.Default)
+        .AddCompare(NotificationClassNames, ToastModel.Variant, ToastVariant.Notification)
+        .AddCompare(InteractiveClassNames, ToastModel.Variant, ToastVariant.Interactive)
+        .ToString();
+
+    private string HeaderClassName => new ClassBuilder("flex w-full p-4 rounded-lg shadow max-w-xs")
+        .AddIf("flex-col", HeaderOnly)
+        .AddIf("items-center", !HeaderOnly)
+        .ToString();
+
+    public enum ToastVariant
+    {
+        Simple,
+        Default,
+        Notification,
+        Interactive
+    }
+
+    public void Dispose()
+    {
+        _countdownTimer?.Dispose();
+        _countdownTimer = null;
+    }
+}

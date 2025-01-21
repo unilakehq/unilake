@@ -7,6 +7,29 @@ window.unilake = {
         return navigator.clipboard.readText();
     },
 
+    setPropByElement: (element, property, value) => {
+        element[property] = value;
+        return "";
+    },
+
+    disableDraggable: (container, element) => {
+        element.addEventListener("mousedown",
+            (e) => {
+                e.stopPropagation();
+                container['draggable'] = false;
+            });
+
+        element.addEventListener("mouseup",
+            (e) => {
+                container['draggable'] = true;
+            });
+
+        element.addEventListener("mouseleave",
+            (e) => {
+                container['draggable'] = true;
+            });
+    },
+
     clickOutsideHandler: {
         removeEvent: (elementId) => {
             if (elementId === undefined || window.clickHandlers === undefined) return;

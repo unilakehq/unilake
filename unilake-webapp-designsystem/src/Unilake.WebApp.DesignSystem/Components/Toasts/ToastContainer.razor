@@ -1,0 +1,77 @@
+@*
+    Original source: https://github.com/TabBlazor/TabBlazor/blob/master/src/TabBlazor/Components/Toasts/ToastView.razor
+    MIT License
+    Copyright (c) 2020 Joakim Dangården
+*@
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Unilake.WebApp.DesignSystem.Services
+@implements IDisposable
+
+@{
+    var topEndToasts = ToastService.Toasts.Where(e => e.Options.Position == ToastPosition.TopEnd).ToList();
+    var topStartToasts = ToastService.Toasts.Where(e => e.Options.Position == ToastPosition.TopStart).ToList();
+    var bottomEndToasts = ToastService.Toasts.Where(e => e.Options.Position == ToastPosition.BottomEnd).ToList();
+    var bottomStartToasts = ToastService.Toasts.Where(e => e.Options.Position == ToastPosition.BottomStart).ToList();
+
+    if (topEndToasts.Any())
+    {
+        <div class="@ClassNames mt-1 end-0" style="z-index: 999999;">
+            @foreach (var toast in topEndToasts)
+            {
+                <Toast ToastModel="toast" @key="toast" />
+            }
+        </div>
+    }
+
+    if (topStartToasts.Any())
+    {
+        <div class="@ClassNames mt-1" style="z-index: 999999;">
+            @foreach (var toast in topStartToasts)
+            {
+                <Toast ToastModel="toast" @key="toast" />
+            }
+        </div>
+    }
+
+     if (bottomEndToasts.Any())
+    {
+        <div class="@ClassNames mb-1 bottom-0 end-0" style="z-index: 999999;">
+            @foreach (var toast in bottomEndToasts)
+            {
+                <Toast ToastModel="toast" @key="toast" />
+            }
+        </div>
+    }
+
+      if (bottomStartToasts.Any())
+    {
+        <div class="@ClassNames mb-1 bottom-0" style="z-index: 999999;">
+            @foreach (var toast in bottomStartToasts)
+            {
+                <Toast ToastModel="toast" @key="toast" />
+            }
+        </div>
+    }
+
+}
+
+@code {
+    [Inject] public required ToastService ToastService { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnChanged += OnToastChanged;
+    }
+
+    private async Task OnToastChanged()
+    {
+        await InvokeAsync(() => { StateHasChanged(); });
+    }
+
+    private string ClassNames => "fixed w-max max-w-full";
+
+    public void Dispose()
+    {
+        ToastService.OnChanged -= OnToastChanged;
+    }
+}
