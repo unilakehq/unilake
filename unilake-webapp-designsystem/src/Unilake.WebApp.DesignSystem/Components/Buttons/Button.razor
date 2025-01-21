@@ -68,7 +68,7 @@
     {
         ButtonSize.Default => 16,
         ButtonSize.Large => 20,
-        _=> 12
+        _ => 12
     };
 
     private string SizeClass() => new ClassBuilder()
@@ -109,4 +109,5 @@
         .AddIf("rounded-full", IsIcon)
         .AddIf("rounded-lg", !IsIcon && Variant != ButtonVariant.Custom)
         .ToString();
+
 }
