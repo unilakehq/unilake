@@ -1,6 +1,8 @@
 namespace Unilake.WebApp.DesignSystem.Components;
 
-public class AvatarSize
+public enum AvatarSize
 {
-    
+    Small,
+    Medium,
+    Large
 }

@@ -1,5 +1,29 @@
-<h3>AvatarList</h3>
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="flex -space-x-4 rtl:space-x-reverse">
+    @foreach (var item in Images.Take(3))
+    {
+        <Avatar ImageUrl="@item" Size="@Size" class="border-2 border-white dark:border-gray-800"></Avatar>
+    }
+    @if (Images.Count > 3)
+    {
+        <span class="@ClassNames">+@(Images.Count-3)</span>
+    }
+</div>
 
 @code {
-    
+    [Parameter]
+    [EditorRequired]
+    public required List<string> Images { get; init; }
+    [Parameter]
+    public required AvatarSize Size { get; init; } = AvatarSize.Medium;
+
+    protected override string ClassNames => ClassBuilder
+        .Add("flex items-center justify-center text-xs font-medium text-white bg-gray-700 border-2 border-white rounded-full hover:bg-gray-600 dark:border-gray-800")
+        .AddCompare("w-[23px] h-[23px]", Size, AvatarSize.Small)
+        .AddCompare("w-[32px] h-[32px]", Size, AvatarSize.Medium)
+        .AddCompare("w-[41px] h-[41px]", Size, AvatarSize.Large)
+        .ToString();
+
 }
