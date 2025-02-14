@@ -8,5 +8,6 @@ public static class UnilakeExtensions
     public static IServiceCollection AddUnilakeDesignSystem(this IServiceCollection services) =>
         services.AddScoped<UnilakeService>()
             .AddScoped<ToastService>()
+            .AddScoped<IOffcanvasService, OffcanvasService>()
             .AddScoped<IModalService, ModalService>();
 }

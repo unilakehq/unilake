@@ -29,7 +29,6 @@ public class ClassBuilder
     }
 
     public ClassBuilder AddIf(string className, bool isOk) => isOk ? Add(className) : this;
-    public ClassBuilder AddIf(string className, Func<bool> condition) => AddIf(className, condition());
     public ClassBuilder AddIfElse(string className, bool isOk, string falseClassName) => isOk ? Add(className) : Add(falseClassName);
 
     public ClassBuilder AddCompare<T>(T compare, Dictionary<T, string> with) where T : notnull
