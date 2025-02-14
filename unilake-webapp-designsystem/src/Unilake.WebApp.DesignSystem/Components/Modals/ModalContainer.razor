@@ -1,0 +1,26 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Unilake.WebApp.DesignSystem.Services
+@implements IDisposable
+
+@foreach (var modalModel in ModalService.Modals.Reverse())
+{
+    <ModalView @key="modalModel" Options=@modalModel.Options Title="@modalModel.Title"
+               OnClosed="@(() => ModalClosed())">
+        @modalModel.ModalContents
+    </ModalView>
+}
+
+@code {
+    [Inject] public required IModalService ModalService { get; init; }
+
+    protected override void OnInitialized()
+    {
+        ModalService.OnChanged += StateHasChanged;
+    }
+    public void Dispose()
+    {
+        ModalService.OnChanged -= StateHasChanged;
+    }
+    public void ModalClosed() =>
+        ModalService.Close();
+}

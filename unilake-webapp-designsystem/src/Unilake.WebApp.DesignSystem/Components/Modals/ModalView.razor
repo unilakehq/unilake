@@ -1,0 +1,80 @@
+@* Original source: https://github.com/TabBlazor/TabBlazor/blob/master/src/TabBlazor/Components/Modals/ModalView.razor *@
+@* MIT License *@
+@* Copyright (c) 2020 Joakim Dangården *@
+
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Unilake.WebApp.DesignSystem.Services
+@implements IDisposable
+
+@* todo: dark mode *@
+@if (Options.Backdrop)
+{
+    <div class="backdrop-blur-sm fixed top-0 left-0 w-full h-full z-10 top"></div>
+}
+<div class="fixed flex mx-auto inset-0 items-center w-full place-content-center" @ref="_blurContainer"
+     @onkeydown="OnKeyDown" @onclick="OnClickOutside"
+     tabindex="-1" style="display: block; z-index: @_modalViewSettings!.ZIndex" aria-hidden="true">
+    <div style=@(GetModalStyle()) @onclick:stopPropagation>
+        <div class="max-h-full" @onclick:stopPropagation @onkeydown:stopPropagation>
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject] private IModalService ModalService { get; init; }
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public ModalOptions Options { get; set; } = new();
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    private ElementReference _blurContainer;
+    private bool _isInitialized;
+    private ModalViewSettings? _modalViewSettings;
+
+    protected override void OnInitialized()
+    {
+        _modalViewSettings = ModalService.RegisterModalView(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (_isInitialized)
+            return;
+
+        await _blurContainer.FocusAsync();
+        _isInitialized = true;
+    }
+
+    public void Close() =>
+        OnClosed.InvokeAsync();
+
+    private string GetModalStyle() => $"top: {_modalViewSettings!.TopOffset}px";
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && Options.CloseOnEsc)
+            Close();
+    }
+
+    private void OnClickOutside(MouseEventArgs e)
+    {
+        if (Options.CloseOnClickOutside)
+            Close();
+    }
+
+    private string GetModalWrapperClasses() => new ClassBuilder()
+        .AddIf(Options.ModalCssClass, !string.IsNullOrWhiteSpace(Options.ModalCssClass))
+        .ToString();
+
+    private string GetModalBodyCss() => new ClassBuilder()
+        .Add("modal-body")
+        .AddIf(Options.ModalBodyCssClass, !string.IsNullOrWhiteSpace(Options.ModalBodyCssClass))
+        .ToString();
+
+    public void Dispose() =>
+        ModalService.UnRegisterModalView(this);
+
+}
