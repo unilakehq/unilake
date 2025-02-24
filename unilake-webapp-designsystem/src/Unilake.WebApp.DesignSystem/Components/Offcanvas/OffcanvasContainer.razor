@@ -1,7 +1,6 @@
 @using Unilake.WebApp.DesignSystem.Services
 @namespace Unilake.WebApp.DesignSystem.Components
 
-@* header has optional icon, title, some subtext and a close icon with action *@
 @foreach (var offcanvasModel in OffcanvasService.Models.Reverse())
 {
     <ClickOutside OnClickOutside="@() => OnClickOutside(offcanvasModel)" Strategy="ClickOutside.RegisterStrategy.OnRender">
