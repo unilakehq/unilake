@@ -1,0 +1,66 @@
+@using Unilake.WebApp.DesignSystem.Services
+@namespace Unilake.WebApp.DesignSystem.Components
+
+@* header has optional icon, title, some subtext and a close icon with action *@
+@foreach (var offcanvasModel in OffcanvasService.Models.Reverse())
+{
+    <ClickOutside OnClickOutside="@() => OnClickOutside(offcanvasModel)" Strategy="ClickOutside.RegisterStrategy.OnRender">
+        <div class="@GetClasses(offcanvasModel) rounded-tl-lg rounded-bl-lg h-full" @onkeydown="@(ev => OnKeyDown(ev, offcanvasModel))" tabindex="-1" id="offcanvasStart" aria-labelledby="offcanvasStartLabel" aria-modal="true" role="dialog">
+            <div class="text-typography-headline mb-6" @onclick:stopPropagation>
+                <div class="flex justify-between text-large">
+                    @if (offcanvasModel.Options.TitleIcon != null)
+                    {
+                        <Icon IconInstance="offcanvasModel.Options.TitleIcon" class="text-typography-icon mr-2"></Icon>
+                    }
+                    <span>New Access Policy</span>
+                    <Icon IconInstance="EnronIcons.Cross" Size="24" OnClick="() => OffcanvasService?.Close()"></Icon>
+                </div>
+                <span>Some additional information about step goes here</span>
+            </div>
+            <div class="">
+                @offcanvasModel.Contents
+            </div>
+        </div>
+    </ClickOutside>
+
+    @if (offcanvasModel.Options.Backdrop)
+    {
+        <div class="fixed top-0 left-0 z-10 w-dvw h-dvh bg-neutral-600 opacity-30"></div>
+    }
+}
+
+@code {
+    [Inject] private IOffcanvasService? OffcanvasService { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (OffcanvasService == null)
+            throw new Exception("OffcanvasService is unitialized");
+
+        OffcanvasService.OnChanged += StateHasChangedInternal;
+        base.OnInitialized();
+    }
+
+    private void OnClickOutside(OffcanvasModel model)
+    {
+        if (model.Options.CloseOnClickOutside)
+            OffcanvasService?.Close();
+    }
+
+    protected void OnKeyDown(KeyboardEventArgs e, OffcanvasModel offcanvasModel)
+    {
+        if (e.Key == "Escape" && offcanvasModel.Options.CloseOnEsc)
+            OffcanvasService?.Close();
+    }
+
+    private void StateHasChangedInternal() =>
+        StateHasChanged();
+
+    private string GetClasses(OffcanvasModel offcanvasModel) => new ClassBuilder("bg-neutral-background-default p-6 fixed z-20 max-w-full")
+        .AddCompare("bottom-0", offcanvasModel.Options.Position, OffcanvasPosition.Bottom)
+        .AddCompare("top-0 right-0", offcanvasModel.Options.Position, OffcanvasPosition.End)
+        .AddCompare("top-0 left-0", offcanvasModel.Options.Position, OffcanvasPosition.Start)
+        .AddCompare("top-0", offcanvasModel.Options.Position, OffcanvasPosition.Top)
+        .ToString();
+
+}

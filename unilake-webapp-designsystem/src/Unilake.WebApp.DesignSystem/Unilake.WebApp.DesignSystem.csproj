@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <Folder Include="Components\Accordions\" />
-    <Folder Include="Components\Offcanvas\" />
     <Folder Include="wwwroot\fonts\" />
   </ItemGroup>
 
