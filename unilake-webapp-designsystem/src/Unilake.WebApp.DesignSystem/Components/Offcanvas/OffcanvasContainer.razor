@@ -12,12 +12,15 @@
                     {
                         <Icon IconInstance="offcanvasModel.Options.TitleIcon" class="text-typography-icon mr-2"></Icon>
                     }
-                    <span>New Access Policy</span>
+                    <span>@offcanvasModel.Title</span>
                     <Icon IconInstance="EnronIcons.Cross" Size="24" OnClick="() => OffcanvasService?.Close()"></Icon>
                 </div>
-                <span>Some additional information about step goes here</span>
+                @if (!string.IsNullOrWhiteSpace(offcanvasModel.SubText))
+                {
+                    <span>@offcanvasModel.SubText</span>
+                }
             </div>
-            <div class="">
+            <div>
                 @offcanvasModel.Contents
             </div>
         </div>

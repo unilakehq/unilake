@@ -9,4 +9,5 @@ public class OffcanvasModel
     public string Title { get; set; } = string.Empty;
     public RenderFragment? Contents { get; set; }
     public OffcanvasOptions Options { get; set; } = new();
+    public string SubText { get; set; } = string.Empty;
 }
