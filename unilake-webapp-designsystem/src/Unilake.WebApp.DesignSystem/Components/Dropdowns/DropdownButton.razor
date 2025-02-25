@@ -2,11 +2,19 @@
 @inherits UnilakeBaseComponent
 
 <ClickOutside OnClickOutside="Toggle" IsEnabled="_isDropdownVisible" Strategy="ClickOutside.RegisterStrategy.OnClick">
-    <div class="relative flex-col inline-flex items-end">
-        <div class="">
-            <Button Variant="ButtonVariant.Bravo" @onclick="Toggle" RightIcon="GetRightIcon()">
-                @ButtonText
-            </Button>
+    @* flex-col inline-flex items-end *@
+    <div class="relative">
+        <div>
+            @if (CustomButton != null)
+            {
+                @CustomButton
+            }
+            else
+            {
+                <Button Variant="ButtonVariant.Bravo" @onclick="Toggle" RightIcon="GetRightIcon()">
+                    @ButtonText
+                </Button>
+            }
         </div>
         <div class="@ClassNames">
             @ChildContent
@@ -15,19 +23,21 @@
 </ClickOutside>
 
 @code {
-    [Parameter]
-    public string ButtonText { get; set; } = "Button Text";
+    [Parameter] public string ButtonText { get; set; } = "Button Text";
 
-    [Parameter]
-    public DropdownHorizontalAlign Align { get; set; } = DropdownHorizontalAlign.Right;
+    [Parameter] public RenderFragment? CustomButton { get; set; }
+
+    [Parameter] public DropdownHorizontalAlign Align { get; set; } = DropdownHorizontalAlign.Right;
 
     private bool _isDropdownVisible;
     private IIcon GetRightIcon() => _isDropdownVisible ? EnronIcons.ChevronUp : EnronIcons.ChevronDown;
-    private Task Toggle()
+
+    public Task Toggle()
     {
         _isDropdownVisible = !_isDropdownVisible;
         return Task.CompletedTask;
     }
+
     protected override string ClassNames => ClassBuilder
         .Add("absolute top-14 z-20 w-fit")
         .AddCompare("right-0", Align, DropdownHorizontalAlign.Left)

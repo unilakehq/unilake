@@ -83,7 +83,7 @@
         : string.Empty;
 
     protected override string ClassNames => ClassBuilder
-        .AddIf("font-semibold leading-normal me-2 mb-2 overflow-hidden items-center justify-start inline-flex gap-2 justify-center flex", Variant != ButtonVariant.Custom)
+        .AddIf("font-semibold leading-normal me-2 overflow-hidden items-center justify-start inline-flex gap-2 justify-center flex", Variant != ButtonVariant.Custom)
         .AddCompare("text-neutral-0 bg-brand-alpha-300 " +
                     "hover:bg-brand-light-interaction-hover " +
                     "focus:bg-brand-light-interaction-hover ring-brand-light-interaction-focus/25 focus:ring-4 focus:outline-none " +
