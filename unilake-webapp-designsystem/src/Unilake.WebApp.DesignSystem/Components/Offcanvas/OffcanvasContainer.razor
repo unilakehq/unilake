@@ -3,7 +3,7 @@
 
 @foreach (var offcanvasModel in OffcanvasService.Models.Reverse())
 {
-    <ClickOutside OnClickOutside="@() => OnClickOutside(offcanvasModel)" Strategy="ClickOutside.RegisterStrategy.OnRender">
+    <ClickOutside OnClickOutside="() => OnClickOutside(offcanvasModel)" Strategy="ClickOutside.RegisterStrategy.OnRender">
         <div class="@GetClasses(offcanvasModel)" @onkeydown="@(ev => OnKeyDown(ev, offcanvasModel))" tabindex="-1" id="offcanvasStart" aria-labelledby="offcanvasStartLabel" aria-modal="true" role="dialog">
             <div class="text-typography-headline mb-6" @onclick:stopPropagation>
                 <div class="flex justify-between text-large">

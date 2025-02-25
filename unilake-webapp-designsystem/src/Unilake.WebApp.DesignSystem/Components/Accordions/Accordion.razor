@@ -1,5 +1,35 @@
-<h3>Accordion</h3>
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: add dark mode *@
+<div class="@ClassNames">
+    <Button Variant="ButtonVariant.Custom" OnClick="Toggle" class="flex justify-between w-full bg-neutral-background-faded rounded-lg border border-neutral-background-border-divider px-3 py-2">
+        @Header
+        <Icon IconInstance="ToggleIcon" Size="20"></Icon>
+    </Button>
+    <div class="@ContentClassNames p-3 rounded-bl-lg rounded-br-lg border-l border-r border-b border-neutral-background-border-divider">
+        @ChildContent
+    </div>
+</div>
 
 @code {
-    
+    [Parameter]
+    public bool IsOpened { get; set; } = false;
+
+    [Parameter]
+    [EditorRequired]
+    public required RenderFragment Header { get; set; }
+
+    protected override string ClassNames => ClassBuilder.ToString();
+    private string ContentClassNames => new ClassBuilder()
+        .AddIfElse("", IsOpened, "hidden")
+        .ToString();
+
+    private Task Toggle()
+    {
+        IsOpened = !IsOpened;
+        return Task.CompletedTask;
+    }
+
+    private IIcon ToggleIcon => IsOpened ? EnronIcons.ChevronUp : EnronIcons.ChevronDown;
 }
