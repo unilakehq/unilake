@@ -4,7 +4,7 @@
 @foreach (var offcanvasModel in OffcanvasService.Models.Reverse())
 {
     <ClickOutside OnClickOutside="() => OnClickOutside(offcanvasModel)" Strategy="ClickOutside.RegisterStrategy.OnRender">
-        <div class="@GetClasses(offcanvasModel) top-1" @onkeydown="@(ev => OnKeyDown(ev, offcanvasModel))" tabindex="-1" id="offcanvasStart" aria-labelledby="offcanvasStartLabel" aria-modal="true" role="dialog">
+        <div class="@GetClasses(offcanvasModel)" @onkeydown="@(ev => OnKeyDown(ev, offcanvasModel))" tabindex="-1" id="offcanvasStart" aria-labelledby="offcanvasStartLabel" aria-modal="true" role="dialog">
             <div class="text-typography-headline mb-6" @onclick:stopPropagation>
                 <div class="flex justify-between text-large">
                     @if (offcanvasModel.Options.TitleIcon != null)
@@ -58,10 +58,10 @@
     private void StateHasChangedInternal() =>
         StateHasChanged();
 
-    private string GetClasses(OffcanvasModel offcanvasModel) => new ClassBuilder("bg-neutral-background-default p-6 fixed z-20 mt-[45px] max-w-full rounded-tl-lg rounded-bl-lg h-full")
+    private string GetClasses(OffcanvasModel offcanvasModel) => new ClassBuilder("bg-neutral-background-default p-6 fixed z-20 max-w-full rounded-tl-lg rounded-bl-lg h-full")
         .AddCompare("bottom-0", offcanvasModel.Options.Position, OffcanvasPosition.Bottom)
-        .AddCompare("right-0", offcanvasModel.Options.Position, OffcanvasPosition.End)
-        .AddCompare("top-0 left-0", offcanvasModel.Options.Position, OffcanvasPosition.Start)
-        .AddCompare("top-0", offcanvasModel.Options.Position, OffcanvasPosition.Top)
+        .AddCompare("top-1 right-0 mt-[45px]", offcanvasModel.Options.Position, OffcanvasPosition.End)
+        .AddCompare("top-1 left-0 mt-[45px]", offcanvasModel.Options.Position, OffcanvasPosition.Start)
+        .AddCompare("top-1", offcanvasModel.Options.Position, OffcanvasPosition.Top)
         .ToString();
 }
