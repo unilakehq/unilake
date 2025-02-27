@@ -58,10 +58,10 @@
     private void StateHasChangedInternal() =>
         StateHasChanged();
 
-    private string GetClasses(OffcanvasModel offcanvasModel) => new ClassBuilder("bg-neutral-background-default p-6 fixed z-20 max-w-full rounded-tl-lg rounded-bl-lg h-full")
+    private string GetClasses(OffcanvasModel offcanvasModel) => new ClassBuilder("bg-neutral-background-default p-6 z-20 fixed max-w-full rounded-tl-lg rounded-bl-lg h-full")
         .AddCompare("bottom-0", offcanvasModel.Options.Position, OffcanvasPosition.Bottom)
-        .AddCompare("top-1 right-0 mt-[45px]", offcanvasModel.Options.Position, OffcanvasPosition.End)
-        .AddCompare("top-1 left-0 mt-[45px]", offcanvasModel.Options.Position, OffcanvasPosition.Start)
+        .AddCompare("end-0", offcanvasModel.Options.Position, OffcanvasPosition.End)
+        .AddCompare("top-1 left-0", offcanvasModel.Options.Position, OffcanvasPosition.Start)
         .AddCompare("top-1", offcanvasModel.Options.Position, OffcanvasPosition.Top)
         .ToString();
 }
