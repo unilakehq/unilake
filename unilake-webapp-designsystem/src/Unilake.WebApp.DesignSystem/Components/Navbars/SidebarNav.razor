@@ -1,0 +1,114 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+@using Microsoft.AspNetCore.Components.Routing
+@implements IDisposable
+
+<aside class="@ClassNames py-2 flex flex-col border-r-2 mr-6 sticky top-0 justify-between transition-[width] duration-150 overflow-y-auto overflow-x-visible"
+     @onmouseenter="() => OnMouseOver(true)"
+     @onmouseleave="() => OnMouseOver(false)">
+
+    @* menu items *@
+    <div class="flex flex-col gap-2">
+        @foreach (var item in NavItems)
+        {
+            @if (item.HasChildren && !_innerCollapsed)
+            {
+                <SidebarItem NavItem="item" OnClick="() => ToggleItemCollapse(item)"/>
+                @if (item is { IsCollapsed: false })
+                {
+                    @foreach (var subitem in item.Children!)
+                    {
+                        <SidebarItem NavItem="subitem"/>
+                    }
+                }
+            }
+            else
+            {
+                <SidebarItem NavItem="item" IsIconOnly="_innerCollapsed"/>
+            }
+        }
+    </div>
+    @* footer *@
+    <div class="@FooterClassNames">
+        <a href="https://github.com/unilakehq/unilake" target="_blank">
+            <Icon IconInstance="EnronIcons.Git" Size="16"/>
+        </a>
+        <a href="/settings">
+            <Icon IconInstance="EnronIcons.Gear3" Size="16"/>
+        </a>
+        <Icon IconInstance="EnronIcons.Globe" Size="16"/>
+    </div>
+</aside>
+
+@code {
+    [Inject] public required NavigationManager NavigationManager { get; init; }
+    [Parameter] [EditorRequired] public required IEnumerable<NavItem> NavItems { get; init; }
+    [Parameter] public bool IsCollapsed { get; set; }
+
+    private bool _innerCollapsed = false;
+    private string _location = string.Empty;
+    private IDisposable? _navigation;
+
+    protected override string ClassNames => ClassBuilder
+        .AddIf("w-[50px]", _innerCollapsed)
+        .AddIf("w-[228px]", !_innerCollapsed)
+        .ToString();
+
+    private string FooterClassNames => new ClassBuilder("flex")
+        .AddIf("gap-5 pb-4 justify-center", !_innerCollapsed)
+        .AddIf("flex-col gap-y-5 items-center", _innerCollapsed)
+        .ToString();
+
+    protected override void OnParametersSet() =>
+        _innerCollapsed = IsCollapsed;
+
+    protected override void OnInitialized()
+    {
+        _location = "/" + NavigationManager.Uri.Split(NavigationManager.BaseUri).Last();
+        UpdateActiveItems();
+    }
+
+    protected override void OnAfterRender(bool firstRender) =>
+            _navigation = firstRender ? NavigationManager.RegisterLocationChangingHandler(LocationChanged) : _navigation;
+
+    private bool IsActive(NavItem item) => !string.IsNullOrWhiteSpace(item.Uri) && _location.StartsWith(item.Uri);
+
+    private bool UpdateActiveItems()
+    {
+        var hasChanged = false;
+        foreach (var navItem in NavItems)
+        {
+            var oldVal = navItem.State;
+            navItem.State = IsActive(navItem) ? MenuItemState.Active : navItem is { IsCollapsed: false } ? MenuItemState.Opened : MenuItemState.Default;
+            if (!hasChanged)
+                hasChanged = oldVal != navItem.State;
+        }
+        return hasChanged;
+    }
+
+    private Task ToggleItemCollapse(NavItem item)
+    {
+        item.IsCollapsed = !item.IsCollapsed;
+        UpdateActiveItems();
+        return Task.CompletedTask;
+    }
+
+    private ValueTask LocationChanged(LocationChangingContext context)
+    {
+        // should only be hit if we truly have a new state
+        _location = context.TargetLocation;
+        UpdateActiveItems();
+            StateHasChanged();
+        return ValueTask.CompletedTask;
+    }
+
+    public void Dispose() =>
+        _navigation?.Dispose();
+
+    private Task OnMouseOver(bool enter)
+    {
+        if(IsCollapsed)
+            _innerCollapsed = !enter;
+        return Task.CompletedTask;
+    }
+}

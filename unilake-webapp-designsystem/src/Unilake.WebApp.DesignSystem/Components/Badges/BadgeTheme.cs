@@ -8,7 +8,8 @@ public enum BadgeTheme
     Success,
     Warning,
     Neutral,
-    UserInput 
+    UserInput,
+    Custom
 }
 
 public static class BadgeUserInputTheme

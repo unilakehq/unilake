@@ -1,0 +1,93 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: dark mode *@
+<button class="@ClassNames"
+        @onclick="OnClick">
+    <div class="flex gap-2">
+        @if (NavItem.LeftIcon != null)
+        {
+            <div class="@LeftIconClassNames">
+                <Icon IconInstance="NavItem.LeftIcon" Size="20"></Icon>
+            </div>
+        }
+        @if (!IsIconOnly)
+        {
+            <div class="@LabelClassNames">
+                @NavItem.Label
+            </div>
+        }
+    </div>
+    @if (!IsIconOnly)
+    {
+        <div class="flex gap-2">
+            @if (NavItem.Badge != null)
+            {
+                <div class="@BadgeClassNames">
+                    <Badge BadgeTheme="BadgeTheme.Custom">@NavItem.Badge</Badge>
+                </div>
+            }
+            @if (RightIcon != null)
+            {
+                <div class="@RightIconClassNames">
+                    <Icon IconInstance="RightIcon" Size="20"></Icon>
+                </div>
+            }
+        </div>
+    }
+</button>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required NavItem NavItem { get; set; }
+
+    [Inject]
+    public required NavigationManager Nav { get; init; }
+
+    [Parameter] public bool IsIconOnly { get; set; }
+
+    protected override string ClassNames => ClassBuilder
+        .Add("flex py-2 text-default group")
+        .AddIf("px-2 rounded-lg w-10 h-10", IsIconOnly)
+        .AddIf("h-10 justify-between px-4", !IsIconOnly)
+        .AddIf("border-r-2 border-feedback-brand-background bg-brand-light-menu-item-interaction", NavItem is { State: MenuItemState.Active } && !IsIconOnly)
+        .AddIf("hover:bg-brand-light-menu-item-interaction w-[200px]",NavItem.State != MenuItemState.Disabled)
+        .AddIf("w-[198px]", !IsIconOnly && NavItem.State == MenuItemState.Active)
+        .AddIf("w-[200px]", !IsIconOnly && NavItem.State != MenuItemState.Disabled)
+        .AddIf("justify-center items-top w-[50px]", IsIconOnly)
+        .ToString();
+
+    private string LeftIconClassNames => new ClassBuilder("flex items-center")
+        .AddIf("text-typography-icon group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened)
+        .AddCompare("text-brand-light-interaction", NavItem.State, MenuItemState.Active)
+        .AddCompare("text-typography-disabled", NavItem.State, MenuItemState.Disabled)
+        .ToString();
+
+    private string LabelClassNames => new ClassBuilder("font-semibold")
+        .AddIf("text-typography-headline group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened)
+        .AddCompare("text-brand-light-interaction", NavItem.State, MenuItemState.Active)
+        .AddCompare("text-typography-disabled", NavItem.State, MenuItemState.Disabled)
+        .AddIf("ml-8", NavItem.LeftIcon == null)
+        .ToString();
+
+    private string BadgeClassNames => new ClassBuilder("rounded-full font-bold")
+        .AddIf("text-typography-body group-hover:text-feedback-brand-contrast bg-neutral-background-faded group-hover:bg-feedback-brand-background", NavItem.State is MenuItemState.Default or MenuItemState.Opened) .AddCompare("text-feedback-brand-contrast bg-feedback-brand-background", NavItem.State, MenuItemState.Active) .AddCompare("text-typography-body bg-neutral-background-faded", NavItem.State, MenuItemState.Disabled)
+        .ToString();
+
+    private string RightIconClassNames => new ClassBuilder("flex items-center")
+        .AddIf("text-typography-icon group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened)
+        .AddCompare("text-brand-light-interaction", NavItem.State, MenuItemState.Active)
+        .AddCompare("text-typography-disabled", NavItem.State, MenuItemState.Disabled)
+        .ToString();
+
+    private bool IsCollapsable => NavItem.Children?.Count() > 0;
+    public IIcon? RightIcon => IsCollapsable ? NavItem.State == MenuItemState.Opened ? EnronIcons.ChevronUp : EnronIcons.ChevronDown : NavItem.RightIcon;
+
+    private new async Task OnClick()
+    {
+        await base.OnClick.InvokeAsync();
+        if(!string.IsNullOrWhiteSpace(NavItem.Uri))
+            Nav.NavigateTo(NavItem.Uri);
+    }
+}

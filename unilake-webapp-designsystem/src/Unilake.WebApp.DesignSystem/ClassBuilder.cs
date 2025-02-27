@@ -1,5 +1,4 @@
 // Original source: https://github.com/TabBlazor/TabBlazor/blob/master/src/TabBlazor/ClassBuilder.cs
-
 namespace Unilake.WebApp.DesignSystem;
 
 using System;
