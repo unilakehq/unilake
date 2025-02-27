@@ -1,0 +1,177 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<nav
+  class="fixed flex h-12 w-full items-center border-b border-neutral-background-border-divider bg-neutral-background-default px-4 dark:border-gray-700 dark:bg-gray-800">
+  <div class="flex w-full items-center justify-between">
+    @* left menu section *@
+    <div class="flex gap-4 items-center">
+      <Icon IconInstance="EnronIcons.Menu3" Size="28"
+            class="cursor-pointer inline text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+            OnClick="OnSideNavToggle"/>
+      <div class="flex">
+        @if (IsDarkMode)
+        {
+          <svg width="118" height="24" viewBox="0 0 118 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.5471 12.7946V4.81227H18.5995V12.7946C18.5995 12.8037 18.5994 12.8128 18.5994 12.8219C18.603 12.6822 18.6048 12.5432 18.6048 12.4049V22.7734H15.5472V21.5333C16.7629 20.4195 17.6508 18.4822 18.1474 16.3495C17.007 20.5046 13.7818 23.0373 9.29884 23.0373C4.88904 23.0373 1.69737 20.5867 0.509392 16.5517C1.01417 18.6042 1.88399 20.4548 3.06119 21.5333V22.7734H0.00532472V13.2036C0.00178084 13.0684 0 12.932 0 12.7946V7.68562H3.05764V12.7946C3.05764 15.3278 3.78836 17.2765 5.11499 18.5165V1.99915H8.26662V19.9408C8.60851 19.99 8.95341 20.0155 9.29884 20.0169C9.64486 20.0155 9.99036 19.9901 10.3328 19.9408V10.6245H13.4898V18.5165C14.8164 17.28 15.5471 15.3225 15.5471 12.7946Z" fill="#FF6849"/>
+            <path d="M104.078 7.68723H100.194L94.7027 13.6997H92.812V0.962646H89.9122V22.7662H92.812V16.5695H94.6441L100.188 22.7662H104.035L97.2548 15.1434L104.078 7.68723Z" fill="#F9F8F6"/>
+            <path d="M68.7733 20.0292C68.5145 20.1309 68.2391 20.1838 67.961 20.1851C67.6595 20.1851 67.154 20.1851 67.154 19.0371V0.967981H64.2525V19.0956C64.2525 21.5279 65.6234 23.0372 67.828 23.0372C68.507 23.0424 69.1786 22.8953 69.7931 22.6067L70.444 22.2807L70.0449 19.3968L68.7733 20.0292Z" fill="#F9F8F6"/>
+            <path d="M57.6822 3.77651C58.0099 3.45917 58.4486 3.28219 58.905 3.2833C59.3579 3.28551 59.792 3.46438 60.1147 3.78175C60.4375 4.09913 60.6233 4.52989 60.6325 4.98215C60.6353 5.44308 60.4551 5.88633 60.1313 6.21474C59.8075 6.54316 59.3665 6.72993 58.905 6.73414C58.4401 6.73321 57.9945 6.54833 57.6658 6.21997C57.337 5.89161 57.1519 5.44653 57.151 4.98215C57.1639 4.52647 57.3545 4.09385 57.6822 3.77651Z" fill="#F9F8F6"/>
+            <path d="M44.3706 8.71463C45.4625 7.87013 46.8644 7.42373 48.4754 7.42321C51.3728 7.42431 54.7407 9.36099 54.7407 14.8174V22.7661H51.8391V14.8971C51.8391 11.9547 50.5497 10.2664 48.292 10.2664C45.8001 10.2664 44.3706 12.0309 44.3706 15.1079V22.7661H41.4708V7.68716H44.3706V8.71463Z" fill="#F9F8F6"/>
+            <path d="M31.741 20.1851C34.2329 20.1851 35.6624 18.4207 35.6624 15.3454L35.6677 7.68726H38.5692V22.7662H35.6677V21.7387C34.5663 22.5837 33.174 23.0301 31.5619 23.0301C28.6639 23.0301 25.2941 21.0939 25.2941 15.6359V7.68726H28.1939V15.5562C28.1939 18.4987 29.4832 20.1851 31.741 20.1851Z" fill="#F9F8F6"/>
+            <path d="M60.3417 7.68726H57.442V22.7662H60.3417V7.68726Z" fill="#F9F8F6"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M78.3272 7.42327C80.0658 7.40751 81.7542 8.0054 83.0946 9.1115V7.68722H85.9944V22.7661H83.0946V21.3135C81.7571 22.4284 80.0693 23.0374 78.3272 23.0336C74.1168 23.0336 70.8197 19.6217 70.8197 15.2391C70.8197 10.8564 74.1168 7.42327 78.3272 7.42327ZM73.7195 15.2391C73.7195 18.0132 75.7786 20.1851 78.4071 20.1851C81.0355 20.1851 83.0946 18.0132 83.0946 15.2391C83.0946 12.4047 81.0798 10.2665 78.4071 10.2665C75.7786 10.2665 73.7195 12.4649 73.7195 15.2391Z" fill="#F9F8F6"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M103.06 15.2391C103.06 10.7891 106.334 7.42327 110.674 7.42327V7.41619C114.782 7.41619 117.999 10.7218 117.999 14.9433C118.006 15.2308 117.981 15.5183 117.926 15.8007L117.763 16.6155H106.134C106.406 17.6444 107.013 18.5537 107.859 19.2008C108.705 19.8478 109.742 20.1959 110.807 20.1904C111.59 20.2055 112.367 20.0423 113.077 19.7133C113.788 19.3843 114.415 18.898 114.909 18.2914L115.619 17.4322L117.641 19.4517L117.054 20.1603C115.518 22.0133 113.301 23.0337 110.807 23.0337C106.462 23.0337 103.06 19.6076 103.06 15.2391ZM110.674 10.2506C108.482 10.2506 106.708 11.6908 106.137 13.7936H114.987C114.496 11.7121 112.785 10.2506 110.674 10.2506Z" fill="#F9F8F6"/>
+          </svg>
+        }
+        else
+        {
+          <svg width="133" height="24" viewBox="0 0 133 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.5471 12.7946V4.81227H18.5995V12.7946C18.5995 12.8037 18.5994 12.8128 18.5994 12.8219C18.603 12.6822 18.6048 12.5432 18.6048 12.4049V22.7734H15.5472V21.5333C16.7629 20.4195 17.6508 18.4822 18.1474 16.3495C17.007 20.5046 13.7818 23.0373 9.29884 23.0373C4.88904 23.0373 1.69737 20.5867 0.509392 16.5517C1.01417 18.6042 1.88399 20.4548 3.06119 21.5333V22.7734H0.00532472V13.2036C0.00178084 13.0684 0 12.932 0 12.7946V7.68562H3.05764V12.7946C3.05764 15.3278 3.78836 17.2765 5.11499 18.5165V1.99915H8.26662V19.9408C8.60851 19.99 8.95341 20.0155 9.29884 20.0169C9.64486 20.0155 9.99036 19.9901 10.3328 19.9408V10.6245H13.4898V18.5165C14.8164 17.28 15.5471 15.3225 15.5471 12.7946Z" fill="#FF6849"/>
+            <path d="M104.078 7.68723H100.194L94.7028 13.6997H92.8121V0.962646H89.9124V22.7662H92.8121V16.5695H94.6443L100.188 22.7662H104.035L97.255 15.1434L104.078 7.68723Z" fill="#252532"/>
+            <path d="M68.7734 20.0292C68.5146 20.1309 68.2392 20.1838 67.9611 20.1851C67.6596 20.1851 67.1542 20.1851 67.1542 19.0371V0.967981H64.2526V19.0956C64.2526 21.5279 65.6236 23.0372 67.8281 23.0372C68.5072 23.0424 69.1787 22.8953 69.7932 22.6067L70.4441 22.2807L70.0451 19.3968L68.7734 20.0292Z" fill="#252532"/>
+            <path d="M57.6823 3.77651C58.01 3.45917 58.4488 3.28219 58.9052 3.2833C59.3581 3.28551 59.7921 3.46438 60.1149 3.78175C60.4376 4.09913 60.6234 4.52989 60.6326 4.98215C60.6355 5.44308 60.4552 5.88633 60.1314 6.21474C59.8076 6.54316 59.3666 6.72993 58.9052 6.73414C58.4403 6.73321 57.9946 6.54833 57.6659 6.21997C57.3371 5.89161 57.152 5.44653 57.1511 4.98215C57.1641 4.52647 57.3547 4.09385 57.6823 3.77651Z" fill="#252532"/>
+            <path d="M44.3707 8.71463C45.4626 7.87013 46.8645 7.42373 48.4755 7.42321C51.3729 7.42431 54.7408 9.36099 54.7408 14.8174V22.7661H51.8392V14.8971C51.8392 11.9547 50.5498 10.2664 48.2921 10.2664C45.8002 10.2664 44.3707 12.0308 44.3707 15.1079V22.7661H41.4709V7.68716H44.3707V8.71463Z" fill="#252532"/>
+            <path d="M31.7411 20.1851C34.233 20.1851 35.6625 18.4207 35.6625 15.3454L35.6678 7.68726H38.5694V22.7662H35.6678V21.7387C34.5664 22.5837 33.1742 23.0301 31.562 23.0301C28.664 23.0301 25.2942 21.0939 25.2942 15.6359V7.68726H28.194V15.5562C28.194 18.4987 29.4834 20.1851 31.7411 20.1851Z" fill="#252532"/>
+            <path d="M60.3419 7.68726H57.4421V22.7662H60.3419V7.68726Z" fill="#252532"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M78.3274 7.42327C80.066 7.40751 81.7543 8.0054 83.0947 9.1115V7.68722H85.9945V22.7661H83.0947V21.3135C81.7572 22.4284 80.0694 23.0374 78.3274 23.0336C74.1169 23.0336 70.8198 19.6217 70.8198 15.2391C70.8198 10.8564 74.1169 7.42327 78.3274 7.42327ZM73.7196 15.2391C73.7196 18.0132 75.7787 20.1851 78.4072 20.1851C81.0356 20.1851 83.0947 18.0132 83.0947 15.2391C83.0947 12.4047 81.0799 10.2665 78.4072 10.2665C75.7787 10.2665 73.7196 12.4649 73.7196 15.2391Z" fill="#252532"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M103.06 15.2391C103.06 10.7891 106.334 7.42327 110.674 7.42327V7.41619C114.782 7.41619 117.999 10.7218 117.999 14.9433C118.006 15.2308 117.981 15.5183 117.926 15.8007L117.763 16.6155H106.134C106.406 17.6444 107.013 18.5537 107.859 19.2008C108.705 19.8478 109.742 20.1959 110.807 20.1904C111.59 20.2055 112.367 20.0423 113.077 19.7133C113.788 19.3843 114.415 18.898 114.909 18.2914L115.619 17.4322L117.641 19.4517L117.054 20.1603C115.518 22.0133 113.301 23.0337 110.807 23.0337C106.462 23.0337 103.06 19.6076 103.06 15.2391ZM110.674 10.2506C108.482 10.2506 106.708 11.6908 106.137 13.7936H114.987C114.496 11.7121 112.785 10.2506 110.674 10.2506Z" fill="#252532"/>
+          </svg>
+        }
+      </div>
+      @LeftContent
+    </div>
+    @* center menu section *@
+    <div class="flex gap-4 items-center">
+      @ChildContent
+    </div>
+    @* right menu section *@
+    <div class="flex gap-4 items-center">
+      @RightContent
+      @* color mode toggle *@
+      <Button Variant="ButtonVariant.Custom" OnClick="OnDarkModeToggle">
+        <Icon IconInstance="EnronIcons.Brightness" Size="24"></Icon>
+      </Button>
+      @* user menu *@
+      <div class="flex items-center rounded-full focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600">
+        <DropdownButton Align="DropdownHorizontalAlign.Left" @ref="DropdownMenu">
+          <CustomButton>
+            <Button Variant="ButtonVariant.Custom" @onclick="DropdownMenu.Toggle" class="mt-1">
+              <img src="/_content/Unilake.WebApp.DesignSystem/images/avatar_placeholder.png" alt="user photo"/>
+            </Button>
+          </CustomButton>
+          <ChildContent>
+            <div id="accountDropdown"
+                 class="w-60 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-lg bg-white shadow-sm dark:divide-gray-600 dark:bg-gray-700"
+                 data-popper-placement="bottom">
+              <ul class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white">
+                <li>
+                  <a href="#" title=""
+                     class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600">
+                    <svg
+                      class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                      aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                      viewBox="0 0 24 24">
+                      <path
+                        fill-rule="evenodd"
+                        d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z"
+                        clip-rule="evenodd"/>
+                    </svg>
+                    Account
+                  </a>
+                </li>
+                <li>
+                  <a href="#" title=""
+                     class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600">
+                    <svg
+                      class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                      aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                      viewBox="0 0 24 24">
+                      <path
+                        fill-rule="evenodd"
+                        d="M9.586 2.586A2 2 0 0 1 11 2h2a2 2 0 0 1 2 2v.089l.473.196.063-.063a2.002 2.002 0 0 1 2.828 0l1.414 1.414a2 2 0 0 1 0 2.827l-.063.064.196.473H20a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-.089l-.196.473.063.063a2.002 2.002 0 0 1 0 2.828l-1.414 1.414a2 2 0 0 1-2.828 0l-.063-.063-.473.196V20a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-.089l-.473-.196-.063.063a2.002 2.002 0 0 1-2.828 0l-1.414-1.414a2 2 0 0 1 0-2.827l.063-.064L4.089 15H4a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h.09l.195-.473-.063-.063a2 2 0 0 1 0-2.828l1.414-1.414a2 2 0 0 1 2.827 0l.064.063L9 4.089V4a2 2 0 0 1 .586-1.414ZM8 12a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+                        clip-rule="evenodd"/>
+                    </svg>
+                    Settings
+                  </a>
+                </li>
+                <li>
+                  <a href="#" title=""
+                     class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600">
+                    <svg
+                      class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                      aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                      viewBox="0 0 24 24">
+                      <path fill-rule="evenodd"
+                            d="M8 10V7a4 4 0 1 1 8 0v3h1a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h1Zm2-3a2 2 0 1 1 4 0v3h-4V7Zm2 6a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1Z"
+                            clip-rule="evenodd"/>
+                    </svg>
+                    Privacy
+                  </a>
+                </li>
+              </ul>
+
+              <ul class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white">
+                <li>
+                  <a href="#" title=""
+                     class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600">
+                    <svg
+                      class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                      aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                      viewBox="0 0 24 24">
+                      <path
+                        fill-rule="evenodd"
+                        d="M11 4.717c-2.286-.58-4.16-.756-7.045-.71A1.99 1.99 0 0 0 2 6v11c0 1.133.934 2.022 2.044 2.007 2.759-.038 4.5.16 6.956.791V4.717Zm2 15.081c2.456-.631 4.198-.829 6.956-.791A2.013 2.013 0 0 0 22 16.999V6a1.99 1.99 0 0 0-1.955-1.993c-2.885-.046-4.76.13-7.045.71v15.081Z"
+                        clip-rule="evenodd"/>
+                    </svg>
+                    Help Guide
+                  </a>
+                </li>
+                <li>
+                  <a href="#" title=""
+                     class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600">
+                    <svg
+                      class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+                      aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                      viewBox="0 0 24 24">
+                      <path
+                        fill-rule="evenodd"
+                        d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.008-3.018a1.502 1.502 0 0 1 2.522 1.159v.024a1.44 1.44 0 0 1-1.493 1.418 1 1 0 0 0-1.037.999V14a1 1 0 1 0 2 0v-.539a3.44 3.44 0 0 0 2.529-3.256 3.502 3.502 0 0 0-7-.255 1 1 0 0 0 2 .076c.014-.398.187-.774.48-1.044Zm.982 7.026a1 1 0 1 0 0 2H12a1 1 0 1 0 0-2h-.01Z"
+                        clip-rule="evenodd"/>
+                    </svg>
+                    Help Center
+                  </a>
+                </li>
+              </ul>
+
+              <ul class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white">
+                <li>
+                  <a href="#" title=""
+                     class="group flex items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-500 dark:hover:bg-gray-600">
+                    <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                         viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 12H8m12 0-4 4m4-4-4-4M9 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h2"></path>
+                    </svg>
+                    Sign Out
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </ChildContent>
+        </DropdownButton>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+@code {
+  [Parameter] public RenderFragment? LeftContent { get; set; }
+  [Parameter] public RenderFragment? RightContent { get; set; }
+  [Parameter] public RenderFragment? UserMenuContent { get; set; }
+  [Parameter] [EditorRequired] public required bool IsDarkMode { get; set; }
+  [Parameter] public EventCallback<MouseEventArgs> OnDarkModeToggle { get; init; }
+  [Parameter] public EventCallback<MouseEventArgs> OnSideNavToggle { get; init; }
+  public required DropdownButton DropdownMenu { get; set; }
+}
