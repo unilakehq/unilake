@@ -18,7 +18,7 @@
         <div class="@ClassNames mt-1 end-0" style="z-index: 999999;">
             @foreach (var toast in topEndToasts)
             {
-                <Toast ToastModel="toast" @key="toast" />
+                <Toast ToastModel="toast" @key="toast"/>
             }
         </div>
     }
@@ -28,31 +28,30 @@
         <div class="@ClassNames mt-1" style="z-index: 999999;">
             @foreach (var toast in topStartToasts)
             {
-                <Toast ToastModel="toast" @key="toast" />
+                <Toast ToastModel="toast" @key="toast"/>
             }
         </div>
     }
 
-     if (bottomEndToasts.Any())
+    if (bottomEndToasts.Any())
     {
         <div class="@ClassNames mb-1 bottom-0 end-0" style="z-index: 999999;">
             @foreach (var toast in bottomEndToasts)
             {
-                <Toast ToastModel="toast" @key="toast" />
+                <Toast ToastModel="toast" @key="toast"/>
             }
         </div>
     }
 
-      if (bottomStartToasts.Any())
+    if (bottomStartToasts.Any())
     {
         <div class="@ClassNames mb-1 bottom-0" style="z-index: 999999;">
             @foreach (var toast in bottomStartToasts)
             {
-                <Toast ToastModel="toast" @key="toast" />
+                <Toast ToastModel="toast" @key="toast"/>
             }
         </div>
     }
-
 }
 
 @code {
@@ -65,7 +64,7 @@
 
     private async Task OnToastChanged()
     {
-        await InvokeAsync(() => { StateHasChanged(); });
+        await InvokeAsync(StateHasChanged);
     }
 
     private string ClassNames => "fixed w-max max-w-full";
@@ -74,4 +73,5 @@
     {
         ToastService.OnChanged -= OnToastChanged;
     }
+
 }
