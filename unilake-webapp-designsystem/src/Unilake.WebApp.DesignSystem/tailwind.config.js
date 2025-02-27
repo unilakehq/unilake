@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: ["./Components/**/*.{razor,html,cshtml}", "./node_modules/flowbite/**/*.js"],
+    content: ["./Components/**/*.{razor,html,cshtml}", "./node_modules/flowbite/**/*.js", "../../../unilake-webapp/src/Unilake.WebApp/**/*.{razor,html,cshtml}"],
     darkMode: 'class',
     // todo: this can be removed when bootstrap is removed as well from Unilake.WebApp
     important: true,
@@ -17,6 +17,13 @@ module.exports = {
             },
             neutral: {
                 background: {
+                    dark: {
+                        default: '',
+                        faded: '',
+                        disabled: '',
+                        'border-divider': '',
+                        invert: '',
+                    },
                     default: '#F9F8F6',
                     faded: '#EFEEEB',
                     disabled: '#DDDFDA',
