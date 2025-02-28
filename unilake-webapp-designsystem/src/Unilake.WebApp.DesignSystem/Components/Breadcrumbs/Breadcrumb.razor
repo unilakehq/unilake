@@ -14,7 +14,7 @@
                 <Icon IconInstance="EnronIcons.MoreHorizon" Size="12"/>
                 <Icon IconInstance="EnronIcons.ChevronRight" Size="12"/>
             }
-            <button class="text-typography-headline hover:text-typography-faded">@GetLastItem().Label</button>
+            <a href="@GetLastItem().Uri" class="text-typography-headline hover:text-typography-faded">@GetLastItem().Label</a>
         </div>
         @ChildContent
     </div>
