@@ -1,0 +1,32 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="@ClassNames bg-neutral-background-default">
+    <span class="text-large text-typography-headline">@LabelText</span>
+    <ol class="relative border-s border-gray-200 dark:border-gray-700 mt-6 ms-2">
+        @foreach (var item in Items)
+        {
+            <li class="flex flex-col ms-4 mb-4">
+                <div class="absolute w-6 h-6 bg-brand-light-link rounded-full -start-3 border-[6px] border-brand-bravo-100 dark:border-gray-900 dark:bg-gray-700"></div>
+                <div class="ml-3.5 gap-0.5">
+                    <div class="flex justify-between">
+                        <span class="font-bold">@item.VersionNumber</span>
+                        <a class="underline text-brand-light-link hover:text-brand-light-link-hover" href="@item.Uri">show changes</a>
+                    </div>
+                    <span class="mt-2 font-normal text-typography-body">
+                        @item.Comment
+                    </span>
+                </div>
+            </li>
+        }
+    </ol>
+</div>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required TimeLineItem[] Items { get; init; }
+
+    [Parameter]
+    public string LabelText { get; set; } = "Version History";
+}
