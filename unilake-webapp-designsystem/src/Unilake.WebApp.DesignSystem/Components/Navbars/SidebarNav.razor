@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Components.Routing
 @implements IDisposable
 
-<aside class="@ClassNames py-2 flex flex-col border-r-2 mr-6 sticky top-0 justify-between transition-[width] duration-150 overflow-y-auto overflow-x-visible"
+<aside class="@ClassNames py-2 flex flex-col border-r-2 sticky top-0 justify-between transition-[width] duration-150 overflow-y-auto overflow-x-visible"
      @onmouseenter="() => OnMouseOver(true)"
      @onmouseleave="() => OnMouseOver(false)">
 
@@ -51,7 +51,7 @@
 
     protected override string ClassNames => ClassBuilder
         .AddIf("w-[50px]", _innerCollapsed)
-        .AddIf("w-[228px]", !_innerCollapsed)
+        .AddIf("w-[226px]", !_innerCollapsed)
         .ToString();
 
     private string FooterClassNames => new ClassBuilder("flex")
@@ -95,10 +95,11 @@
 
     private ValueTask LocationChanged(LocationChangingContext context)
     {
-        // should only be hit if we truly have a new state
         _location = context.TargetLocation;
+        if (_location.StartsWith("http"))
+            _location = "/" + context.TargetLocation.Split(NavigationManager.BaseUri).Last();
         UpdateActiveItems();
-            StateHasChanged();
+        StateHasChanged();
         return ValueTask.CompletedTask;
     }
 
