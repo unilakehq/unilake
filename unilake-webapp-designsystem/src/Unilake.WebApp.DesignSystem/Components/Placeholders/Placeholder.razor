@@ -1,0 +1,34 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="@ClassNames" style="@ContainerStyle">
+    <Icon IconInstance="@Icon" Size="@IconSize"/>
+    <span>@LabelText</span>
+</div>
+
+@code {
+    [Parameter]
+    public int IconSize { get; set; } = 120;
+
+    [Parameter]
+    [EditorRequired]
+    public required string LabelText { get; set; }
+
+    [Parameter]
+    public string FontSize { get; set; } = "text-headline5";
+
+    [Parameter] public IIcon Icon { get; set; } = EnronIcons.Clipboard;
+
+    /// <summary>
+    /// Can be used when this placeholder is for an entire page (taking into account the header)
+    /// </summary>
+    [Parameter]
+    public bool IsCenterScreen { get; set; }
+
+    protected override string ClassNames => new ClassBuilder("flex flex-col gap-2 items-center justify-center h-full text-neutral-background-disabled")
+        .Add(FontSize)
+        .AddIf("h-screen", IsCenterScreen)
+        .ToString();
+
+    private string ContainerStyle => IsCenterScreen ? "max-height: calc(100vh - 4rem);" : "";
+}
