@@ -1,0 +1,30 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="border-b-2">
+    <div class="ml-6 my-3 flex">
+        <div class="@ClassNames flex gap-2.5 text-typography-body items-center align-center">
+            @foreach (var item in BreadcrumbItems.Take(TakeItems))
+            {
+                <a href="@item.Uri" class="hover:text-typography-faded">@item.Label</a>
+                <Icon IconInstance="EnronIcons.ChevronRight" Size="12"/>
+            }
+            @if (TakeItems != BreadcrumbItems.Length)
+            {
+                <Icon IconInstance="EnronIcons.MoreHorizon" Size="12"/>
+                <Icon IconInstance="EnronIcons.ChevronRight" Size="12"/>
+            }
+            <button class="text-typography-headline hover:text-typography-faded">@GetLastItem().Label</button>
+        </div>
+        @ChildContent
+    </div>
+</div>
+
+
+@code {
+    [Parameter] public int MaxItems { get; set; }
+    [Parameter] [EditorRequired] public required BreadcrumbItem[] BreadcrumbItems { get; set; }
+
+    private BreadcrumbItem GetLastItem() => BreadcrumbItems.Last();
+    private int TakeItems => MaxItems > 0 ? Math.Min(BreadcrumbItems.Length - 1, MaxItems) : BreadcrumbItems.Length - 1;
+}
