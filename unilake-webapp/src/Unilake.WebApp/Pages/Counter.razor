@@ -1,18 +1,174 @@
 ﻿@page "/counter"
+@using Unilake.WebApp.DesignSystem
+@using Unilake.WebApp.DesignSystem.Components.Standard
 
 <PageTitle>Counter</PageTitle>
+<Breadcrumb BreadcrumbItems="_breadcrumbItems"/>
 
 <h1>Counter</h1>
 
 <p role="status">Current count: @currentCount</p>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<div class="mt-4">
+    <Button OnClick="IncrementCount" Variant="ButtonVariant.Bravo">Click me</Button>
+</div>
+
+<div class="mt-4">
+    <Avatar Size="AvatarSize.Small" ImageUrl="@avatars.First()"></Avatar>
+    <AvatarStacked Size="AvatarSize.Medium" Images="@avatars"></AvatarStacked>
+</div>
+
+<div class="mt-4">
+    <Button OnClick="ShowModal">Show Modal</Button>
+</div>
+
+<div class="mt-4">
+    <Button OnClick="ShowCanvas">Show Canvas</Button>
+</div>
+
+<div class="mt-4">
+    <Button OnClick="ShowToast">Show Toast</Button>
+</div>
+
+<div class="mt-4">
+    <Accordion class="max-w-md">
+        <Header>
+            <div class="inline-flex">
+                <Icon IconInstance="EnronIcons.Plus" Size="28"></Icon>
+                <span>Name of the Schema</span>
+                <div @onclick:stopPropagation="true" @onclick:preventDefault="true">
+                    <TextInput PlaceholderText="Hello World"></TextInput>
+                </div>
+            </div>
+        </Header>
+        <ChildContent>
+            Hello something here...
+        </ChildContent>
+    </Accordion>
+</div>
+
+<div class="mx-4 my-4">
+    <SidebarItem NavItem="NavItem"></SidebarItem>
+</div>
+
+
+<div class="mx-4 my-4">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras elementum, ipsum et faucibus placerat, diam sapien elementum elit, vel rutrum magna nulla vel lectus. Nam dolor velit, hendrerit in urna eget, luctus interdum metus. Nullam malesuada, neque sed scelerisque hendrerit, orci tellus sodales felis, non tempor nibh ex et elit. Mauris et mi vel nunc mollis rutrum vitae at nisl. Proin suscipit euismod urna, ut malesuada magna vestibulum nec. Donec bibendum, erat ut tempor consectetur, ligula lacus lacinia metus, vel convallis odio est sed quam. Mauris posuere ex nisl, eu laoreet lectus lobortis ut. Nullam pharetra id sem id varius. Ut faucibus, nibh sit amet accumsan elementum, nulla sem dapibus dui, et iaculis leo orci sit amet ante. Sed cursus purus ut leo iaculis, vitae iaculis enim vehicula. Nulla et placerat diam, eget suscipit dui. Quisque rhoncus mauris ut fringilla rhoncus. Suspendisse neque lectus, fringilla vitae neque vitae, dapibus interdum libero. Fusce fringilla sem diam, nec tincidunt diam porta maximus. Sed in ullamcorper eros.
+
+Fusce auctor maximus odio, sollicitudin feugiat neque fringilla et. Morbi sollicitudin diam vel ipsum interdum, ut scelerisque risus tristique. Curabitur at fermentum dolor. Aliquam iaculis magna sit amet purus ornare, quis convallis purus tempus. Donec dictum mi sit amet pulvinar volutpat. Maecenas sed risus sed nunc malesuada aliquam nec sed tortor. Phasellus tincidunt vestibulum faucibus. Integer imperdiet mattis arcu, mattis euismod dolor lacinia in. Aliquam luctus porta consequat. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum consequat mi eu elit accumsan sodales. Sed tincidunt ipsum vel nibh rutrum laoreet. Mauris vel tellus ex.
+
+In ut urna ac odio pellentesque ullamcorper. Nam a dignissim felis. In nunc ipsum, suscipit a cursus sollicitudin, laoreet non augue. Vestibulum non pharetra ante, id commodo tortor. Interdum et malesuada fames ac ante ipsum primis in faucibus. Maecenas aliquet orci nulla, nec molestie nulla facilisis in. Duis ullamcorper in purus quis consectetur. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Mauris lorem nisl, interdum et condimentum at, pretium non nulla.
+
+Sed porttitor fermentum facilisis. Nulla egestas molestie dui, in sagittis lectus egestas nec. Nullam vehicula interdum mauris id eleifend. Integer non nisl ut leo ornare dictum. Nulla facilisi. In sit amet rhoncus sem. Sed sed sodales purus, nec laoreet sem. Suspendisse ac metus a ante facilisis bibendum at ac augue. Proin dictum metus vel magna posuere, sed ullamcorper libero rhoncus. Aliquam laoreet consectetur velit nec viverra. Pellentesque ornare at est vel ultricies.
+
+Quisque tincidunt in leo in finibus. Fusce ut metus vel nulla lacinia semper. Aliquam erat volutpat. Phasellus orci lectus, hendrerit eget nibh eu, dignissim tincidunt tortor. Duis non bibendum metus, nec blandit libero. Nulla fringilla vel orci non consectetur. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nunc placerat lacus magna. Donec congue convallis augue, a consequat felis sagittis eu. Nam sollicitudin viverra massa. Cras interdum blandit consectetur. Cras ut odio augue. Morbi erat libero, fringilla et lorem elementum, imperdiet dapibus lectus. Etiam pulvinar mauris et purus ultricies laoreet in et magna. Donec nec fermentum orci, vitae euismod enim. Sed eu ipsum scelerisque, posuere purus in, venenatis metus.
+
+In pharetra lorem ac auctor ultricies. Fusce sem lectus, sollicitudin in ante quis, ornare venenatis lectus. Duis sit amet dapibus est. Duis at magna ex. Nunc dignissim orci mattis vehicula molestie. Nulla a ipsum magna. Nam quis ipsum felis. Sed non odio malesuada, scelerisque tellus in, auctor tellus. Nam nec mi augue. Curabitur condimentum sagittis arcu.
+
+Integer pellentesque auctor nibh, id tincidunt urna bibendum et. Donec eu purus dolor. Proin quis consectetur lacus. Donec eget turpis metus. In ullamcorper orci quis orci ultrices aliquam. Sed tristique lorem tempor arcu laoreet ornare. Cras eget diam ac ligula tincidunt eleifend.
+
+Sed id ultrices ligula. Integer iaculis vehicula posuere. Pellentesque metus urna, ullamcorper at pulvinar et, condimentum nec ipsum. Duis ut metus porta, gravida erat eget, condimentum tellus. Mauris ante erat, mollis eu nisl sed, hendrerit accumsan metus. Fusce a nibh libero. Suspendisse id tellus rhoncus, tristique ex sit amet, luctus ipsum. Aenean a enim non lorem vehicula maximus. Duis purus magna, placerat id fringilla a, efficitur in sem. Proin vehicula tortor ultricies erat ultricies tincidunt. Proin vestibulum semper enim, nec vestibulum quam sollicitudin id. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec lacinia, libero sed bibendum porttitor, ex dui dictum ligula, eu tincidunt felis augue ac tortor. Nam porta convallis mauris, a vulputate neque porta eget.
+
+In eleifend ante augue, in lobortis felis sodales tincidunt. Donec tincidunt blandit risus, tempus euismod ex bibendum sit amet. Mauris finibus massa id velit bibendum finibus. Duis eleifend nibh mi, nec feugiat odio vehicula ac. Phasellus lacus justo, aliquam vitae tellus pretium, laoreet volutpat ex. Mauris nibh quam, tempor a velit eget, suscipit hendrerit elit. Mauris in suscipit nunc. Nunc ullamcorper neque in ipsum vestibulum pulvinar. Sed sollicitudin erat at iaculis feugiat.
+
+Mauris fringilla vel diam at accumsan. Cras bibendum orci vel urna congue porta sit amet luctus sem. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Sed in ante rhoncus, laoreet nisl et, finibus purus. Integer consequat commodo enim id scelerisque. Quisque gravida massa leo, a tincidunt elit mollis et. Proin accumsan sit amet mi et semper.
+
+Integer sed quam semper, tincidunt elit sit amet, pellentesque urna. Aenean in mattis elit, et interdum arcu. Sed nec felis vehicula arcu tincidunt tempor ac convallis libero. Nunc eget neque nec urna rhoncus volutpat. Praesent sit amet malesuada risus, in finibus lectus. Aliquam condimentum venenatis lacinia. Vivamus hendrerit auctor ipsum, nec congue dui vehicula eget.
+
+Aenean et elit rhoncus, mollis erat et, tempor tortor. Nullam mollis luctus placerat. Proin velit libero, volutpat id nunc ut, ultricies dignissim quam. Quisque nec posuere elit. Ut leo erat, lobortis vel vulputate non, tempor ut est. Ut condimentum sodales tellus vitae malesuada. Ut dignissim, lectus id tempor accumsan, justo ante maximus est, sed sodales mi dolor volutpat ante. Quisque efficitur quam a nisl feugiat dictum in tincidunt nisl. Suspendisse sit amet lacinia mauris, cursus ullamcorper massa. Nulla vestibulum vel lectus in porttitor. Vestibulum varius ex eu purus lacinia, sed consequat sem scelerisque. Maecenas vitae tincidunt dolor. Mauris sed pellentesque ipsum. Proin convallis interdum augue, nec vulputate mauris ultricies ac.
+
+Sed orci turpis, egestas malesuada sapien aliquet, consectetur pulvinar nunc. Integer blandit, felis et gravida posuere, massa arcu faucibus nunc, vel efficitur nisi tortor et urna. Duis sollicitudin sagittis tincidunt. Proin nec porta purus, ac placerat odio. Fusce ac consectetur ligula. Nam sagittis sem sed efficitur convallis. Integer ut urna rhoncus, accumsan augue sed, tempor nulla. In hac habitasse platea dictumst. Nullam iaculis, velit in posuere posuere, ante nisl accumsan lectus, at blandit augue metus sit amet dolor. Sed fringilla dolor ullamcorper, vestibulum erat sed, pellentesque mi. Interdum et malesuada fames ac ante ipsum primis in faucibus. Proin eget ligula at dui congue pretium id a elit.
+
+Quisque rutrum arcu congue placerat imperdiet. Praesent ultricies aliquam porta. Morbi sed purus vitae tortor commodo dapibus. Vestibulum convallis ex eget risus pulvinar, eu venenatis ligula consectetur. Etiam feugiat urna a gravida fermentum. Sed eget dignissim ipsum. In ac orci mauris. Nulla tortor elit, efficitur eget sem non, suscipit tincidunt diam. Aenean ut convallis tortor, at congue neque. Cras blandit a arcu nec malesuada.
+
+Sed tempus facilisis ornare. Nullam dapibus varius erat, non semper quam pretium sed. Praesent eget tristique dolor. Ut varius elementum mattis. Fusce feugiat dolor et nulla malesuada, a imperdiet neque dapibus. Etiam iaculis interdum nulla, quis tempus lacus malesuada ut. Phasellus in pretium tellus. Pellentesque placerat magna vel erat maximus, nec condimentum diam scelerisque. Quisque bibendum urna tortor. Fusce in libero vel felis ornare lobortis. Cras quis purus sapien. Donec lobortis finibus risus, sed finibus purus aliquet at.
+
+Proin gravida viverra auctor. Mauris orci enim, maximus eu sapien vel, placerat condimentum lacus. Praesent vel velit urna. Maecenas dignissim neque non erat placerat, vitae porta purus bibendum. Aliquam erat volutpat. Duis et dolor eu arcu dignissim convallis. Phasellus at consectetur nulla, ac iaculis augue. Fusce et odio augue. Nulla eu quam ipsum. Donec vel arcu accumsan, pellentesque urna in, dapibus mauris. Nulla sed tellus arcu.
+
+Sed laoreet elementum est vitae bibendum. Sed imperdiet diam eu semper rutrum. Nunc sodales ornare ante, venenatis eleifend nunc mollis nec. Aliquam porta purus nibh. In sagittis commodo consequat. In consectetur lorem et fringilla suscipit. Vivamus rutrum risus sed neque tristique tempor. Sed mi enim, congue at nulla eget, facilisis interdum dui. Nullam imperdiet, augue ac accumsan dignissim, tortor lacus congue nibh, at commodo dolor purus a ipsum. Ut feugiat elit facilisis lacinia pellentesque. Quisque ac sem mauris. Duis fermentum justo arcu, nec ullamcorper magna mollis a. Nam in lorem eu augue suscipit consectetur ut quis diam. Sed ut lacus tempus neque molestie aliquam ut eu nulla. In hendrerit dui vitae sapien mattis, sit amet placerat risus pellentesque.
+
+Donec eget imperdiet sapien. Sed malesuada sapien quis mattis suscipit. Nam hendrerit, erat eget sodales feugiat, nisi purus fringilla tellus, at faucibus enim magna quis neque. In maximus mi et orci suscipit, varius efficitur lacus fermentum. Pellentesque est libero, finibus vitae erat sit amet, cursus imperdiet orci. In id velit fermentum, consectetur enim nec, vehicula risus. Aenean sapien lorem, rhoncus sed lorem vel, tristique maximus lorem. Praesent consectetur arcu sed sem hendrerit posuere. Aenean eget tincidunt ex, at condimentum tortor. Etiam maximus justo sed volutpat sollicitudin. Quisque venenatis imperdiet fermentum. In convallis auctor libero, vitae rutrum nisi dictum ac.
+
+Pellentesque elit arcu, lacinia eu neque et, sodales ullamcorper dolor. Pellentesque ultrices ornare nulla, in sodales justo. Phasellus hendrerit dignissim semper. Sed vitae eros magna. Aenean sapien ipsum, suscipit maximus metus eu, iaculis varius tellus. Pellentesque vel lorem tempor, aliquet massa non, mollis dui. Integer enim sapien, scelerisque eu tincidunt id, auctor consectetur erat. Cras interdum, eros porta venenatis congue, erat augue ultricies metus, id finibus quam mauris ac nunc. Maecenas scelerisque urna eget turpis vulputate blandit. Mauris vel erat sed sem auctor ornare sit amet nec sapien. Sed facilisis ullamcorper turpis non maximus. Curabitur tincidunt rutrum sapien vel euismod. In viverra tincidunt pellentesque. Quisque commodo ante sed maximus bibendum. Nunc eu quam velit. Nulla vel ultrices sapien.
+
+Etiam fermentum ullamcorper libero, laoreet consectetur nunc pretium id. Etiam scelerisque eleifend lectus et ullamcorper. Mauris sem ligula, tincidunt a lacus eu, porttitor lobortis nunc. Quisque nec orci nec ante auctor bibendum. Integer tincidunt in lacus tristique sagittis. Fusce tristique ullamcorper risus, non pretium purus faucibus et. Phasellus quis diam vehicula, mollis erat et, ultrices neque. Aliquam erat volutpat. Nunc commodo metus ornare felis sagittis, ut hendrerit enim convallis. Duis semper tortor justo, commodo laoreet nisi mollis a. Proin velit lectus, accumsan quis metus quis, finibus maximus ipsum.
+</div>
 
 @code {
+    [Inject] public ToastService ToastService { get; set; }
+    [Inject] public IModalService ModalService { get; set; }
+    [Inject] public IOffcanvasService OffcanvasService { get; set; }
+
+    private readonly BreadcrumbItem[] _breadcrumbItems =
+    [
+        new()
+        {
+            Label = "Home",
+            Uri = "/weather"
+        }
+    ];
+
     private int currentCount = 0;
+
+    private List<string> avatars =    [
+        "https://media.licdn.com/dms/image/v2/C4D03AQFT8BhVHXf2Jg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1516585764563?e=1744848000&v=beta&t=E4ENHWY8J3_wS_DCwYc16LuqT5SSC6N4vSNAzwaiBxY",
+        "https://media.licdn.com/dms/image/v2/C4D03AQFT8BhVHXf2Jg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1516585764563?e=1744848000&v=beta&t=E4ENHWY8J3_wS_DCwYc16LuqT5SSC6N4vSNAzwaiBxY",
+        "https://media.licdn.com/dms/image/v2/C4D03AQFT8BhVHXf2Jg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1516585764563?e=1744848000&v=beta&t=E4ENHWY8J3_wS_DCwYc16LuqT5SSC6N4vSNAzwaiBxY",
+        "https://media.licdn.com/dms/image/v2/C4D03AQFT8BhVHXf2Jg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1516585764563?e=1744848000&v=beta&t=E4ENHWY8J3_wS_DCwYc16LuqT5SSC6N4vSNAzwaiBxY"
+    ];
+
+    private NavItem NavItem => new NavItem
+    {
+        Label = "Test",
+        LeftIcon = EnronIcons.BookOpen,
+        RightIcon = EnronIcons.Ai,
+        Uri = DeepLinks.WeatherPage,
+        State = MenuItemState.Default
+    };
 
     private void IncrementCount()
     {
         currentCount++;
+    }
+
+    private async Task ShowModal()
+    {
+        string message = "Some helper text";
+        // var component = new RenderComponent<ConfirmationModel>().Set(e => e.HelperText, "Some Helper Text Here");
+        // var result = await ModalService.ShowAsync("This is a title", component, new ModalOptions
+        // {
+        //     Size = ModalSize.Large
+        // });
+        var result = await ModalService.ShowDialogAsync(new DialogOptions
+        {
+            OkText = "Yes, I'm sure",
+            MainText = "Some helper text",
+            CancelText = "No, cancel"
+        });
+        // Console.WriteLine(result.Cancelled ? "Cancelled" : "Modal Was Ok!");
+        Console.WriteLine($"Result: {result}");
+    }
+
+    private async Task ShowToast()
+    {
+        await ToastService.AddToastAsync("Hello World, and some other long very long text here, see how this works visually", new ToastOptions
+        {
+            Position = ToastPosition.TopEnd,
+        });
+    }
+
+    private async Task ShowCanvas()
+    {
+        var component = new RenderComponent<TestOffCanvasModel>();
+        var result = await OffcanvasService.ShowAsync("This is a title", component, new OffcanvasOptions
+        {
+            Backdrop = true,
+            CloseOnEsc = true,
+            CloseOnClickOutside = true,
+            Position = OffcanvasPosition.End,
+        });
+
+        Console.WriteLine(result.Cancelled ? "Got cancelled" : "Modal was okkeyed!");
+        Console.WriteLine($"Result cancelled: {result.Cancelled}");
     }
 }

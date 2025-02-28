@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.WebApp", "Unilake.WebApp\Unilake.WebApp.csproj", "{239DA7A2-3FF2-48A6-AA3E-0DDD2F197FFB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.WebApp", "Unilake.WebApp\Unilake.WebApp.csproj", "{0E58E4C7-9CAB-4F35-B6DC-3A0E156A1486}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.WebApp.Tests", "Unilake.WebApp.Tests\Unilake.WebApp.Tests.csproj", "{936A060D-94B1-4002-81DC-2DE692043CE3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unilake.WebApp.DesignSystem", "..\..\unilake-webapp-designsystem\src\Unilake.WebApp.DesignSystem\Unilake.WebApp.DesignSystem.csproj", "{DC1CCC40-BEA2-4EB2-B158-46D52AF4FCFE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,13 +16,13 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{239DA7A2-3FF2-48A6-AA3E-0DDD2F197FFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{239DA7A2-3FF2-48A6-AA3E-0DDD2F197FFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{239DA7A2-3FF2-48A6-AA3E-0DDD2F197FFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{239DA7A2-3FF2-48A6-AA3E-0DDD2F197FFB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{936A060D-94B1-4002-81DC-2DE692043CE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{936A060D-94B1-4002-81DC-2DE692043CE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{936A060D-94B1-4002-81DC-2DE692043CE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{936A060D-94B1-4002-81DC-2DE692043CE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E58E4C7-9CAB-4F35-B6DC-3A0E156A1486}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E58E4C7-9CAB-4F35-B6DC-3A0E156A1486}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E58E4C7-9CAB-4F35-B6DC-3A0E156A1486}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E58E4C7-9CAB-4F35-B6DC-3A0E156A1486}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC1CCC40-BEA2-4EB2-B158-46D52AF4FCFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC1CCC40-BEA2-4EB2-B158-46D52AF4FCFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC1CCC40-BEA2-4EB2-B158-46D52AF4FCFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC1CCC40-BEA2-4EB2-B158-46D52AF4FCFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
