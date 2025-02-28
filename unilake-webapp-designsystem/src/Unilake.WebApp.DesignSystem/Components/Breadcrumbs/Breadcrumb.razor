@@ -1,7 +1,7 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-<div class="border-b-2">
+<div class="@ContainerClassNames()">
     <div class="ml-6 my-3 flex">
         <div class="@ClassNames flex gap-2.5 text-typography-body items-center align-center">
             @foreach (var item in BreadcrumbItems.Take(TakeItems))
@@ -9,7 +9,7 @@
                 <a href="@item.Uri" class="hover:text-typography-faded">@item.Label</a>
                 <Icon IconInstance="EnronIcons.ChevronRight" Size="12"/>
             }
-            @if (TakeItems != BreadcrumbItems.Length)
+            @if (MaxItems > 0 && TakeItems != MaxItems)
             {
                 <Icon IconInstance="EnronIcons.MoreHorizon" Size="12"/>
                 <Icon IconInstance="EnronIcons.ChevronRight" Size="12"/>
@@ -22,9 +22,12 @@
 
 
 @code {
-    [Parameter] public int MaxItems { get; set; }
+    [Parameter] public int MaxItems { get; set; } = 0;
     [Parameter] [EditorRequired] public required BreadcrumbItem[] BreadcrumbItems { get; set; }
+    [Parameter] public bool AccountForMenu { get; set; } = true;
 
     private BreadcrumbItem GetLastItem() => BreadcrumbItems.Last();
     private int TakeItems => MaxItems > 0 ? Math.Min(BreadcrumbItems.Length - 1, MaxItems) : BreadcrumbItems.Length - 1;
+
+    private string ContainerClassNames() => new ClassBuilder("border-b-2 mb-2").AddIf("-ml-6", AccountForMenu).ToString();
 }
