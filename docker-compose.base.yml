@@ -37,7 +37,7 @@ services:
 
   starrocks-fe:
     container_name: unilake_starrocks_fe
-    image: starrocks/fe-ubuntu:3.3-latest
+    image: starrocks/fe-ubuntu:3.4-latest
     hostname: starrocks-fe
     user: root
     command: >
@@ -59,7 +59,7 @@ services:
 
   starrocks-cn:
     container_name: unilake_starrocks_cn
-    image: starrocks/cn-ubuntu:3.3-latest
+    image: starrocks/cn-ubuntu:3.4-latest
     command:
       - /bin/bash
       - -c
