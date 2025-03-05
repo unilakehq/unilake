@@ -31,12 +31,12 @@
     @* footer *@
     <div class="@FooterClassNames">
         <a href="https://github.com/unilakehq/unilake" target="_blank">
-            <Icon IconInstance="EnronIcons.Git" Size="16"/>
+            <Icon IconInstance="AnronIcons.Git" Size="16"/>
         </a>
         <a href="/settings">
-            <Icon IconInstance="EnronIcons.Gear3" Size="16"/>
+            <Icon IconInstance="AnronIcons.Gear3" Size="16"/>
         </a>
-        <Icon IconInstance="EnronIcons.Globe" Size="16"/>
+        <Icon IconInstance="AnronIcons.Globe" Size="16"/>
     </div>
 </aside>
 
@@ -65,7 +65,7 @@
     protected override void OnInitialized()
     {
         _location = "/" + NavigationManager.Uri.Split(NavigationManager.BaseUri).Last();
-        UpdateActiveItems();
+        UpdateActiveItems(NavItems);
     }
 
     protected override void OnAfterRender(bool firstRender) =>
@@ -73,23 +73,28 @@
 
     private bool IsActive(NavItem item) => !string.IsNullOrWhiteSpace(item.Uri) && _location.StartsWith(item.Uri);
 
-    private bool UpdateActiveItems()
+    private bool UpdateActiveItems(IEnumerable<NavItem> items)
     {
-        var hasChanged = false;
-        foreach (var navItem in NavItems)
+        var isActive = false;
+        foreach (var navItem in items)
         {
-            var oldVal = navItem.State;
-            navItem.State = IsActive(navItem) ? MenuItemState.Active : navItem is { IsCollapsed: false } ? MenuItemState.Opened : MenuItemState.Default;
-            if (!hasChanged)
-                hasChanged = oldVal != navItem.State;
+            if (!isActive)
+                isActive = IsActive(navItem);
+
+            navItem.State =
+                IsActive(navItem) ? MenuItemState.Active :
+                navItem.HasChildren && UpdateActiveItems(navItem.Children!) ?
+                   navItem is {IsCollapsed: false } ?  MenuItemState.ActiveOpened : MenuItemState.ActiveClosed :
+                navItem is { IsCollapsed: false, HasChildren: true } ? MenuItemState.Opened :
+                MenuItemState.Default;
         }
-        return hasChanged;
+        return isActive;
     }
 
     private Task ToggleItemCollapse(NavItem item)
     {
         item.IsCollapsed = !item.IsCollapsed;
-        UpdateActiveItems();
+        UpdateActiveItems(NavItems);
         return Task.CompletedTask;
     }
 
@@ -98,7 +103,7 @@
         _location = context.TargetLocation;
         if (_location.StartsWith("http"))
             _location = "/" + context.TargetLocation.Split(NavigationManager.BaseUri).Last();
-        UpdateActiveItems();
+        UpdateActiveItems(NavItems);
         StateHasChanged();
         return ValueTask.CompletedTask;
     }

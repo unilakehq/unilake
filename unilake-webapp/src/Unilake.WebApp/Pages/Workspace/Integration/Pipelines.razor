@@ -1,63 +1,140 @@
-@page "/pipelines"
+@page "/catalog/pipelines"
 
-<VersionHistory class="w-[400px]" Items="Items"/>
+<div class="mt-4">
+    <QuickGridWrap>
+        <QuickGrid Pagination="PaginationState" Class="min-w-full divide-y divide-neutral-background-border-divider" Items="Items.AsQueryable()" Theme="unilake">
+            <PropertyColumn Property="@(x => x.Name)" Sortable="true"/>
+            <PropertyColumn Property="@(x => x.Description)"/>
+        </QuickGrid>
+    </QuickGridWrap>
+</div>
+
+<div class="mt-4">
+    <Pagination OnItemsPerPageChanged="StateHasChanged" PaginationState="PaginationState" Style="PaginationStyle.Regular"></Pagination>
+</div>
 
 @code {
-    private static TimeLineItem[] Items => [
-        new()
+
+    public PaginationState PaginationState { get; set; } = new()
+    {
+        ItemsPerPage = 3
+    };
+
+    class Model
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string Tags { get; set; }
+        public string DataQuality { get; set; }
+    }
+
+    List<Model> Items = new()
+    {
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "a",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "b",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "c",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "d",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "e",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "f",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "g",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "h",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-        new()
+        new Model
         {
-            Comment = "We have added some changes to this product...",
-            Uri = "https://google.com",
-            VersionNumber = "1.0.1"
+            Name = "i",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
         },
-    ];
+        new Model
+        {
+            Name = "j",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
+        },
+        new Model
+        {
+            Name = "k",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
+        },
+        new Model
+        {
+            Name = "l",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
+        },
+        new Model
+        {
+            Name = "m",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
+        },
+        new Model
+        {
+            Name = "h",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
+        },
+        new Model
+        {
+            Name = "i",
+            Description = "Lorem ipsum etc..",
+            Tags = "lorem ipsum, lorem ipsum",
+            DataQuality = "Not so good"
+        },
+    };
 
 }

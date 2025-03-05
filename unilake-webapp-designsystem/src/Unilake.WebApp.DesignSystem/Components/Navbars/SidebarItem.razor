@@ -52,7 +52,7 @@
         .AddIf("px-2 rounded-lg w-10 h-10", IsIconOnly)
         .AddIf("h-10 justify-between px-4", !IsIconOnly)
         .AddIf("border-r-2 border-feedback-brand-background bg-brand-light-menu-item-interaction", NavItem is { State: MenuItemState.Active } && !IsIconOnly)
-        .AddIf("hover:bg-brand-light-menu-item-interaction w-[200px]",NavItem.State != MenuItemState.Disabled)
+        .AddIf("hover:bg-brand-light-menu-item-interaction w-[200px]",NavItem.State != MenuItemState.Disabled && NavItem.State != MenuItemState.ActiveClosed && NavItem.State != MenuItemState.ActiveOpened)
         .AddIf("w-[198px]", !IsIconOnly && NavItem.State == MenuItemState.Active)
         .AddIf("w-[200px]", !IsIconOnly && NavItem.State != MenuItemState.Disabled)
         .AddIf("justify-center items-top w-[50px]", IsIconOnly)
@@ -60,29 +60,36 @@
 
     private string LeftIconClassNames => new ClassBuilder("flex items-center")
         .AddIf("text-typography-icon group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened)
+        .AddIf("text-brand-light-interaction", NavItem.State is MenuItemState.ActiveClosed or MenuItemState.ActiveOpened)
         .AddCompare("text-brand-light-interaction", NavItem.State, MenuItemState.Active)
         .AddCompare("text-typography-disabled", NavItem.State, MenuItemState.Disabled)
         .ToString();
 
     private string LabelClassNames => new ClassBuilder("font-semibold")
         .AddIf("text-typography-headline group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened)
+        .AddIf("text-brand-light-interaction", NavItem.State is MenuItemState.ActiveClosed or MenuItemState.ActiveOpened)
         .AddCompare("text-brand-light-interaction", NavItem.State, MenuItemState.Active)
         .AddCompare("text-typography-disabled", NavItem.State, MenuItemState.Disabled)
         .AddIf("ml-8", NavItem.LeftIcon == null)
         .ToString();
 
     private string BadgeClassNames => new ClassBuilder("rounded-full font-bold")
-        .AddIf("text-typography-body group-hover:text-feedback-brand-contrast bg-neutral-background-faded group-hover:bg-feedback-brand-background", NavItem.State is MenuItemState.Default or MenuItemState.Opened) .AddCompare("text-feedback-brand-contrast bg-feedback-brand-background", NavItem.State, MenuItemState.Active) .AddCompare("text-typography-body bg-neutral-background-faded", NavItem.State, MenuItemState.Disabled)
+        .AddIf("text-typography-body group-hover:text-feedback-brand-contrast bg-neutral-background-faded group-hover:bg-feedback-brand-background", NavItem.State is MenuItemState.Default or MenuItemState.Opened)
+        .AddIf("text-feedback-brand-contrast", NavItem.State is MenuItemState.ActiveClosed or MenuItemState.ActiveOpened)
+        .AddCompare("text-feedback-brand-contrast bg-feedback-brand-background", NavItem.State, MenuItemState.Active)
+        .AddCompare("text-typography-body bg-neutral-background-faded", NavItem.State, MenuItemState.Disabled)
         .ToString();
 
     private string RightIconClassNames => new ClassBuilder("flex items-center")
-        .AddIf("text-typography-icon group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened)
-        .AddCompare("text-brand-light-interaction", NavItem.State, MenuItemState.Active)
-        .AddCompare("text-typography-disabled", NavItem.State, MenuItemState.Disabled)
+        .AddIf("text-typography-icon group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
+        .AddIf("text-brand-light-interaction", NavItem.State is MenuItemState.ActiveClosed or MenuItemState.ActiveOpened && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
+        .AddIf("text-brand-light-interaction", NavItem.State is MenuItemState.Active && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
+        .AddIf("text-typography-disabled", NavItem.State is MenuItemState.Disabled && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
+        .AddIf(NavItem.RightIconColor!, !string.IsNullOrWhiteSpace(NavItem.RightIconColor))
         .ToString();
 
     private bool IsCollapsable => NavItem.Children?.Count() > 0;
-    public IIcon? RightIcon => IsCollapsable ? NavItem.State == MenuItemState.Opened ? EnronIcons.ChevronUp : EnronIcons.ChevronDown : NavItem.RightIcon;
+    public IIcon? RightIcon => IsCollapsable ? NavItem.State is MenuItemState.Opened or MenuItemState.ActiveOpened ? AnronIcons.ChevronUp : AnronIcons.ChevronDown : NavItem.RightIcon;
 
     private new async Task OnClick()
     {

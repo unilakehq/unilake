@@ -29,7 +29,7 @@ public class ToastModel
     public string Message { get; set; } = string.Empty;
     public string LeftIconTextColor { get; set; } = "text-blue-600";
     public string LeftIconBgColor { get; set; } = "bg-brand-bravo-50";
-    public IIcon LeftIcon { get; set; } = EnronIcons.Send;
+    public IIcon LeftIcon { get; set; } = AnronIcons.Send;
     public Toast.ToastVariant Variant { get; set; } = Toast.ToastVariant.Default;
     public ToastOptions Options { get; set; } = new();
     public RenderFragment? Contents { get; internal set; }

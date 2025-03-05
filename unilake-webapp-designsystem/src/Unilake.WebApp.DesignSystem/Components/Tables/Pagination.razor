@@ -1,0 +1,48 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inherits UnilakeBaseComponent
+
+<div class="flex justify-between">
+  <div class="flex gap-2 text-default leading-normal font-normal text-typography-body items-center">
+    <span>Showing</span>
+    <div>
+      <DropdownButton @ref="_dropdownButton"
+        CustomButtonClass="h-8 px-4 py-1 rounded-[4px] border justify-center items-center gap-2 inline-flex overflow-hidden font-semibold leading-normal text-typography-headline border-neutral-background-border-divider bg-neutral-background-default"
+        ButtonSize="ButtonSize.XSmall" ButtonText="@PaginationState.ItemsPerPage.ToString()">
+        <Dropdown OnItemClick="HandleItemClick" Items="Items"/>
+      </DropdownButton>
+    </div>
+    <span>items out of @PaginationState.TotalItemCount</span>
+  </div>
+  <PageStepper PaginationState="PaginationState"/>
+</div>
+
+@code {
+
+  private DropdownButton? _dropdownButton;
+
+  [Parameter]
+  public PaginationState PaginationState { get; set; } = new()
+  {
+    ItemsPerPage = 10
+  };
+
+  [Parameter] public PaginationStyle Style { get; set; }
+  [Parameter] public EventCallback OnItemsPerPageChanged { get; set; }
+
+  private DropdownItem[] Items =>
+  [
+    new("10", null),
+    new("25", null),
+    new("50", null),
+    new("75", null),
+    new("100", null),
+  ];
+
+  private async Task HandleItemClick(DropdownItem item)
+  {
+    PaginationState.ItemsPerPage = int.Parse(item.Label);
+    _dropdownButton?.Toggle();
+    await OnItemsPerPageChanged.InvokeAsync();
+  }
+}

@@ -7,12 +7,12 @@
             @foreach (var item in BreadcrumbItems.Take(TakeItems))
             {
                 <a href="@item.Uri" class="hover:text-typography-faded">@item.Label</a>
-                <Icon IconInstance="EnronIcons.ChevronRight" Size="12"/>
+                <Icon IconInstance="AnronIcons.ChevronRight" Size="12"/>
             }
             @if (MaxItems > 0 && TakeItems != MaxItems)
             {
-                <Icon IconInstance="EnronIcons.MoreHorizon" Size="12"/>
-                <Icon IconInstance="EnronIcons.ChevronRight" Size="12"/>
+                <Icon IconInstance="AnronIcons.MoreHorizon" Size="12"/>
+                <Icon IconInstance="AnronIcons.ChevronRight" Size="12"/>
             }
             <a href="@GetLastItem().Uri" class="text-typography-headline hover:text-typography-faded">@GetLastItem().Label</a>
         </div>

@@ -1,0 +1,51 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="h-[366px] p-6 bg-[#f9f8f6] rounded-lg shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.05)] shadow-md flex-col justify-start items-start gap-2.5 inline-flex">
+    <div class="self-stretch h-[318px] rounded-lg flex-col justify-start items-start gap-6 flex">
+        <div class="self-stretch justify-start items-center gap-3 inline-flex">
+            <div class="grow shrink basis-0 text-[#252532] text-sm font-semibold font-['Inter'] leading-normal">Description</div>
+            <div class="w-6 h-6 relative  overflow-hidden"></div>
+        </div>
+        <div class="rounded-lg border border-[#dddfda] flex-col justify-start items-start flex">
+            <div class="w-[494px] px-4 py-3 bg-[#efeeeb] rounded-tl-lg rounded-tr-lg justify-start items-center gap-4 inline-flex overflow-hidden">
+                <div class="justify-start items-center gap-[15px] flex">
+                    <div class="w-4 h-4 relative  overflow-hidden"></div>
+                    <div class="w-4 h-4 relative  overflow-hidden"></div>
+                    <div class="w-4 h-4 relative  overflow-hidden"></div>
+                    <div class="w-4 h-4 relative"></div>
+                    <div class="w-4 h-4 relative"></div>
+                    <div class="w-4 h-4 relative"></div>
+                    <div class="w-4 h-4 relative"></div>
+                </div>
+            </div>
+            <div class="w-[494px] h-[166px] px-4 py-3 bg-[#f9f8f6] rounded-bl-lg rounded-br-lg justify-start items-start gap-2.5 inline-flex">
+                <div class="grow shrink basis-0 self-stretch justify-start items-start flex">
+                    <div class="grow shrink basis-0 text-[#525d61] text-sm font-normal font-['Inter'] leading-normal">Lorem ipsum dolor sit amet consectetur. A eleifend et quis sem varius. Nunc turpis ornare accumsan tellus mauris arcu sed. <br/>Dictum ultricies quis justo placerat ac nec vestibulum. Ullamcorper ut imperdiet enim mattis. Eu nisi volutpat mauris adipiscing. <br/>Arcu a lectus lectus massa in mauris quam quisque. Netus tincidunt pellentesque quis eu elit.</div>
+                </div>
+            </div>
+        </div>
+        <div class="self-stretch justify-between items-center inline-flex">
+            <div class="px-4 py-2 bg-[#f9f8f6] rounded-lg border border-[#dddfda] justify-center items-center gap-2 flex overflow-hidden">
+                <div class="text-[#252532] text-xs font-semibold font-['Inter'] leading-normal">Cancel</div>
+            </div>
+            <div class="px-4 py-2 bg-[#ff6849] rounded-lg justify-start items-center gap-2 flex overflow-hidden">
+                <div class="text-[#f9f8f6] text-xs font-semibold font-['Inter'] leading-normal">Save</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    public TextInput TextInput { get; set; }
+
+    public void Testing()
+    {
+    }
+
+    // Todo: https://markdown.puresourcecode.com/
+    // https://flowbite.com/docs/plugins/wysiwyg/#text-formatting
+    // https://stackoverflow.com/questions/60110779/get-the-selected-text-from-an-input-using-blazor
+
+    // approach: create the component in html, make use of the above javascript to allow for simple editing and add markdown tags, we will not render the markdown in the editor
+}

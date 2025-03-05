@@ -1,3 +1,5 @@
+using Ardalis.GuardClauses;
+
 namespace Unilake.WebApp.Services;
 
 /// <summary>
@@ -10,6 +12,9 @@ public class StateEventHandler : IDisposable
 
     public IDisposable RegisterStateHandler(string name, Func<StateChangeEvent, Task> handler)
     {
+        Guard.Against.NullOrEmpty(name);
+        Guard.Against.Null(handler);
+
         var registration = new StateChangeRegistration(this, name, handler);
         if (_state.TryGetValue(name, out var handlers))
             handlers.Add(registration);
@@ -21,6 +26,9 @@ public class StateEventHandler : IDisposable
 
     public async Task DispatchStateEvent<T>(string name, StateChangeEvent state, bool autoPopulateOldValue = true)
     {
+        Guard.Against.NullOrEmpty(name);
+        Guard.Against.Null(state);
+
         if (autoPopulateOldValue && _currentState.ContainsKey(name))
             state = new StateChangeEvent
             {
@@ -37,6 +45,9 @@ public class StateEventHandler : IDisposable
 
     public async Task DispatchStateEvent<T>(string name, Func<T, T> updateStateFunc)
     {
+        Guard.Against.NullOrEmpty(name);
+        Guard.Against.Null(updateStateFunc);
+
         var currentState = GetState<T>(name);
         var newState = updateStateFunc(currentState);
         if (newState != null)
@@ -46,12 +57,18 @@ public class StateEventHandler : IDisposable
 
     public void SetInitialState<T>(string name, T state)
     {
-        if (state != null)
-            _currentState.TryAdd(name, state);
+        Guard.Against.NullOrEmpty(name);
+        Guard.Against.Null(state);
+
+        if(!_currentState.TryAdd(name, state))
+            throw new InvalidOperationException($"State '{name}' already exists");
     }
 
     public void RemoveStateHandler(string name, Func<StateChangeEvent, Task> handler)
     {
+        Guard.Against.NullOrEmpty(name);
+        Guard.Against.Null(handler);
+
         if (!_state.TryGetValue(name, out var handlers)) return;
         var found = handlers.FirstOrDefault(x => x.Handler == handler);
         if (found != null)
@@ -83,6 +100,10 @@ sealed class StateChangeRegistration : IDisposable
 
     public StateChangeRegistration(StateEventHandler stateHandler, string name, Func<StateChangeEvent, Task> handler)
     {
+        Guard.Against.Null(stateHandler);
+        Guard.Against.NullOrEmpty(name);
+        Guard.Against.Null(handler);
+
         _name = name;
         _stateHandler = stateHandler;
         Handler = handler;

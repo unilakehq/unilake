@@ -9,7 +9,7 @@
             @LabelText
             @if (!string.IsNullOrWhiteSpace(TooltipText))
             {
-                <Icon class="@LabelIconClass()" IconInstance="EnronIcons.SuccessBadge" Size="12"></Icon>
+                <Icon class="@LabelIconClass()" IconInstance="AnronIcons.SuccessBadge" Size="12"></Icon>
             }
         </div>
     }
@@ -55,7 +55,7 @@
                                 @if (option.Value == CurrentSelection.Value)
                                 {
                                     <Icon class="text-feedback-info-text mr-2" Size="16"
-                                          IconInstance="EnronIcons.Check"></Icon>
+                                          IconInstance="AnronIcons.Check"></Icon>
                                 }
                             </div>
                         </button>
@@ -71,7 +71,7 @@
     [Parameter] [EditorRequired] public required SelectInputOption[] Options { get; set; }
     [Parameter] [EditorRequired] public required SelectInputOption CurrentSelection { get; set; }
     [Parameter] public EventCallback<SelectInputOption> OnInput { get; set; }
-    [Parameter] public IIcon? LeftIcon { get; set; } = EnronIcons.SuccessBadge;
+    [Parameter] public IIcon? LeftIcon { get; set; } = AnronIcons.SuccessBadge;
     [Parameter] public IIcon? RightIcon { get; set; }
     [Parameter] public string LabelText { get; set; } = string.Empty;
     [Parameter] public string HelperText { get; set; } = string.Empty;
@@ -97,7 +97,7 @@
         }
     }
 
-    private IIcon GetRightIcon() => RightIcon ?? (_showDropdown ? EnronIcons.ChevronUp : EnronIcons.ChevronDown);
+    private IIcon GetRightIcon() => RightIcon ?? (_showDropdown ? AnronIcons.ChevronUp : AnronIcons.ChevronDown);
 
     private string HelperClass() => new ClassBuilder("text-small")
         .AddIf("text-typography-disabled", IsDisabled)

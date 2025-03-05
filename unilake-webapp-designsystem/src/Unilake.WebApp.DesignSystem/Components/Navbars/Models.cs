@@ -6,6 +6,7 @@ public class NavItem
     public string? Uri { get; init; }
     public IIcon? LeftIcon { get; init; }
     public IIcon? RightIcon { get; init; }
+    public string? RightIconColor { get; init; }
     public int? Badge { get; set; }
     public MenuItemState State { get; set; } = MenuItemState.Default;
     public IEnumerable<NavItem>? Children { get; init; }
@@ -22,6 +23,8 @@ public enum MenuItemState
 {
     Default,
     Active,
+    ActiveOpened,
+    ActiveClosed,
     Opened,
     Disabled
 }

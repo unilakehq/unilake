@@ -6,7 +6,7 @@ public enum DropdownHorizontalAlign
     Right
 }
 
-public record DropdownItem(string Label, IIcon LeftIcon);
+public record DropdownItem(string Label, IIcon? LeftIcon);
 
 public class DropdownFilterItem
 {

@@ -16,29 +16,31 @@ public class StaticStateServiceImpl : StateService
         new()
         {
             Label = "Dashboard",
-            LeftIcon = EnronIcons.BookOpen,
+            LeftIcon = AnronIcons.BookOpen,
             Uri = "/weather",
         },
         new()
         {
             Label = "Jobs",
-            LeftIcon = EnronIcons.Dashboard4,
+            LeftIcon = AnronIcons.Dashboard4,
             Uri = "/counter",
         },
         new()
         {
             Label = "Catalog",
-            LeftIcon = EnronIcons.BookOpen,
+            LeftIcon = AnronIcons.BookOpen,
             Children =
             [
                 new()
                 {
                     Label = "Explore",
+                    Uri = "/catalog/pipelines"
                 },
                 new()
                 {
                     Label = "Chat",
-                    RightIcon = EnronIcons.Ai
+                    RightIcon = AnronIcons.Ai,
+                    RightIconColor = "text-brand-light-interaction"
                 },
                 new()
                 {
@@ -57,13 +59,12 @@ public class StaticStateServiceImpl : StateService
         new()
         {
             Label = "Integration",
-            LeftIcon = EnronIcons.Gear3,
-            Uri = "/pipelines"
+            LeftIcon = AnronIcons.Gear3,
         },
         new()
         {
             Label = "SQL Warehouse",
-            LeftIcon = EnronIcons.Server2,
+            LeftIcon = AnronIcons.Server2,
             Children =
             [
                 new()
@@ -87,7 +88,7 @@ public class StaticStateServiceImpl : StateService
         new()
         {
             Label = "Data Science",
-            LeftIcon = EnronIcons.Eye,
+            LeftIcon = AnronIcons.Eye,
             Children =
             [
                 new()

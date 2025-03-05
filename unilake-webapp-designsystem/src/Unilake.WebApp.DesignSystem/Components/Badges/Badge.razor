@@ -19,14 +19,14 @@
       @if (IsClosable)
       {
             <span class="ml-1 @IconClassNames(true)">
-                  <Icon IconInstance="EnronIcons.Cross" Size="@IconSize()"
+                  <Icon IconInstance="AnronIcons.Cross" Size="@IconSize()"
                         @onclick="() => ToggleState(BadgeEvent.Closed)"></Icon>
             </span>
       }
       @if (IsAcceptable)
       {
             <span class="ml-1 @IconClassNames(false)">
-                  <Icon IconInstance="EnronIcons.Check" Size="@IconSize()"
+                  <Icon IconInstance="AnronIcons.Check" Size="@IconSize()"
                         @onclick="() => ToggleState(BadgeEvent.Accepted)"></Icon>
             </span>
       }

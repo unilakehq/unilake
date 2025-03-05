@@ -14,7 +14,7 @@
     @if (IsSearchEnabled)
     {
         <div>
-            <TextInput PlaceholderText="@SearchPlaceholder" LeftIcon="EnronIcons.Search" IsClearable="@true"
+            <TextInput PlaceholderText="@SearchPlaceholder" LeftIcon="AnronIcons.Search" IsClearable="@true"
                        OnInput="OnSearchInput" OnClick="OnSearchClear"></TextInput>
         </div>
     }
@@ -122,7 +122,7 @@
         return Task.CompletedTask;
     }
 
-    private IIcon GetCategoryIcon(bool isOpened) => isOpened ? EnronIcons.ChevronRight : EnronIcons.ChevronDown;
+    private IIcon GetCategoryIcon(bool isOpened) => isOpened ? AnronIcons.ChevronRight : AnronIcons.ChevronDown;
 
     private Task OnSearchClear() =>
         OnSearchInput(new()

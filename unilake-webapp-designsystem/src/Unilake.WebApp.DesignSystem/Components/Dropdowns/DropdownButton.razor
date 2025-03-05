@@ -5,13 +5,19 @@
     @* flex-col inline-flex items-end *@
     <div class="relative">
         <div>
-            @if (CustomButton != null)
+            @if (!string.IsNullOrWhiteSpace(CustomButtonClass))
+            {
+                <Button Size="ButtonSize" class="@CustomButtonClass" Variant="ButtonVariant.Custom" @onclick="Toggle" RightIcon="GetRightIcon()">
+                    @ButtonText
+                </Button>
+            }
+            else if (CustomButton != null)
             {
                 @CustomButton
             }
             else
             {
-                <Button Variant="ButtonVariant.Bravo" @onclick="Toggle" RightIcon="GetRightIcon()">
+                <Button Size="ButtonSize" Variant="ButtonVariant.Bravo" @onclick="Toggle" RightIcon="GetRightIcon()">
                     @ButtonText
                 </Button>
             }
@@ -25,21 +31,31 @@
 @code {
     [Parameter] public string ButtonText { get; set; } = "Button Text";
 
-    [Parameter] public RenderFragment? CustomButton { get; set; }
+    [Parameter]
+    public ButtonSize ButtonSize { get; set; } = ButtonSize.Default;
 
     [Parameter] public DropdownHorizontalAlign Align { get; set; } = DropdownHorizontalAlign.Right;
 
+    [Parameter] public string CustomButtonClass { get; set; } = string.Empty;
+
+    [Parameter] public RenderFragment? CustomButton { get; set; }
+
     private bool _isDropdownVisible;
-    private IIcon GetRightIcon() => _isDropdownVisible ? EnronIcons.ChevronUp : EnronIcons.ChevronDown;
+    private IIcon GetRightIcon() => _isDropdownVisible ? AnronIcons.ChevronUp : AnronIcons.ChevronDown;
 
     public Task Toggle()
     {
         _isDropdownVisible = !_isDropdownVisible;
+        StateHasChanged();
         return Task.CompletedTask;
     }
 
     protected override string ClassNames => ClassBuilder
-        .Add("absolute top-14 z-20 w-fit")
+        .Add("absolute z-20 w-fit")
+        .AddCompare("top-10", ButtonSize, ButtonSize.XSmall)
+        .AddCompare("top-12", ButtonSize, ButtonSize.Small)
+        .AddCompare("top-14", ButtonSize, ButtonSize.Default)
+        .AddCompare("top-16", ButtonSize, ButtonSize.Large)
         .AddCompare("right-0", Align, DropdownHorizontalAlign.Left)
         .AddCompare("left-0", Align, DropdownHorizontalAlign.Right)
         .AddIf("hidden", !_isDropdownVisible).ToString();

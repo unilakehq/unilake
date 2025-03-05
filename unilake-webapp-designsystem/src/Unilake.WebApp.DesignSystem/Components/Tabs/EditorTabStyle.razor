@@ -31,11 +31,11 @@
     [Parameter] public EventCallback<ITab> OnOpen { get; set; }
     [Parameter] public EventCallback<(ITab, string)> OnNameChange { get; set; }
     private ElementReference inputElement;
-    private IIcon LeftIcon => EnronIcons.Pages;
+    private IIcon LeftIcon => AnronIcons.Pages;
     private EditorTabState _internalState = EditorTabState.Default;
     private EditorTabState _externalState = EditorTabState.Default;
     private bool _isDoubleClick = false;
-    private IIcon RightIcon { get; set; } = EnronIcons.Cross;
+    private IIcon RightIcon { get; set; } = AnronIcons.Cross;
     private EditorTabState CurrentState
     {
         get => _externalState;
