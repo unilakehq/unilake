@@ -20,7 +20,7 @@
 </div>
 
 <h3 align="center">
-  The open source and cloud independent data lake analytics platform
+   The open source and cloud independent data lake analytics platform
 </h3>
 
 ---
@@ -28,15 +28,15 @@
 This project is in its early stages of development
 
 ---
-## Features
+## Features (under development)
 
-- [ ] **Multi-domain**: A single deployment with Web UI for multiple workspaces and data domains, easily create new workspaces in a click without additional infra setup
-- [ ] **Runs Everywhere**: Unilake is cloud native and only requires a data solution (S3/ADLS/GCP Storage/HDFS) and compute (kubernetes)
-- [ ] **Once-Click install**: Easily install Unilake and maintain it using the Unilake CLI
-- [ ] **Compute Plane**: Connect to either a SQL endpoint or create dataframes to transform or analyze your data
+- [ ] **Multi-domain**: A single Unilake deployment includes a Web UI for multiple workspaces and data domains, easily create new workspaces in a click without additional infra setup
+- [ ] **Runs Everywhere**: Unilake is cloud native and only requires a data layer (S3/ADLS/GCP Storage/HDFS) and a compute layer (kubernetes)
+- [ ] **Automated deployment**: Install Unilake on numerous cloud providers and maintain it using the Unilake CLI
+- [ ] **Compute Plane**: Connect to either our SQL endpoint or create dataframes to transform and analyze your data
+- [ ] **Single Governance Layer (UniSecure)**: Apply ABAC security policies to structured and unstructured data available via Unilake
 - [ ] **AI Powered**: Chat with your data or create new agents fully goverend and connected with UniSecure
 - [ ] **Metalake**: Connect and directly integrate data from across all your sources, formats and cloud providers
-- [ ] **Single Governance Layer (UniSecure)**: Apply ABAC security policies to structured and unstructured data available via Unilake
 - [ ] **No-Code Data Integration**: Integrate data from over 350+ datasources without touching a single line of code
 - [ ] **Unified Catalog**: Easily find your data across multiple data domains
 - [ ] **AI Studio**: Get AI/ML initiatives started from day 1 with an integrated AI/ML lifecycle
