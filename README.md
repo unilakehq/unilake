@@ -28,7 +28,7 @@
 
 Unilake is the open source data lake analytics and AI platform. Unilake is:
 
-- **Uni**versally accessible (fully free and open source)
+- **Uni**versally accessible (fully free and open source), run Unilake in the cloud, on-prem, on a single machine, or on thousands of machines
 - **Uni**fied for Data Integration, Analytics and AI workloads
 - **Uni**formly cataloged and accessible for your data, whether you are using Iceberg, Delta, Hudi, Kudu, Paimon, Hive...
 - **Uni**fied governance for data and AI, whether that is structured or unstructured data, datasets or AI models. All governed from a single interface
