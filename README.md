@@ -1,8 +1,8 @@
 <div align="center">
 
 [![Documentation](https://img.shields.io/github/v/release/unilakehq/docs.unilake?label=Docs&color=23cc71)](https://docs.unilake.com)
-[![License](https://img.shields.io/github/license/unilakehq/unilake)](https://github.com/unilakehq/unilake?tab=AGPL-3.0-1-ov-file#)
-[![License](https://img.shields.io/badge/license-EUPL--1.2-green)](https://github.com/unilakehq/unilake?tab=EUPL-1.2-2-ov-file#)
+[![License](https://img.shields.io/github/license/unilakehq/unilake)](https://github.com/unilakehq/unilake/blob/main/LICENSE-AGPL)
+[![License](https://img.shields.io/badge/license-EUPL--1.2-green)](https://github.com/unilakehq/unilake/blob/main/LICENSE-EUPL)
 [![Contributors](https://img.shields.io/github/contributors/unilakehq/unilake)](https://github.com/unilakehq/unilake/graphs/contributors)
 [![Open Issues](https://img.shields.io/github/issues-raw/unilakehq/unilake)](https://github.com/unilakehq/unilake/issues)
 [![Community Chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://chat.unilake.com)
@@ -33,7 +33,7 @@ This project is in its early stages of development
 - [ ] **Multi-domain**: A single Unilake deployment includes a Web UI for multiple workspaces and data domains, easily create new workspaces in a click without additional infra setup
 - [ ] **Runs Everywhere**: Unilake is cloud native and only requires a data layer (S3/ADLS/GCP Storage/HDFS) and a compute layer (kubernetes)
 - [ ] **Automated deployment**: Install Unilake on numerous cloud providers and maintain it using the Unilake CLI
-- [ ] **Compute Plane**: Connect to either our SQL endpoint or create dataframes to transform and analyze your data
+- [ ] **Compute Plane**: Connect to our SQL endpoint or create dataframes to transform and analyze your data
 - [ ] **Single Governance Layer (UniSecure)**: Apply ABAC security policies to structured and unstructured data available via Unilake
 - [ ] **AI Powered**: Chat with your data or create new agents fully goverend and connected with UniSecure
 - [ ] **Metalake**: Connect and directly integrate data from across all your sources, formats and cloud providers
