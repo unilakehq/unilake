@@ -1,0 +1,25 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: loading indicator for the button *@
+<div class="flex">
+    <TextInput OnEnterPressed="@InnerOnSearch" class="p-2 h-10 w-full border rounded-tl-lg rounded-bl-lg text-sm"
+               LeftIcon="LeftIcon" PlaceholderText="@PlaceholderText"
+               @bind-Value="@_searchText"/>
+    <Button IsLoading="_isLoading" OnClick="@InnerOnSearch" class="h-10" Variant="ButtonVariant.FilterSearch">Search</Button>
+</div>
+
+@code {
+    [Parameter] public string PlaceholderText { get; set; } = "Filter";
+    [Parameter] public IIcon LeftIcon { get; set; } = AnronIcons.Search;
+    [Parameter] public EventCallback<string> OnSearch { get; set; }
+    string _searchText = "";
+    bool _isLoading = false;
+
+    private async Task InnerOnSearch()
+    {
+        _isLoading = true;
+        await OnSearch.InvokeAsync(_searchText);
+        _isLoading = false;
+    }
+}

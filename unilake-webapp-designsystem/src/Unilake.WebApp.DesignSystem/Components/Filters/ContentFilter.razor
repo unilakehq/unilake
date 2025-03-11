@@ -1,5 +1,87 @@
-<h3>ContentFilter</h3>
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+@* todo: models need to be implemented *@
+<div class="p-2 rounded-lg bg-neutral-background-faded dark:bg-neutral-background-dark-faded">
+    <div class="flex justify-between items-center">
+        @if (IsShowSearchbar)
+        {
+            <SearchBar/>
+        }
+        <div class="flex gap-2">
+            @if (IsShowSort)
+            {
+                <DropdownButton Align="DropdownHorizontalAlign.Left" ButtonLeftIcon="AnronIcons.Atom" ButtonSize="ButtonSize.Small" ButtonText="Sort">
+                    <Dropdown Items="Items"/>
+                </DropdownButton>
+            }
+            <Button OnClick="ShowHideFilters" Size="ButtonSize.Small" Variant="ButtonVariant.Bravo" LeftIcon="ShowFiltersIcon">@ShowFiltersText</Button>
+        </div>
+    </div>
+    @if (IsShowFilters)
+    {
+        <div class="flex-col">
+            <div class="flex gap-2 pt-4">
+                <DropdownButton ButtonVariant="ButtonVariant.Filter" Align="DropdownHorizontalAlign.Right" ButtonLeftIcon="AnronIcons.Atom" ButtonSize="ButtonSize.Small" ButtonText="Platform (1)">
+                    <DropdownFilter CheckboxTriStateVariant="CheckboxTriStateVariant.Filter" class="w-[300px]" ButtonText="Update" Items="SearchableItems"/>
+                </DropdownButton>
+                <DropdownButton ButtonVariant="ButtonVariant.FilterActive" Align="DropdownHorizontalAlign.Right" ButtonLeftIcon="AnronIcons.Atom" ButtonSize="ButtonSize.Small" ButtonText="Type">
+                    <DropdownFilter CheckboxTriStateVariant="CheckboxTriStateVariant.Filter" IsVirtualized="false" class="w-[400px]" Items="SearchableItems"/>
+                </DropdownButton>
+            </div>
+            <hr class="h-px my-2 bg-neutral-background-default dark:bg-neutral-background-dark-default border-0">
+            <div class="flex gap-1 justify-between">
+                <div class="flex gap-1 items-baseline">
+                    <Tooltip class="p-2" Placement="Tooltip.TooltipPlacement.Bottom" Text="Person, person">
+                        <Badge BadgeStyle="BadgeStyle.Primary" BadgeTheme="BadgeTheme.Info" IsClosable="true" LeftIcon="AnronIcons.Atom" LabelText="Adoption" Size="BadgeSize.Small"/>
+                    </Tooltip>
+                    <Badge BadgeStyle="BadgeStyle.Primary" BadgeTheme="BadgeTheme.Info" IsClosable="true" LeftIcon="AnronIcons.Atom" LabelText="Adoption" Size="BadgeSize.Small"/>
+                    <Badge BadgeStyle="BadgeStyle.Primary" BadgeTheme="BadgeTheme.Info" IsClosable="true" LeftIcon="AnronIcons.Atom" LabelText="Adoption" Size="BadgeSize.Small"/>
+                    <Badge BadgeStyle="BadgeStyle.Primary" BadgeTheme="BadgeTheme.Info" IsClosable="true" LeftIcon="AnronIcons.Atom" LabelText="Adoption" Size="BadgeSize.Small"/>
+                </div>
+                <div>
+                    <button @onclick="ClearAllFilters" class="underline text-small text-brand-light-link dark:text-brand-dark-link hover:text-brand-light-link-hover dark:hover:text-brand-dark-link-hover">clear all</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
-    
+    [Parameter] public bool IsShowFilters { get; set; } = true;
+    [Parameter] public bool IsShowSearchbar { get; set; } = true;
+    [Parameter] public bool IsShowSort { get; set; } = true;
+
+    private string ShowFiltersText => IsShowFilters ? "Hide filters" : "Show filters";
+    private IIcon ShowFiltersIcon => IsShowFilters ? AnronIcons.Cross : AnronIcons.Eye;
+
+    private DropdownItem[] Items => [
+        new ("Relevance (Default)", null),
+        new ("Name A to Z", null),
+        new ("Name Z to A", null),
+        new ("Last Modified In Source", null),
+    ];
+
+    private DropdownFilterItem[] SearchableItems => [
+        new ("Relevance (Default)", "0", [
+            new("a", "a"),
+            new("b", "b"),
+            new("c", "c"),
+            new("d", "d"),
+            new("e", "e")
+        ], false, true),
+    ];
+
+    private Task ShowHideFilters()
+    {
+        IsShowFilters = !IsShowFilters;
+        return Task.CompletedTask;
+    }
+
+    private Task ClearAllFilters()
+    {
+        Console.WriteLine("Clearing filters");
+        return Task.CompletedTask;
+    }
+
 }
