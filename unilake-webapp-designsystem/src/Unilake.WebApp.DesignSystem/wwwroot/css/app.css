@@ -15,6 +15,10 @@
         @apply bg-neutral-background-default text-typography-body font-medium text-small leading-normal
     }
 
+    :is(.dark .quickgrid[theme=unilake] thead) {
+        @apply bg-neutral-background-dark-default text-typography-dark-body font-medium text-small leading-normal
+    }
+
     .quickgrid[theme=unilake] thead > tr > th {
         @apply px-5 py-4 text-start
     }
@@ -23,8 +27,16 @@
         @apply divide-y divide-neutral-background-border-divider text-small text-typography-body
     }
 
+    :is(.dark .quickgrid[theme=unilake] tbody) {
+        @apply divide-y divide-neutral-background-dark-border-divider text-small text-typography-dark-body
+    }
+
     .quickgrid[theme=unilake] tbody > tr {
         @apply hover:bg-neutral-background-faded
+    }
+
+    :is(.dark .quickgrid[theme=unilake] tbody > tr) {
+        @apply hover:bg-neutral-background-dark-faded
     }
 
     .quickgrid[theme=unilake] tbody > tr .col-justify-end {
@@ -53,11 +65,6 @@
 
     .quickgrid[theme=unilake] .sort-indicator {
         @apply w-3 h-3 self-center text-center
-    }
-
-    /*todo: fix dark mode*/
-    :is(.dark .quickgrid[theme=unilake] tbody tr) {
-        @apply hover:bg-black
     }
 
     .quickgrid[theme=unilake] .sort-indicator {
