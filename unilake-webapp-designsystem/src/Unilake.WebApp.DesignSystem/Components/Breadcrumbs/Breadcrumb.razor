@@ -3,10 +3,10 @@
 
 <div class="@ContainerClassNames()">
     <div class="ml-6 pb-3 flex">
-        <div class="@ClassNames flex gap-2.5 text-typography-body items-center align-center">
+        <div class="@ClassNames flex gap-2.5 text-typography-body dark:text-typography-dark-body items-center align-center">
             @foreach (var item in BreadcrumbItems.Take(TakeItems))
             {
-                <a href="@item.Uri" class="hover:text-typography-faded">@item.Label</a>
+                <a href="@item.Uri" class="hover:text-typography-faded dark:hover:text-typography-dark-faded">@item.Label</a>
                 <Icon IconInstance="AnronIcons.ChevronRight" Size="12"/>
             }
             @if (MaxItems > 0 && TakeItems != MaxItems)
@@ -14,7 +14,7 @@
                 <Icon IconInstance="AnronIcons.MoreHorizon" Size="12"/>
                 <Icon IconInstance="AnronIcons.ChevronRight" Size="12"/>
             }
-            <a href="@GetLastItem().Uri" class="text-typography-headline hover:text-typography-faded">@GetLastItem().Label</a>
+            <a href="@GetLastItem().Uri" class="text-typography-headline dark:text-typography-dark-headline hover:text-typography-faded dark:hover:text-typography-dark-faded">@GetLastItem().Label</a>
         </div>
         @ChildContent
     </div>
@@ -22,8 +22,8 @@
 
 
 @code {
+    [Parameter, EditorRequired] public required BreadcrumbItem[] BreadcrumbItems { get; set; }
     [Parameter] public int MaxItems { get; set; } = 0;
-    [Parameter] [EditorRequired] public required BreadcrumbItem[] BreadcrumbItems { get; set; }
     [Parameter] public bool AccountForMenu { get; set; } = true;
 
     private BreadcrumbItem GetLastItem() => BreadcrumbItems.Last();

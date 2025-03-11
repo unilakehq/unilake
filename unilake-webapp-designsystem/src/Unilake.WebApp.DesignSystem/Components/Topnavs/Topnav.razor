@@ -2,11 +2,11 @@
 @inherits UnilakeBaseComponent
 
 <nav
-  class="fixed flex h-12 w-full items-center border-b border-neutral-background-border-divider bg-neutral-background-default px-2 dark:border-gray-700 dark:bg-gray-800">
+  class="fixed flex h-12 w-full items-center border-b border-neutral-background-border-divider bg-neutral-background-default px-2 dark:border-gray-700 dark:bg-neutral-background-dark-default">
   <div class="flex w-full items-center justify-between">
     @* left menu section *@
-    <div class="flex gap-4 items-center">
-      <Icon IconInstance="AnronIcons.Menu3" Size="28"
+    <div class="flex gap-4 items-center ps-2">
+      <Icon IconInstance="AnronIcons.Menu3" Size="20"
             class="cursor-pointer inline text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
             OnClick="OnSideNavToggle"/>
       <div class="flex">
@@ -50,7 +50,7 @@
       @RightContent
       @* color mode toggle *@
       <Button Variant="ButtonVariant.Custom" OnClick="OnDarkModeToggle">
-        <Icon IconInstance="AnronIcons.Brightness" Size="24"></Icon>
+        <Icon class="text-typography-icon dark:text-typography-dark-icon" IconInstance="AnronIcons.Brightness" Size="24"></Icon>
       </Button>
       @* user menu *@
       <div class="flex items-center rounded-full focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600">
@@ -167,10 +167,10 @@
 
 
 @code {
+  [Parameter, EditorRequired] public required bool IsDarkMode { get; set; }
   [Parameter] public RenderFragment? LeftContent { get; set; }
   [Parameter] public RenderFragment? RightContent { get; set; }
   [Parameter] public RenderFragment? UserMenuContent { get; set; }
-  [Parameter] [EditorRequired] public required bool IsDarkMode { get; set; }
   [Parameter] public EventCallback<MouseEventArgs> OnDarkModeToggle { get; init; }
   [Parameter] public EventCallback<MouseEventArgs> OnSideNavToggle { get; init; }
   public required DropdownButton DropdownMenu { get; set; }

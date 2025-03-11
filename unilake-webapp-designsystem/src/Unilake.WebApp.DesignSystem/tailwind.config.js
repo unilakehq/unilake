@@ -7,6 +7,15 @@ module.exports = {
     theme: {
         colors: {
             typography: {
+                dark: {
+                    headline: '#F9F8F6',
+                    body: '#C1C5C0',
+                    icon: '#F9F8F6',
+                    faded: '#677575',
+                    disabled: '#677575',
+                    success: '#525D61',
+                    error: '#525D61'
+                },
                 headline: '#252532',
                 body: '#525D61',
                 icon: '#252532',
@@ -18,11 +27,11 @@ module.exports = {
             neutral: {
                 background: {
                     dark: {
-                        default: '',
-                        faded: '',
-                        disabled: '',
-                        'border-divider': '',
-                        invert: '',
+                        default: '#252532',
+                        faded: '#303540',
+                        disabled: '#3F4952',
+                        'border-divider': '#3F4952',
+                        invert: '#F9F8F6',
                     },
                     default: '#F9F8F6',
                     faded: '#EFEEEB',
@@ -84,15 +93,41 @@ module.exports = {
                 },
                 dark: {
                     link: '#1A76FF',
-                    'link-hover': '#00409B',
+                    'link-hover': '#97BFFF',
                     interaction: '#FF6849',
-                    'interaction-hover': '#E03C18',
-                    'interaction-focus': '',
-                    'menu-item-interaction': '#FFE9E4',
-                    'active-state': '#CBDFFF',
+                    'interaction-hover': '#FFA28D',
+                    'interaction-focus': '#FF6849',
+                    'menu-item-interaction': '#303540',
+                    'active-state': '#000923',
                 },
             },
             feedback: {
+                dark: {
+                    success: {
+                        background: '#325100',
+                        text: '#508600',
+                        contrast: '#C8EBAB'
+                    },
+                    error: {
+                        background: '#6E282E',
+                        text: '#CF0037',
+                        contrast: '#FFABAE'
+                    },
+                    info: {
+                        background: '#00409B',
+                        text: '#1A76FF',
+                        contrast: '#CBDFFF'
+                    },
+                    warning: {
+                        background: '#B54708',
+                        text: '#FDB022',
+                        contrast: '#FEF0C7'
+                    },
+                    brand: {
+                        background: '#FF6849',
+                        contrast: '#FFF6F4'
+                    }
+                },
                 brand: {
                     background: '#FF6849',
                     contrast: '#FFF6F4'

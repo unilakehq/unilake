@@ -1,6 +1,7 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
+@* todo: dark mode *@
 <div class="@ClassNames bg-neutral-background-default">
     <span class="text-large text-typography-headline">@LabelText</span>
     <ol class="relative border-s border-gray-200 dark:border-gray-700 mt-6 ms-2">
@@ -23,8 +24,7 @@
 </div>
 
 @code {
-    [Parameter]
-    [EditorRequired]
+    [Parameter, EditorRequired]
     public required TimeLineItem[] Items { get; init; }
 
     [Parameter]

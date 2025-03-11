@@ -1,7 +1,6 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: dark mode *@
 <div class="group relative inline-block">
     @ChildContent
     <div
@@ -29,7 +28,7 @@
     [Parameter] public bool IsPointerEnabled { get; set; } = true;
 
     protected override string ClassNames => ClassBuilder
-        .Add("bg-neutral-background-default shadow absolute z-10 rounded-[5px] py-1.5 px-3.5 opacity-0 group-hover:opacity-100 text-typography-headline")
+        .Add("bg-neutral-background-default dark:bg-neutral-background-dark-default shadow absolute z-10 rounded-[5px] py-1.5 px-3.5 invisible group-hover:visible text-typography-headline dark:text-typography-dark-headline")
         .AddIf("whitespace-nowrap", WhitespaceNoWrap)
         .AddCompare("bottom-full left-1/2 mb-2 -translate-x-1/2", Placement, TooltipPlacement.Top)
         .AddCompare("top-full left-1/2 mt-2 -translate-x-1/2", Placement, TooltipPlacement.Bottom)
@@ -38,7 +37,7 @@
         .ToString();
 
     private string SpanClassNames => new ClassBuilder()
-        .Add("bg-neutral-background-default absolute -z-10 h-2 w-2")
+        .Add("bg-neutral-background-default dark:bg-neutral-background-dark-default absolute -z-10 h-2 w-2")
         .AddCompare("bottom-[-4px] left-1/2 -translate-x-1/2 rotate-45", Placement, TooltipPlacement.Top)
         .AddCompare("top-[-4px] right-1/2 -translate-x-1/2 rotate-45", Placement, TooltipPlacement.Bottom)
         .AddCompare("right-[-4px] top-1/2 -translate-y-1/2 rotate-45", Placement, TooltipPlacement.Left)

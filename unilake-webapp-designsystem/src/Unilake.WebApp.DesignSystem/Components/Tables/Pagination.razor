@@ -3,11 +3,14 @@
 @inherits UnilakeBaseComponent
 
 <div class="flex justify-between">
-  <div class="flex gap-2 text-default leading-normal font-normal text-typography-body items-center">
+  <div class="flex gap-2 text-default leading-normal font-normal text-typography-body dark:text-typography-dark-body items-center">
     <span>Showing</span>
     <div>
       <DropdownButton @ref="_dropdownButton"
-        CustomButtonClass="h-8 px-4 py-1 rounded-[4px] border justify-center items-center gap-2 inline-flex overflow-hidden font-semibold leading-normal text-typography-headline border-neutral-background-border-divider bg-neutral-background-default"
+                      CustomButtonClass="h-8 px-4 py-1 rounded-[4px] border justify-center items-center gap-2 inline-flex overflow-hidden
+                                        font-semibold leading-normal text-typography-headline dark:text-typography-dark-headline
+                                        border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider
+                                        bg-neutral-background-default dark:bg-neutral-background-dark-default"
         ButtonSize="ButtonSize.XSmall" ButtonText="@PaginationState.ItemsPerPage.ToString()">
         <Dropdown OnItemClick="HandleItemClick" Items="Items"/>
       </DropdownButton>

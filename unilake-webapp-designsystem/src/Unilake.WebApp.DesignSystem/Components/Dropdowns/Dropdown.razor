@@ -1,25 +1,31 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: add dark mode *@
-<ul class="@ClassNames">
-    @foreach (var item in Items)
-    {
-        <li>
-            <button @onclick="@(async () => await OnItemClick.InvokeAsync(item))"
-                    class="inline-flex items-center py-2 px-4 bg-neutral-background-default hover:bg-neutral-background-faded w-full">
-                @if (item.LeftIcon != null)
-                {
-                    <Icon class="mr-2 text-typography-faded" IconInstance="@item.LeftIcon" Size="16"></Icon>
-                }
-                @item.Label
-            </button>
-        </li>
-    }
-</ul>
+<div class="@ClassNames pt-1 pb-1">
+    <ul>
+        @foreach (var item in Items)
+        {
+            <li>
+                <button @onclick="@(async () => await OnItemClick.InvokeAsync(item))"
+                        class="inline-flex items-center py-2 px-4
+                              hover:dark:bg-neutral-background-dark-faded hover:bg-neutral-background-faded w-full">
+                    @if (item.LeftIcon != null)
+                    {
+                        <Icon class="mr-2 text-typography-faded dark:text-typography-dark-faded" IconInstance="@item.LeftIcon" Size="16"></Icon>
+                    }
+                    @item.Label
+                </button>
+            </li>
+        }
+    </ul>
+</div>
 
 @code {
-    [Parameter] [EditorRequired] public required DropdownItem[] Items { get; set; }
+    [Parameter, EditorRequired] public required DropdownItem[] Items { get; set; }
     [Parameter] public EventCallback<DropdownItem> OnItemClick { get; set; }
-    protected override string ClassNames => ClassBuilder.Add("rounded-lg shadow-md border flex-col inline-flex text-typography-body border-neutral-background-border-divider text-default").ToString();
+    protected override string ClassNames => ClassBuilder.Add("w-max rounded-lg shadow-md border flex-col inline-flex " +
+                                                             "text-typography-body dark:text-typography-dark-body " +
+                                                             "border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider " +
+                                                             "bg-neutral-background-default dark:bg-neutral-background-dark-default " +
+                                                             "text-default").ToString();
 }

@@ -1,10 +1,9 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: dark mode *@
 <div class="flex items-center">
     <div @onclick="ToggleState" class="@ClassNames">
-        <Icon IconInstance="@GetIcon()" Size="10" Color="text-neutral-background-default"></Icon>
+        <Icon IconInstance="@GetIcon()" Size="10" Color="text-neutral-background-default dark:text-neutral-background-dark-default"></Icon>
     </div>
 </div>
 
@@ -12,26 +11,26 @@
     [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public bool? IsToggledOn { get; set; }
     [Parameter] public EventCallback<bool?> ValueChanged { get; set; }
-    public CheckboxTriStateVariant Variant { get; set; } = CheckboxTriStateVariant.Alpha;
+    [Parameter] public CheckboxTriStateVariant Variant { get; set; } = CheckboxTriStateVariant.Alpha;
 
     private bool EmptyState => !IsToggledOn.HasValue;
     private bool SelectedSate => IsToggledOn.HasValue && IsToggledOn.Value;
     private bool DeselectedSate => IsToggledOn.HasValue && !IsToggledOn.Value;
 
     private string ClassBgAlpha => new ClassBuilder()
-        .AddIf("bg-brand-light-interaction", SelectedSate || EmptyState)
-        .AddIf("text-neutral-background-default", DeselectedSate)
-        .Add("hover:border-brand-light-interaction")
+        .AddIf("bg-brand-light-interaction dark:bg-brand-dark-interaction", SelectedSate || EmptyState)
+        .AddIf("text-neutral-background-default dark:text-neutral-background-dark-default", DeselectedSate)
+        .Add("hover:border-brand-light-interaction dark:hover:border-brand-dark-interaction")
         .ToString();
 
     private string ClassBgFilter => new ClassBuilder()
-        .AddIf("bg-feedback-info-background", SelectedSate || EmptyState)
-        .AddIf("text-neutral-background-default", DeselectedSate)
-        .Add("hover:border-feedback-info-background")
+        .AddIf("bg-feedback-info-background dark:bg-feedback-dark-info-background", SelectedSate || EmptyState)
+        .AddIf("text-neutral-background-default dark:text-neutral-background-dark-default", DeselectedSate)
+        .Add("hover:border-feedback-info-background dark:hover:border-feedback-dark-info-background")
         .ToString();
 
     protected override string ClassNames => ClassBuilder
-        .Add("w-4 h-4 rounded border border-neutral-background-border-divider flex-col justify-center items-center inline-flex")
+        .Add("w-4 h-4 rounded-[4px] border border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider flex-col justify-center items-center inline-flex")
         .AddCompare(ClassBgAlpha, Variant, CheckboxTriStateVariant.Alpha)
         .AddCompare(ClassBgFilter, Variant, CheckboxTriStateVariant.Filter)
         .AddIf("cursor-not-allowed", IsDisabled)
