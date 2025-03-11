@@ -1,8 +1,7 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: dark mode implementation *@
-<div class="relative text-typography-body">
+<div class="relative text-typography-body dark:text-typography-dark-body">
     @if (!string.IsNullOrWhiteSpace(LabelText))
     {
         <label for="@_elementId"
@@ -18,8 +17,9 @@
            class="@InputClassNames()"
            @onmouseenter="() => OnMouseEnter(true)"
            @onmouseleave="() => OnMouseEnter(false)"
-           @oninput="@OnInput"
-           @bind=@ValueText
+           @bind-value=@Value
+           @bind-value:event="oninput"
+           @onkeydown="@OnNameKeyDown"
            disabled="@IsDisabled"
            placeholder="@PlaceholderText">
     @if (RightIcon != null)
@@ -52,9 +52,8 @@
     private readonly string _elementId = Guid.NewGuid().ToString();
     private bool _isInUse;
 
-    [Parameter] public EventCallback<ChangeEventArgs> OnInput { get; set; }
+    [Parameter] public EventCallback OnEnterPressed { get; set; }
     [Parameter] public IIcon? LeftIcon { get; set; }
-
     [Parameter]
     public IIcon? RightIcon
     {
@@ -73,18 +72,31 @@
     [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public bool IsSuccess { get; set; }
     [Parameter] public bool IsErrored { get; set; }
-    [Parameter] public string ValueText { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
     [Parameter] public string? InputType { get; set; }
+
+    private async Task OnNameKeyDown(KeyboardEventArgs args)
+    {
+        await ValueChanged.InvokeAsync(Value);
+        switch (args.Code)
+        {
+            case "Enter":
+            case "NumpadEnter":
+                await OnEnterPressed.InvokeAsync();
+                break;
+        }
+    }
 
     private async Task RightIconClick()
     {
-        if (IsClearable) ValueText = String.Empty;
+        if (IsClearable) Value = String.Empty;
         await OnClick.InvokeAsync();
     }
 
     private void OnMouseEnter(bool isInUse)
     {
-        if (_rightIcon == null && !string.IsNullOrWhiteSpace(ValueText))
+        if (_rightIcon == null && !string.IsNullOrWhiteSpace(Value))
             _isInUse = isInUse;
     }
 
@@ -92,14 +104,14 @@
     private bool HasHelperText => !string.IsNullOrWhiteSpace(HelperText) || ChildContent != null;
 
     private string LeftIconClassNames() => new ClassBuilder("absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none")
-        .AddIf("focus:text-typography-icon", !IsDisabled)
-        .AddIf("text-typography-disabled", IsDisabled)
+        .AddIf("focus:text-typography-icon dark:focus:text-typography-dark-icon", !IsDisabled)
+        .AddIf("text-typography-disabled dark:text-typography-dark-disabled", IsDisabled)
         .AddIf("mb-5", HasHelperText && !HasLabelText)
         .AddIf("pt-0", !HasHelperText && !HasLabelText)
         .AddIf("pt-7", !HasHelperText && HasLabelText)
         .ToString();
 
-    private string RightIconClassNames() => new ClassBuilder("absolute end-1 rounded-lg px-4 py-2")
+    private string RightIconClassNames() => new ClassBuilder("absolute end-1 rounded-lg px-4 py-3")
         .AddIf("focus:text-typography-icon", !IsDisabled)
         .AddIf("text-typography-disabled", IsDisabled)
         .AddIf("hidden", !_isInUse || IsDisabled)
@@ -109,24 +121,25 @@
         .AddIf("bottom-[2px]", !HasHelperText && !HasLabelText)
         .ToString();
 
-    private string LabelClassNames() => new ClassBuilder("block mb-2 text-sm font-bold text-typography-headline").ToString();
+    private string LabelClassNames() => new ClassBuilder("block mb-2 text-sm font-bold text-typography-headline dark:text-typography-dark-headline").ToString();
 
     private string InputClassNames() => ClassBuilder
         .Add("block")
         .AddIf("p-2 w-full border rounded-lg text-sm", string.IsNullOrWhiteSpace(ProvidedCssClasses))
-        .Add("text-typography-body focus:text-typography-headline hover:bg-neutral-background-faded focus:border-1")
+        .Add("bg-neutral-background-default dark:bg-neutral-background-dark-default")
+        .Add("text-typography-body dark:text-typography-dark-body focus:text-typography-headline dark:focus:text-typography-dark-headline hover:bg-neutral-background-faded dark:hover:bg-neutral-background-dark-faded focus:border-1")
         .Add("focus:ring-0 focus:ring-offset-0 focus:outline-none")
         .AddIf("ps-10", LeftIcon != null)
-        .AddIf("border-neutral-background-border-divider", !IsSuccess && !IsErrored)
-        .AddIf("border-feedback-success-background", IsSuccess)
-        .AddIf("border-feedback-error-background", IsErrored)
-        .AddIf("cursor-not-allowed bg-neutral-background-faded", IsDisabled)
+        .AddIf("border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider", !IsSuccess && !IsErrored)
+        .AddIf("border-feedback-success-background dark:border-feedback-success-dark-background", IsSuccess)
+        .AddIf("border-feedback-error-background dark:border-feedback-dark-error-background", IsErrored)
+        .AddIf("cursor-not-allowed bg-neutral-background-faded dark:bg-neutral-dark-background-faded", IsDisabled)
         .ToString();
 
     private string HelperTextClassNames() => new ClassBuilder("mt-2 text-sm")
-        .AddIf("text-typography-disabled", IsDisabled)
-        .AddIf("text-feedback-error-contrast", IsErrored)
-        .AddIf("text-feedback-success-contrast", IsSuccess)
+        .AddIf("text-typography-disabled dark:text-typography-dark-disabled", IsDisabled)
+        .AddIf("text-feedback-error-contrast dark:text-feedback-dark-error-contrast", IsErrored)
+        .AddIf("text-feedback-success-contrast dark:text-feedback-dark-success-contrast", IsSuccess)
         .ToString();
 
 }
