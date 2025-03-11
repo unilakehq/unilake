@@ -6,5 +6,6 @@ public enum ButtonVariant
     Bravo,
     Filter,
     FilterActive,
+    FilterSearch,
     Custom
 }

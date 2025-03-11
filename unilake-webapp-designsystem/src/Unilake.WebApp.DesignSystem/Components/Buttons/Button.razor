@@ -85,29 +85,39 @@
     protected override string ClassNames => ClassBuilder
         .AddIf("font-semibold leading-normal me-2 overflow-hidden items-center justify-start inline-flex gap-2 justify-center flex", Variant != ButtonVariant.Custom)
         .AddCompare("text-neutral-0 bg-brand-alpha-300 " +
-                    "hover:bg-brand-light-interaction-hover " +
-                    "focus:bg-brand-light-interaction-hover ring-brand-light-interaction-focus/25 focus:ring-4 focus:outline-none " +
-                    // todo: darkmode
-                    "dark:hover:bg-brand-dark-interaction-hover dark:focus:bg-brand-dark-interaction-focus", Variant, ButtonVariant.Alpha)
-        .AddCompare("bg-neutral-background-default text-typography-headline stroke-neutral-background-border-divider border-1 " +
-                    "hover:text-brand-alpha-300 hover:bg-neutral-background-faded " +
-                    "ring-brand-light-interaction-focus/25 focus:ring-4 focus:bg-neutral-background-default focus:outline-none " +
-                    // todo: darkmode
+                    "hover:bg-brand-light-interaction-hover dark:hover:bg-brand-dark-interaction-hover " +
+                    "focus:bg-brand-light-interaction-hover dark:focus:bg-brand-dark-interaction-hover ring-brand-light-interaction-focus/25 dark:ring-brand-dark-interaction-focus/25 focus:ring-2 focus:outline-none " +
+                    "", Variant, ButtonVariant.Alpha)
+        .AddCompare("bg-neutral-background-default dark:bg-neutral-background-dark-default " +
+                    "text-typography-headline dark:text-typography-dark-headline " +
+                    "border border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider bg-neutral-background-default dark:bg-neutral-background-dark-default " +
+                    "stroke-neutral-background-border-divider dark:stroke-neutral-background-dark-border-divider border-1 " +
+                    "hover:text-brand-alpha-300 dark:hover:text-brand-alpha-300 hover:bg-neutral-background-faded dark:hover:bg-neutral-background-dark-faded " +
+                    "ring-brand-light-interaction-focus/25 focus:ring-2 focus:bg-neutral-background-default dark:focus:bg-neutral-background-dark-default focus:outline-none " +
                     "", Variant, ButtonVariant.Bravo)
-        .AddCompare("text-neutral-0 stroke-neutral-background-border-divider border-1 focus:ring-4 focus:outline-none " +
-                    "bg-brand-light-link hover:bg-feedback-info-background focus:bg-feedback-info-text" +
-                    "" +
-                    // todo: darkmode
+        .AddCompare("text-neutral-0 stroke-neutral-background-border-divider border-1 " +
+                    "bg-brand-light-link hover:bg-feedback-info-background focus:bg-feedback-info-text " +
+                    "rounded-tr-lg rounded-br-lg " +
                     "", Variant, ButtonVariant.Filter)
-        .AddCompare("text-neutral-background-invert stroke-neutral-background-border-divider border-1 focus:ring-4 focus:outline-none " +
-                    "bg-brand-light-link hover:bg-feedback-info-background focus:bg-feedback-info-text" +
-                    "" +
-                    // todo: darkmode
+        .AddCompare("text-neutral-background-invert dark:text-neutral-background-dark-invert " +
+                    "stroke-neutral-background-border-divider dark:stroke-neutral-background-dark-border-divider " +
+                    "border-1 focus:ring-2 focus:outline-none " +
+                    "bg-neutral-background-default dark:bg-neutral-background-dark-default " +
+                    "hover:bg-feedback-info-background dark:hover:bg-feedback-info-dark-background " +
+                    "hover:text-neutral-background-default dark:hover:text-neutral-background-default " +
+                    "focus:text-neutral-background-default dark:focus:text-neutral-background-default " +
+                    "focus:bg-feedback-info-text dark:focus:bg-feedback-info-dark-text" +
                     "", Variant, ButtonVariant.FilterActive)
+        .AddCompare("text-neutral-0 stroke-neutral-background-border-divider border-1 " +
+                    "bg-brand-light-link hover:bg-feedback-info-background focus:bg-feedback-info-text " +
+                    "rounded-tr-lg rounded-br-lg " +
+                    "", Variant, ButtonVariant.FilterSearch)
         .AddIf(SizeClass(), Variant != ButtonVariant.Custom)
         .AddIf("cursor-not-allowed", IsDisabled || IsLoading)
         .AddIf("rounded-full", IsIcon)
-        .AddIf("rounded-lg", !IsIcon && Variant != ButtonVariant.Custom)
+        .AddIf("rounded-lg", !IsIcon &&
+                             Variant != ButtonVariant.Custom &&
+                             Variant != ButtonVariant.FilterSearch)
         .ToString();
 
 }
