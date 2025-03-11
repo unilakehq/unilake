@@ -4,7 +4,7 @@
 <img class="@ClassNames" src="@ImageUrl" alt="Rounded avatar">
 
 @code {
-    [Parameter] [EditorRequired] public required string ImageUrl { get; init; }
+    [Parameter, EditorRequired] public required string ImageUrl { get; init; }
     [Parameter] public required AvatarSize Size { get; init; } = AvatarSize.Medium;
 
     protected override string ClassNames => ClassBuilder

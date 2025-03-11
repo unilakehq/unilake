@@ -13,12 +13,8 @@
 </div>
 
 @code {
-    [Parameter]
-    public bool IsOpened { get; set; } = false;
-
-    [Parameter]
-    [EditorRequired]
-    public required RenderFragment Header { get; set; }
+    [Parameter, EditorRequired] public required RenderFragment Header { get; set; }
+    [Parameter] public bool IsOpened { get; set; } = false;
 
     protected override string ClassNames => ClassBuilder.ToString();
     private string ContentClassNames => new ClassBuilder()

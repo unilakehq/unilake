@@ -13,8 +13,7 @@
 </div>
 
 @code {
-    [Parameter]
-    [EditorRequired]
+    [Parameter, EditorRequired]
     public required List<string> Images { get; init; }
     [Parameter]
     public required AvatarSize Size { get; init; } = AvatarSize.Medium;
