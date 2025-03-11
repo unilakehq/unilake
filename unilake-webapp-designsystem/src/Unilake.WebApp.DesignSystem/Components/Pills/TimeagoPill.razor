@@ -1,0 +1,25 @@
+@using Humanizer
+@namespace Unilake.WebApp.DesignSystem.Components
+
+<Tooltip Text="@Timestamp.ToString()" class="p-1" Placement="Tooltip.TooltipPlacement.Bottom">
+ <div class="flex gap-1 px-2 items-center w-fit rounded-md bg-brand-bravo-100 text-feedback-info-text">
+  <Icon IconInstance="AnronIcons.Time" Size="16"/>
+  <p>
+   @Timestamp.Humanize()
+  </p>
+</div>
+
+</Tooltip>
+
+@code {
+ [Parameter, EditorRequired] public required DateTime Timestamp { get; set; }
+
+ private string _humanizedTimeAgo = string.Empty;
+ private Timer? _timer;
+
+ protected override void OnParametersSet()
+ {
+  _humanizedTimeAgo = Timestamp.Humanize();
+  _timer = new Timer(_ => { StateHasChanged(); }, new AutoResetEvent(false), TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+ }
+}
