@@ -17,7 +17,7 @@
             }
             else
             {
-                <Button Size="ButtonSize" Variant="ButtonVariant.Bravo" @onclick="Toggle" RightIcon="GetRightIcon()">
+                <Button Size="ButtonSize" LeftIcon="ButtonLeftIcon" Variant="ButtonVariant" @onclick="Toggle" RightIcon="GetRightIcon()">
                     @ButtonText
                 </Button>
             }
@@ -30,6 +30,8 @@
 
 @code {
     [Parameter] public string ButtonText { get; set; } = "Button Text";
+    [Parameter] public IIcon? ButtonLeftIcon { get; set; }
+    [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Bravo;
 
     [Parameter]
     public ButtonSize ButtonSize { get; set; } = ButtonSize.Default;
@@ -51,7 +53,7 @@
     }
 
     protected override string ClassNames => ClassBuilder
-        .Add("absolute z-20 w-fit")
+        .Add("absolute z-20")
         .AddCompare("top-10", ButtonSize, ButtonSize.XSmall)
         .AddCompare("top-12", ButtonSize, ButtonSize.Small)
         .AddCompare("top-14", ButtonSize, ButtonSize.Default)

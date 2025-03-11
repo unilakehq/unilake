@@ -7,23 +7,17 @@
 </div>
 
 @code {
-    [Parameter]
-    public int IconSize { get; set; } = 120;
-
-    [Parameter]
-    [EditorRequired]
+    [Parameter, EditorRequired]
     public required string LabelText { get; set; }
 
-    [Parameter]
-    public string FontSize { get; set; } = "text-headline5";
-
+    [Parameter] public int IconSize { get; set; } = 120;
+    [Parameter] public string FontSize { get; set; } = "text-headline5";
     [Parameter] public IIcon Icon { get; set; } = AnronIcons.Clipboard;
 
     /// <summary>
     /// Can be used when this placeholder is for an entire page (taking into account the header)
     /// </summary>
-    [Parameter]
-    public bool IsCenterScreen { get; set; }
+    [Parameter] public bool IsCenterScreen { get; set; }
 
     protected override string ClassNames => new ClassBuilder("flex flex-col gap-2 items-center justify-center h-full text-neutral-background-disabled")
         .Add(FontSize)

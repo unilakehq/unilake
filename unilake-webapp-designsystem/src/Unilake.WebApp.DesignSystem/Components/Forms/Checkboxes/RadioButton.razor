@@ -13,19 +13,13 @@
 </div>
 
 @code {
-    private string _elementId;
-
-    public RadioButton()
-    {
-        _elementId = Guid.NewGuid().ToString();
-    }
-
-    [EditorRequired] [Parameter] public required string LabelText { get; set; }
+    [Parameter, EditorRequired] public required string LabelText { get; set; }
     [Parameter] public string HelperText { get; set; } = string.Empty;
     [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public bool IsToggledOn { get; set; }
     [Parameter] public EventCallback<bool> ValueChanged { get; set; }
 
+    private readonly string _elementId = Guid.NewGuid().ToString();
     private string InputClass() => new ClassBuilder("w-4 h-4 focus:ring-0 focus:ring-offset-0")
         .Add("ring-offset-neutral-background-default border-neutral-background-border-divider bg-neutral-background-default")
         .AddIf("rounded-full border-feedback-info-background border-4", IsToggledOn)
@@ -49,5 +43,4 @@
         await ValueChanged.InvokeAsync(IsToggledOn);
         await OnClick.InvokeAsync();
     }
-
 }

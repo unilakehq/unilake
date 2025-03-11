@@ -5,7 +5,7 @@
 <div class="relative inline-flex text-default">
     <ClickOutside OnClickOutside="ToggleDropdown" IsEnabled="IsToggleDropdown">
         <div class="items-center inline-flex">
-            <TextInput IsDisabled="IsDisabled" ValueText="@Amount" InputType="number"
+            <TextInput IsDisabled="IsDisabled" Value="@Amount" InputType="number"
                        class="@ClassNames"
                        IsErrored="IsErrored"
                        IsSuccess="IsSuccess"
@@ -36,13 +36,14 @@
 </div>
 
 @code {
-    [EditorRequired] [Parameter] public required string[] Units { get; set; }
-    [EditorRequired] [Parameter] public required string CurrentUnit { get; set; }
+    [Parameter, EditorRequired] public required string[] Units { get; set; }
+    [Parameter, EditorRequired] public required string CurrentUnit { get; set; }
     [Parameter] public string PlaceholderText { get; set; } = String.Empty;
     [Parameter] public string Amount { get; set; } = "0";
     [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public bool IsErrored { get; set; }
     [Parameter] public bool IsSuccess { get; set; }
+
     private IIcon RightIcon => IsToggleDropdown ? AnronIcons.ChevronUp : AnronIcons.ChevronDown;
     private bool IsToggleDropdown { get; set; }
     protected override string ClassNames => ClassBuilder.Add("block p-2 ps-2 text-sm rounded-s-lg border-e-1 border").ToString();

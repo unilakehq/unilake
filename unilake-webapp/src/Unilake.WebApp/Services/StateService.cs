@@ -31,7 +31,7 @@ public abstract class StateService
     public IDisposable RegisterStateHandler(string name, Func<StateChangeEvent, Task> handler) => StateHandler.RegisterStateHandler(name, handler);
 
     /// <summary>
-    /// Get the current state for a specific state.
+    /// Get the current value for a specific state.
     /// </summary>
     /// <param name="name">Name of the state</param>
     /// <typeparam name="T">Expected state type</typeparam>

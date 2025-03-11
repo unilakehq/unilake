@@ -17,9 +17,9 @@
 </svg>
 
 @code {
+    [Parameter, EditorRequired] public required IIcon IconInstance { get; set; }
     [Parameter] public string? Color { get; set; }
     [Parameter] public int Size { get; set; } = 24;
-    [EditorRequired] [Parameter] public required IIcon IconInstance { get; set; }
     [Parameter] public int Rotate { get; set; }
     private string Elements => IconInstance.Elements;
 

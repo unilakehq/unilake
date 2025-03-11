@@ -67,9 +67,8 @@
 </div>
 
 @code {
-    private bool _showDropdown;
-    [Parameter] [EditorRequired] public required SelectInputOption[] Options { get; set; }
-    [Parameter] [EditorRequired] public required SelectInputOption CurrentSelection { get; set; }
+    [Parameter, EditorRequired] public required SelectInputOption[] Options { get; set; }
+    [Parameter, EditorRequired] public required SelectInputOption CurrentSelection { get; set; }
     [Parameter] public EventCallback<SelectInputOption> OnInput { get; set; }
     [Parameter] public IIcon? LeftIcon { get; set; } = AnronIcons.SuccessBadge;
     [Parameter] public IIcon? RightIcon { get; set; }
@@ -80,6 +79,7 @@
     [Parameter] public bool IsErrored { get; set; }
     [Parameter] public bool IsSuccess { get; set; }
     [Parameter] public string Width { get; set; } = "250";
+    private bool _showDropdown;
 
     private Task ToggleDropdown()
     {
