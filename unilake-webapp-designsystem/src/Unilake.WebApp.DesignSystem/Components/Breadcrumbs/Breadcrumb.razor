@@ -29,5 +29,7 @@
     private BreadcrumbItem GetLastItem() => BreadcrumbItems.Last();
     private int TakeItems => MaxItems > 0 ? Math.Min(BreadcrumbItems.Length - 1, MaxItems) : BreadcrumbItems.Length - 1;
 
-    private string ContainerClassNames() => new ClassBuilder("border-b-2 mb-2").AddIf("-ml-6", AccountForMenu).ToString();
+    private string ContainerClassNames() => new ClassBuilder("border-b-2 mb-2 border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider")
+        .AddIf("-ml-6", AccountForMenu)
+        .ToString();
 }
