@@ -1,0 +1,61 @@
+@namespace Unilake.WebApp.DesignSystem.Components
+@inherits UnilakeBaseComponent
+
+<div class="@ClassNames">
+    @if (BadgeIcon != null)
+    {
+        <Icon IconInstance="BadgeIcon" Size="12"/>
+    }
+    else if(!string.IsNullOrWhiteSpace(Content))
+    {
+        <span>@Content</span>
+    }
+</div>
+
+@code {
+    [Parameter] public IIcon? BadgeIcon { get; set; }
+    [Parameter] public string? Content { get; set; }
+    [Parameter] public SimpleBadgeTheme Theme { get; set; } = SimpleBadgeTheme.TextOnly;
+    [Parameter] public SimpleBadgeColor Color { get; set; } = SimpleBadgeColor.Brand;
+
+    private string IconCss => new ClassBuilder()
+        .AddCompare("outline-1 outline outline-offset-[-1px]", Theme, SimpleBadgeTheme.IconOutline)
+        .AddCompare(OutlineColorsCss, Theme, SimpleBadgeTheme.IconOutline)
+        .AddCompare(BgColorCss, Theme, SimpleBadgeTheme.IconOnly)
+        .ToString();
+
+    private string TextCss => new ClassBuilder()
+        .Add("text-center text-small justify-start")
+        .AddCompare("outline-1 outline outline-offset-[-1px]", Theme, SimpleBadgeTheme.TextOutline)
+        .AddCompare(OutlineColorsCss, Theme, SimpleBadgeTheme.TextOutline)
+        .AddCompare(BgColorCss, Theme, SimpleBadgeTheme.TextOnly)
+        .ToString();
+
+    private string BgColorCss => new ClassBuilder()
+        .AddCompare("text-feedback-brand-contrast bg-feedback-brand-background", Color, SimpleBadgeColor.Brand)
+        .AddCompare("text-feedback-error-contrast bg-feedback-error-background", Color, SimpleBadgeColor.Error)
+        .AddCompare("text-feedback-warning-contrast bg-feedback-warning-background", Color, SimpleBadgeColor.Warning)
+        .AddCompare("text-feedback-success-contrast bg-feedback-success-background", Color, SimpleBadgeColor.Success)
+        .AddCompare("text-feedback-info-contrast bg-feedback-info-background", Color, SimpleBadgeColor.Info)
+        .AddCompare("bg-neutral-background-faded text-feedback-info-contrast", Color, SimpleBadgeColor.Neutral)
+        .AddCompare("", Color, SimpleBadgeColor.Transparent)
+        .ToString();
+
+    private string OutlineColorsCss => new ClassBuilder()
+        .AddCompare("text-typography-icon dark:text-typography-dark-icon outline-feedback-brand-background", Color, SimpleBadgeColor.Brand)
+        .AddCompare("text-typography-icon dark:text-typography-dark-icon outline-feedback-error-background", Color, SimpleBadgeColor.Error)
+        .AddCompare("text-typography-icon dark:text-typography-dark-icon outline-feedback-warning-background", Color, SimpleBadgeColor.Warning)
+        .AddCompare("text-typography-icon dark:text-typography-dark-icon outline-feedback-success-background", Color, SimpleBadgeColor.Success)
+        .AddCompare("text-typography-icon dark:text-typography-dark-icon outline-feedback-info-background", Color, SimpleBadgeColor.Info)
+        .AddCompare("text-typography-icon dark:text-typography-dark-icon outline-neutral-background-faded", Color, SimpleBadgeColor.Neutral)
+        .AddCompare("", Color, SimpleBadgeColor.Transparent)
+        .ToString();
+
+    protected override string ClassNames => ClassBuilder
+        .AddIf("flex items-center px-1 h-5 min-w-5 rounded-[80px] justify-center", Theme != SimpleBadgeTheme.Dot)
+        .AddIf(IconCss, BadgeIcon != null)
+        .AddIf(TextCss, !string.IsNullOrWhiteSpace(Content))
+        .AddCompare(BgColorCss, Theme, SimpleBadgeTheme.Dot)
+        .AddCompare("h-2 w-2 rounded-full", Theme, SimpleBadgeTheme.Dot)
+        .ToString();
+}
