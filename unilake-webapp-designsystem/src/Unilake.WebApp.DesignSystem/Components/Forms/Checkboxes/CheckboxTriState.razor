@@ -1,10 +1,8 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-<div class="flex items-center">
-    <div @onclick="ToggleState" class="@ClassNames">
-        <Icon IconInstance="@GetIcon()" Size="10" Color="text-neutral-background-default dark:text-neutral-background-dark-default"></Icon>
-    </div>
+<div @onclick="ToggleState" class="@ClassNames">
+    <Icon IconInstance="@GetIcon()" Size="10" Color="text-neutral-background-default dark:text-neutral-background-dark-default"></Icon>
 </div>
 
 @code {
