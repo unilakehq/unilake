@@ -9,10 +9,6 @@
 /*    }*/
 /*}*/
 
-body * {
-    @apply transition-colors duration-200;
-}
-
 .quickgrid[theme=unilake] {
 }
     .quickgrid[theme=unilake] thead {
