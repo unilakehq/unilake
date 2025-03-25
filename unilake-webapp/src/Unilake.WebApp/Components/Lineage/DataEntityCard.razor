@@ -1,0 +1,48 @@
+@namespace Unilake.WebApp.Components
+
+<DataLineageBaseComponent
+    DataQualityStatusFigures="DataQualityStatusFigures"
+    IsCollapsable="true"
+    LefIcon="LefIcon" LeftIconColor="@LeftIconColor"
+    SubText="@SubText"
+    TitleText="@TitleText"
+    CollapsableButtonText="@ButtonText"
+    OnClick="@(() => _isCollapsed = !_isCollapsed)"
+    @ref="_baseComponent">
+    @foreach (var item in EntityAttributes)
+    {
+        <button
+            class="@_baseComponent.ItemClassNames hover:text-feedback-info-text dark:hover:text-feedback-dark-info-text focus:bg-brand-bravo-100 focus:text-feedback-info-text dark:focus:text-feedback-dark-info-text">
+            <p>@item.Name</p>
+            <p>@item.DataType</p>
+        </button>
+    }
+</DataLineageBaseComponent>
+
+@code {
+    private DataLineageBaseComponent? _baseComponent;
+
+    [Parameter, EditorRequired] public required string TitleText { get; set; } = "Domain Name";
+    [Parameter, EditorRequired] public required string SubText { get; set; } = "Catalog.SchemaName...";
+    [Parameter, EditorRequired] public required IIcon LefIcon { get; set; } = AnronIcons.AlertBadge;
+    [Parameter] public string LeftIconColor { get; set; } = "text-blue-700";
+    [Parameter, EditorRequired] public required DataQualityStatus.DataQualityStatusFigures DataQualityStatusFigures { get; set; } = new(2, 0, 1);
+
+    private IEnumerable<EntityAttribute> EntityAttributes => ItemsInternal.Take(_isCollapsed ? 5 : ItemsInternal.Length);
+    public record EntityAttribute(string Name, string DataType);
+    private bool _isCollapsed = true;
+    private string ButtonText => _isCollapsed ? $"Show {ItemsInternal.Length - 5} more columns" : $"Hide {ItemsInternal.Length - 5} columns";
+
+    private EntityAttribute[] ItemsInternal =
+    [
+        new("CustomerDimId", "int"),
+        new("CustomerName", "string"),
+        new("CustomerIdWithSomeVeryLongNameAndEvenLongerThanThat", "int"),
+        new("Column_Name", "int"),
+        new("Column_Name", "int"),
+        new("Column_Name", "int"),
+        new("Column_Name", "int"),
+        new("Column_Name", "int"),
+    ];
+
+}

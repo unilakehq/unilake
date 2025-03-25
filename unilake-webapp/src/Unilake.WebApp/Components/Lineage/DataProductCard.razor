@@ -1,0 +1,73 @@
+@using Humanizer
+@namespace Unilake.WebApp.Components
+
+<DataLineageBaseComponent
+    DataQualityStatusFigures="DataQualityStatusFigures"
+    IsCollapsable="false"
+    LefIcon="LefIcon" LeftIconColor="@LeftIconColor"
+    SubText="@SubText"
+    TitleText="@TitleText"
+    @ref="_baseComponent">
+    <div class="@_baseComponent.ItemClassNames">
+        <p>Status</p>
+        <div class="flex gap-1">
+            <HistoricalStatus Items="CardModel.HistoricalStatus" PresentationType="HistoricalStatus.HistoricalStatusPresentationType.HistoricalStatus"/>
+        </div>
+    </div>
+    <div class="@_baseComponent.ItemClassNames">
+        <p>Type</p>
+        <div>
+            <p>@CardModel.ArchType</p>
+        </div>
+    </div>
+    <div class="@_baseComponent.ItemClassNames">
+        <p>Frequency</p>
+        <p>@CardModel.Frequency.Humanize()</p>
+    </div>
+    <div class="@_baseComponent.ItemClassNames">
+        <p>Availability</p>
+        <p>@CardModel.Availability</p>
+    </div>
+    <div class="@_baseComponent.ItemClassNames">
+        <p>Freshness</p>
+        <TimeagoPill Timestamp="@CardModel.LastUpdated"/>
+    </div>
+    <div class="@_baseComponent.ItemClassNames">
+        <p>Consumers</p>
+        <p>@CardModel.ConsumerCount.ToString("N0")</p>
+    </div>
+</DataLineageBaseComponent>
+
+@code {
+    private DataLineageBaseComponent? _baseComponent;
+
+    [Parameter, EditorRequired]
+    public required string TitleText { get; set; } = "Domain Name";
+    [Parameter, EditorRequired]
+    public required string SubText { get; set; } = "Catalog.SchemaName...";
+    [Parameter, EditorRequired]
+    public required IIcon LefIcon { get; set; } = AnronIcons.AlertBadge;
+    [Parameter]
+    public string LeftIconColor { get; set; } = "text-blue-700";
+    [Parameter, EditorRequired]
+    public required DataQualityStatus.DataQualityStatusFigures DataQualityStatusFigures { get; set; } = new(2,0,1);
+
+    [Parameter, EditorRequired]
+    public required DataProductCardModel CardModel { get; set; } = new()
+    {
+        ArchType = "Consumer Aligned",
+        Availability = "Certified",
+        ConsumerCount = 5,
+        Frequency = TimeSpan.FromMinutes(15),
+        LastUpdated = DateTime.Now.AddMinutes(-25),
+        SourceIcon = AnronIcons.Git,
+        HistoricalStatus = [
+            new(HistoricalStatus.HistoricalStatusType.Succeeded, DateTime.Now.AddDays(-5)),
+            new(HistoricalStatus.HistoricalStatusType.Succeeded, DateTime.Now.AddDays(-4)),
+            new(HistoricalStatus.HistoricalStatusType.Succeeded, DateTime.Now.AddDays(-3)),
+            new(HistoricalStatus.HistoricalStatusType.Succeeded, DateTime.Now.AddDays(-2)),
+            new(HistoricalStatus.HistoricalStatusType.Succeeded, DateTime.Now.AddDays(-1))
+        ]
+    };
+
+}

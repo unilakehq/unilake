@@ -10,6 +10,10 @@
     {
         <span>@Content</span>
     }
+    else if (ChildContent != null)
+    {
+        <span>@ChildContent</span>
+    }
 </div>
 
 @code {
@@ -54,8 +58,9 @@
     protected override string ClassNames => ClassBuilder
         .AddIf("flex items-center px-1 h-5 min-w-5 rounded-[80px] justify-center", Theme != SimpleBadgeTheme.Dot)
         .AddIf(IconCss, BadgeIcon != null)
-        .AddIf(TextCss, !string.IsNullOrWhiteSpace(Content))
+        .AddIf(TextCss, !string.IsNullOrWhiteSpace(Content) || ChildContent != null)
         .AddCompare(BgColorCss, Theme, SimpleBadgeTheme.Dot)
         .AddCompare("h-2 w-2 rounded-full", Theme, SimpleBadgeTheme.Dot)
         .ToString();
+
 }

@@ -1,0 +1,48 @@
+@namespace Unilake.WebApp.Components
+@using Unilake.WebApp.DesignSystem
+@inherits UnilakeBaseComponent
+
+<div class="w-[260px] px-3 rounded-lg border border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider bg-neutral-background-default dark:bg-neutral-background-dark-default">
+    <div class="flex text-typography-headline dark:text-typography-dark-headline justify-between items-baseline pt-2">
+        <p class="font-bold">@TitleText</p>
+        <DataQualityStatus class="font-normal" StatusFigures="DataQualityStatusFigures"/>
+    </div>
+    <div class="flex justify-between mt-3 mb-2">
+        <div class="flex items-center gap-2">
+            <Icon IconInstance="LefIcon" Color="@LeftIconColor" Size="18"/>
+            @* todo: fix overflow and elilipsis etc.. *@
+            <p class="text-small">@SubText</p>
+        </div>
+        <Avatar ImageUrl="https://docs.unilake.com/img/authors/mrhamburg.jpg" Size="AvatarSize.Small"/>
+    </div>
+    <div class="@ItemsClassNames">
+        @ChildContent
+    </div>
+@if (IsCollapsable)
+{
+    <div class="flex py-3 bg-neutral-background-default dark:bg-neutral-background-dark-default justify-end">
+        <Button OnClick="OnClick" Variant="ButtonVariant.Bravo" Size="ButtonSize.XSmall">@CollapsableButtonText</Button>
+    </div>
+}
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string TitleText { get; set; } = "Domain Name";
+    [Parameter, EditorRequired]
+    public required string SubText { get; set; } = "Catalog.SchemaName...";
+    [Parameter, EditorRequired]
+    public required IIcon LefIcon { get; set; } = AnronIcons.AlertBadge;
+    [Parameter]
+    public string LeftIconColor { get; set; } = "text-blue-700";
+    [Parameter, EditorRequired]
+    public required DataQualityStatus.DataQualityStatusFigures DataQualityStatusFigures { get; set; } = new(2,0,1);
+    [Parameter]
+    public bool IsCollapsable { get; set; }
+    [Parameter] public string? CollapsableButtonText { get; set; } = "Show more";
+
+    public string ItemClassNames => "flex px-3 py-1 justify-between";
+    private string ItemsClassNames => new ClassBuilder("flex flex-col bg-neutral-background-faded dark:bg-neutral-background-dark-faded -mx-3 divide-y divide-neutral-background-default dark:divide-neutral-background-dark-default text-small")
+        .AddIf("rounded-b-lg", !IsCollapsable)
+        .ToString();
+}
