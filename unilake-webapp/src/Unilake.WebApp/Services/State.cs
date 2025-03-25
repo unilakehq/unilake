@@ -5,4 +5,5 @@ public static class State
     public const string DarkMode = "DarkMode";
     public const string SideNavCollapsed = "SideNavCollapsed";
     public const string NavigationMenu = "NavigationMenu";
+    public const string Culture = "fr";
 }

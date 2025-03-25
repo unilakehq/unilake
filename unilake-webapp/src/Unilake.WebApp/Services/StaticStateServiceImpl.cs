@@ -6,9 +6,11 @@ public class StaticStateServiceImpl : StateService
 {
     public StaticStateServiceImpl()
     {
-        StateHandler.SetInitialState(State.DarkMode, false);
+        StateHandler.SetInitialState(State.DarkMode, true);
         StateHandler.SetInitialState(State.SideNavCollapsed, false);
         StateHandler.SetInitialState(State.NavigationMenu, NavigationMenu);
+        // todo: see how we are going to handle this and how we adjust it
+        StateHandler.SetInitialState(State.Culture, "en-UK");
     }
 
     public IEnumerable<NavItem> NavigationMenu { get; } =
