@@ -1,0 +1,50 @@
+@using Unilake.WebApp.DesignSystem
+@namespace Unilake.WebApp.Components
+
+<div class="flex flex-col gap-5">
+    @foreach (var item in Items)
+    {
+        <div class="flex flex-row">
+            <div class="@IndicatorClassNames(item)">
+                <Icon IconInstance="@GetProcessIcon(item)" Size="18"/>
+            </div>
+            <div class="flex flex-col ml-1 gap-2">
+                <p class="text-typography-headline dark:text-typography-dark-headline font-semibold">
+                    @item.Title
+                </p>
+                <p>
+                    @item.Description
+                </p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required IEnumerable<ProcessStatusItem> Items { get; set; }
+
+    private IIcon GetProcessIcon(ProcessStatusItem item) =>
+        item.StatusIndicator == ProcessStatusIndicator.Succeeded ? AnronIcons.SuccessBadge :
+        item.StatusIndicator == ProcessStatusIndicator.Failed ? AnronIcons.ErrorBadge :
+        item.StatusIndicator == ProcessStatusIndicator.Running ? AnronIcons.Refresh :
+        AnronIcons.Loader2;
+
+    private string IndicatorClassNames(ProcessStatusItem item) => new ClassBuilder("flex size-6 justify-center items-center rounded-[208px]")
+        .AddCompare("text-feedback-success-contrast dark:text-feedback-dark-success-contrast bg-feedback-success-background dark:bg-feedback-dark-success-background", item.StatusIndicator, ProcessStatusIndicator.Succeeded)
+        .AddCompare("text-feedback-info-contrast dark:text-feedback-dark-info-contrast bg-feedback-info-background dark:bg-feedback-dark-info-background", item.StatusIndicator, ProcessStatusIndicator.Running)
+        .AddCompare("text-feedback-error-contrast dark:text-feedback-dark-error-contrast bg-feedback-error-background dark:bg-feedback-dark-error-background", item.StatusIndicator, ProcessStatusIndicator.Failed)
+        // todo: this needs better coloring, should not make use of neutral and typography as color
+        .AddCompare("text-neutral-50 bg-typography-body dark:bg-typography-dark-body", item.StatusIndicator, ProcessStatusIndicator.Unknown)
+        .ToString();
+
+    public record ProcessStatusItem(string Title, string Description, ProcessStatusIndicator StatusIndicator);
+    public enum ProcessStatusIndicator
+    {
+        Succeeded,
+        Failed,
+        Running,
+        Unknown
+    }
+
+}

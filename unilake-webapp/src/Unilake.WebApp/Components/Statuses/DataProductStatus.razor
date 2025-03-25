@@ -1,0 +1,25 @@
+@using Unilake.WebApp.DesignSystem
+@namespace Unilake.WebApp.Components
+
+<Button class="@ClassNames" Variant="ButtonVariant.Custom" Size="ButtonSize.Small" LeftIcon="LeftIcon" Text="@StatusText">
+
+</Button>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string StatusText { get; set; }
+    [Parameter]
+    public DataProductStatusIndicator StatusIndicator { get; set; } = DataProductStatusIndicator.Succeeded;
+
+    public IIcon LeftIcon => StatusIndicator == DataProductStatusIndicator.Failed ? AnronIcons.ErrorBadge: AnronIcons.SuccessBadge;
+    private string ClassNames => new ClassBuilder("flex text-small px-4 py-1 font-semibold items-center gap-2 rounded-lg")
+        .AddCompare("text-feedback-success-text border border-feedback-success-text hover:border-feedback-success-contrast hover:bg-feedback-success-background hover:text-feedback-success-contrast focus:bg-transparent", StatusIndicator, DataProductStatusIndicator.Succeeded)
+        .AddCompare("text-feedback-error-text border border-feedback-error-text hover:border-feedback-error-contrast hover:bg-feedback-error-background hover:text-feedback-error-contrast focus:bg-transparent", StatusIndicator, DataProductStatusIndicator.Failed)
+        .ToString();
+
+    public enum DataProductStatusIndicator
+    {
+        Succeeded,
+        Failed
+    }
+}

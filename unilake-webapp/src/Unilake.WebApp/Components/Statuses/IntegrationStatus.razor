@@ -1,0 +1,30 @@
+@using Unilake.WebApp.DesignSystem
+@namespace Unilake.WebApp.Components
+
+<div class="@ClassNames">
+    <Icon Size="20" IconInstance="IndicatorIcon"/>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required IntegrationStatusIndicator StatusIndicator { get; set; }
+
+    private IIcon IndicatorIcon =>
+        StatusIndicator == IntegrationStatusIndicator.Added ? AnronIcons.Plus :
+        StatusIndicator == IntegrationStatusIndicator.Removed ? AnronIcons.Cross :
+        AnronIcons.Minus;
+
+    private string ClassNames => new ClassBuilder("flex w-7 h-7 p-2.5 rounded-[208px] items-center justify-center")
+        .AddCompare("bg-feedback-success-background text-feedback-success-contrast dark:bg-feedback-dark-success-background dark:text-feedback-dark-success-contrast", StatusIndicator, IntegrationStatusIndicator.Added)
+        .AddCompare("bg-feedback-error-background text-feedback-error-contrast dark:bg-feedback-dark-error-background dark:text-feedback-dark-error-contrast ", StatusIndicator, IntegrationStatusIndicator.Removed)
+        .AddCompare("bg-neutral-background-disabled text-typography-body dark:bg-neutral-background-dark-disabled dark:text-typography-dark-body", StatusIndicator, IntegrationStatusIndicator.Unchanged)
+        .ToString();
+
+    public enum IntegrationStatusIndicator
+    {
+        Added,
+        Removed,
+        Unchanged
+    }
+
+}

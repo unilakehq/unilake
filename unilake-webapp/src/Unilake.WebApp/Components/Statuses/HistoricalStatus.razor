@@ -1,0 +1,78 @@
+@using Humanizer
+@using Unilake.WebApp.DesignSystem
+@inherits UnilakeBaseComponent
+@namespace Unilake.WebApp.Components
+
+@foreach (var item in Items)
+{
+    <Tooltip Placement="Tooltip.TooltipPlacement.Top" Text="@TimeAgo(item.Ocurred)" class="p-2">
+        @switch (PresentationType)
+        {
+            case HistoricalStatusPresentationType.Bars:
+                <button @onclick="OnClick" class="@ClassNames(PresentationType, item.Status)"></button>
+                break;
+            case HistoricalStatusPresentationType.BarsWithIcon:
+                <button @onclick="OnClick" class="@ClassNames(PresentationType, item.Status)">
+                    <Icon IconInstance="@ContentIcon(item)" Size="12"/>
+                </button>
+                break;
+            case HistoricalStatusPresentationType.HistoricalStatus:
+                @if (IsLast(item))
+                {
+                    <button @onclick="OnClick" class="@ClassNames(HistoricalStatusPresentationType.BarsWithIcon, item.Status)">
+                        <Icon IconInstance="@ContentIcon(item)" Size="12"/>
+                    </button>
+                }
+                else
+                {
+                    <button @onclick="OnClick" class="@ClassNames(HistoricalStatusPresentationType.Bars, item.Status)">
+                    </button>
+                }
+                break;
+        }
+    </Tooltip>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required HistoricalStatusPresentationType PresentationType { get; set; }
+    [Parameter, EditorRequired]
+    public required IEnumerable<HistoricalStatusItem> Items { get; set; }
+
+    private string TimeAgo(DateTime? occured) => occured.HasValue ? occured.Humanize() : "";
+    private IIcon ContentIcon(HistoricalStatusItem item) =>
+        item.Status == HistoricalStatusType.Succeeded ? AnronIcons.SuccessBadge :
+        item.Status == HistoricalStatusType.Failed ? AnronIcons.ErrorBadge :
+        AnronIcons.Refresh;
+    private new string ClassNames(HistoricalStatusPresentationType presentationType, HistoricalStatusType status) => new ClassBuilder("flex items-center justify-center")
+        .AddCompare("w-3 h-5 rounded-[4px]", presentationType, HistoricalStatusPresentationType.Bars)
+        .AddCompare("w-7 h-5 rounded-md", presentationType, HistoricalStatusPresentationType.BarsWithIcon)
+        .AddCompare("bg-feedback-success-background dark:bg-feedback-dark-success-background " +
+                    "hover:bg-feedback-success-text dark:hover:bg-feedback-dark-success-text " +
+                    "text-feedback-success-contrast dark:text-feedback-dark-success-contrast focus:text-feedback-success-background dark:focus:text-feedback-dark-success-background" +
+                    "focus:bg-feedback-success-contrast dark:focus:bg-feedback-dark-success-contrast", status, HistoricalStatusType.Succeeded)
+        .AddCompare("bg-feedback-error-background dark:bg-feedback-dark-error-background " +
+                    "hover:bg-feedback-error-text dark:hover:bg-feedback-dark-error-text " +
+                    "text-feedback-error-contrast dark:text-feedback-dark-error-contrast focus:text-feedback-error-background dark:focus:text-feedback-dark-error-background" +
+                    "focus:bg-feedback-error-contrast dark:focus:bg-feedback-dark-error-contrast", status, HistoricalStatusType.Failed)
+        .AddCompare("bg-feedback-info-background dark:bg-feedback-dark-info-background " +
+                    "hover:bg-feedback-info-text dark:hover:bg-feedback-dark-info-text " +
+                    "text-feedback-info-contrast dark:text-feedback-dark-info-contrast focus:text-feedback-info-background dark:focus:text-feedback-dark-info-background" +
+                    "focus:bg-feedback-info-contrast dark:focus:bg-feedback-dark-info-contrast", status, HistoricalStatusType.Running)
+        .ToString();
+    private bool IsLast(HistoricalStatusItem item) => Items.LastOrDefault() == item;
+
+    public record HistoricalStatusItem(HistoricalStatusType Status, DateTime? Ocurred);
+    public enum HistoricalStatusType
+    {
+        Succeeded,
+        Failed,
+        Running
+    }
+    public enum HistoricalStatusPresentationType
+    {
+        Bars,
+        BarsWithIcon,
+        HistoricalStatus
+    }
+}

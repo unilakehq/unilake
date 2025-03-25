@@ -1,6 +1,7 @@
 @namespace Unilake.WebApp.Components
+@inherits UnilakeBaseComponent
 
-<div class="flex gap-1">
+<div class="@ClassNames">
     <SimpleBadge Theme="SimpleBadgeTheme.TextOutline" Color="SimpleBadgeColor.Success">
         @StatusFigures.Succeeded
     </SimpleBadge>
@@ -15,6 +16,6 @@
 @code {
     [Parameter, EditorRequired]
     public required DataQualityStatusFigures StatusFigures { get; set; }
-
     public record DataQualityStatusFigures(int Succeeded, int Failed, int Ignored);
+    protected override string ClassNames => ClassBuilder.Add("flex gap-1").ToString();
 }
