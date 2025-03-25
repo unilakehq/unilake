@@ -1,8 +1,7 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: dark mode implementation *@
-<div class="flex-col gap-2 inline-flex relative text-default">
+<div class="flex-col gap-2 inline-flex relative text-default" @onclick:stopPropagation="true" @onclick:preventDefault="true">
     @if (!string.IsNullOrWhiteSpace(LabelText))
     {
         <div class="@LabelClass()">
@@ -17,12 +16,12 @@
         <div @onclick="ToggleDropdown" class="@ClassNames">
             @if (LeftIcon != null)
             {
-                <div class="mr-2 hover:text-typography-icon">
+                <div class="mr-2 hover:text-typography-icon dark:hover:text-typography-dark-icon">
                     <Icon IconInstance="LeftIcon" Size="16"></Icon>
                 </div>
             }
             <div class="mr-2">@CurrentSelection.Label</div>
-            <div class="ml-auto hover:text-typography-icon">
+            <div class="ml-auto hover:text-typography-icon dark:hover:text-typography-dark-icon">
                 <Icon IconInstance="GetRightIcon()" Size="16"></Icon>
             </div>
         </div>
@@ -45,16 +44,17 @@
                     <li>
                         <button type="button"
                                 @onclick="@(async () => await ChangeSelection(option))"
-                                class="inline-flex items-center w-full px-4 py-2 text-typography-body hover:bg-neutral-background-faded">
+                                class="inline-flex items-center text-start w-full px-4 py-2 text-typography-body dark:text-typography-dark-body
+                                 hover:bg-neutral-background-faded dark:hover:bg-neutral-background-dark-faded">
                             @if (option.LeftIcon != null)
                             {
-                                <Icon class="mr-2 text-typography-icon" IconInstance="option.LeftIcon" Size="16"></Icon>
+                                <Icon class="mr-2 text-typography-icon dark:text-typography-dark-icon" IconInstance="option.LeftIcon" Size="16"></Icon>
                             }
                             @option.Label
                             <div class="ml-auto">
                                 @if (option.Value == CurrentSelection.Value)
                                 {
-                                    <Icon class="text-feedback-info-text mr-2" Size="16"
+                                    <Icon class="text-feedback-info-text dark:focus:text-feedback-dark-info-text mr-2" Size="16"
                                           IconInstance="AnronIcons.Check"></Icon>
                                 }
                             </div>
@@ -70,7 +70,7 @@
     [Parameter, EditorRequired] public required SelectInputOption[] Options { get; set; }
     [Parameter, EditorRequired] public required SelectInputOption CurrentSelection { get; set; }
     [Parameter] public EventCallback<SelectInputOption> OnInput { get; set; }
-    [Parameter] public IIcon? LeftIcon { get; set; } = AnronIcons.SuccessBadge;
+    [Parameter] public IIcon? LeftIcon { get; set; }
     [Parameter] public IIcon? RightIcon { get; set; }
     [Parameter] public string LabelText { get; set; } = string.Empty;
     [Parameter] public string HelperText { get; set; } = string.Empty;
@@ -78,6 +78,7 @@
     [Parameter] public bool IsDisabled { get; set; }
     [Parameter] public bool IsErrored { get; set; }
     [Parameter] public bool IsSuccess { get; set; }
+    [Parameter] public bool IsCloseOnSelection { get; set; } = false;
     [Parameter] public string Width { get; set; } = "250";
     private bool _showDropdown;
 
@@ -94,45 +95,47 @@
         {
             CurrentSelection = option;
             await OnInput.InvokeAsync(option);
+            if (IsCloseOnSelection)
+                await ToggleDropdown();
         }
     }
 
     private IIcon GetRightIcon() => RightIcon ?? (_showDropdown ? AnronIcons.ChevronUp : AnronIcons.ChevronDown);
 
     private string HelperClass() => new ClassBuilder("text-small")
-        .AddIf("text-typography-disabled", IsDisabled)
-        .AddIf("text-typography-body", !IsDisabled)
+        .AddIf("text-typography-disabled dark:text-typography-dark-disabled", IsDisabled)
+        .AddIf("text-typography-body dark:text-typography-dark-body", !IsDisabled)
         .ToString();
 
     private string LabelClass() => new ClassBuilder("flex items-center font-medium")
-        .AddIf("text-typography-headline", !IsDisabled)
-        .AddIf("text-typography-disabled", IsDisabled)
+        .AddIf("text-typography-headline dark:text-typography-dark-headline", !IsDisabled)
+        .AddIf("text-typography-disabled dark:text-typography-dark-disabled", IsDisabled)
         .ToString();
 
     private string LabelIconClass() => new ClassBuilder("ml-2")
-        .AddIf("text-typography-faded", !IsDisabled)
-        .AddIf("text-typography-disabled", IsDisabled)
+        .AddIf("text-typography-faded dark:text-typography-dark-faded", !IsDisabled)
+        .AddIf("text-typography-disabled dark:text-typography-dark-disabled", IsDisabled)
         .ToString();
 
     private string DropdownCss() => new ClassBuilder()
-        .Add("z-20 absolute left-0 w-full shadow rounded-lg bg-neutral-background-default border border-neutral-background-border-divider")
+        .Add("z-20 absolute left-0 w-full shadow rounded-lg bg-neutral-background-default dark:bg-neutral-background-dark-default border border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider")
         .AddIf("top-20", !string.IsNullOrWhiteSpace(LabelText))
         .AddIf("top-12", string.IsNullOrWhiteSpace(LabelText))
         .AddIf("hidden", !_showDropdown)
         .ToString();
 
-    private string DisabledClassNames() => new ClassBuilder("cursor-not-allowed bg-neutral-background-faded text-typography-disabled")
+    private string DisabledClassNames() => new ClassBuilder("cursor-not-allowed bg-neutral-background-faded dark:bg-neutral-background-dark-faded text-typography-disabled text-typography-dark-disabled")
         .ToString();
 
     private string NotDisabledClassNames() => new ClassBuilder("cursor-pointer")
-        .AddIf("text-typography-faded", CurrentSelection.IsPLaceholder)
-        .AddIf("text-typography-headline", !CurrentSelection.IsPLaceholder)
-        .AddIf("border-neutral-background-invert", _showDropdown && !(IsSuccess || IsErrored))
-        .AddIf("border-neutral-background-border-divider", !_showDropdown && !(IsSuccess || IsErrored))
-        .AddIf("border-feedback-error-background", IsErrored)
-        .AddIf("border-feedback-success-background", IsSuccess)
-        .AddIf("bg-neutral-background-faded text-typography-headline", _showDropdown)
-        .AddIf("bg-neutral-background-default hover:bg-neutral-background-faded hover:text-typography-headline", !_showDropdown)
+        .AddIf("text-typography-faded dark:text-typography-dark-faded", CurrentSelection.IsPLaceholder)
+        .AddIf("text-typography-headline dark:text-typography-dark-headline", !CurrentSelection.IsPLaceholder)
+        .AddIf("border-neutral-background-invert dark:border-neutral-background-dark-invert", _showDropdown && !(IsSuccess || IsErrored))
+        .AddIf("border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider", !_showDropdown && !(IsSuccess || IsErrored))
+        .AddIf("border-feedback-error-background dark:border-feedback-error-dark-background", IsErrored)
+        .AddIf("border-feedback-success-background dark:border-feedback-success-dark-background", IsSuccess)
+        .AddIf("bg-neutral-background-faded dark:bg-neutral-background-dark-faded text-typography-headline dark:text-typography-dark-headline", _showDropdown)
+        .AddIf("bg-neutral-background-default dark:bg-neutral-background-dark-default hover:bg-neutral-background-faded dark:hover:bg-neutral-background-dark-faded hover:text-typography-headline dark:hover:text-typography-dark-headline", !_showDropdown)
         .ToString();
 
     protected override string ClassNames => ClassBuilder.Add("flex items-center border rounded-lg pr-4 pl-4 py-2")
