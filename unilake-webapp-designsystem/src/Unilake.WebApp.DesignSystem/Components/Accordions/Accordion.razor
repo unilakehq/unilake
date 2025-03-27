@@ -1,14 +1,16 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: add dark mode *@
 <div class="@ClassNames">
-    <Button Variant="ButtonVariant.Custom" OnClick="Toggle" class="flex justify-between w-full bg-neutral-background-faded rounded-lg border border-neutral-background-border-divider px-3 py-2">
+    <Button Variant="ButtonVariant.Custom" OnClick="Toggle" class="flex justify-between w-full items-center bg-neutral-background-faded
+    dark:bg-neutral-background-dark-faded rounded-lg border border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider px-3 py-2">
         @Header
         <Icon IconInstance="ToggleIcon" Size="20"></Icon>
     </Button>
-    <div class="@ContentClassNames p-3 rounded-bl-lg rounded-br-lg border-l border-r border-b border-neutral-background-border-divider">
-        @ChildContent
+    <div class="@ContentClassNames -mt-1 p-3 rounded-bl-lg rounded-br-lg border-l border-r border-b border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider">
+        <div class="mt-1">
+            @ChildContent
+        </div>
     </div>
 </div>
 
