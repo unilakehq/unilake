@@ -19,8 +19,16 @@
         @apply bg-neutral-background-dark-default text-typography-dark-body font-medium text-small leading-normal
     }
 
-    .quickgrid[theme=unilake] thead > tr > th {
+    .quickgrid[theme=unilake] .col-justify-start {
         @apply text-start
+    }
+
+    .quickgrid[theme=unilake] .col-justify-center {
+        @apply text-center
+    }
+
+     .quickgrid[theme=unilake] .col-justify-end {
+        @apply text-end
     }
 
     .quickgrid[theme=unilake] tbody {
