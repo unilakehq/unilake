@@ -51,7 +51,7 @@
 
     protected override string ClassNames => ClassBuilder
         .AddIf("w-[50px]", _innerCollapsed)
-        .AddIf("w-[226px]", !_innerCollapsed)
+        .AddIf("min-w-[202px]", !_innerCollapsed)
         .ToString();
 
     private string FooterClassNames => new ClassBuilder("flex")
