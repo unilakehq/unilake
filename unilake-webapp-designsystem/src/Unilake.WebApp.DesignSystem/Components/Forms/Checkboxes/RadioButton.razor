@@ -1,29 +1,47 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: dark mode *@
-<div class="flex">
-    <div class="flex items-center h-5 mt-0.5">
-        <input id="@_elementId" type="radio" class="@InputClass()" @onclick="ToggleState">
+@* todo: dark mode, correct coloring and design *@
+@if (!string.IsNullOrWhiteSpace(LabelText))
+{
+    <div class="flex">
+        <div class="flex items-center h-5 mt-0.5">
+            <input id="@Id"
+                   type="radio"
+                   class="@ClassNames"
+                   name="@GroupName"
+                   disabled="@IsDisabled"
+                   checked="@Id.Equals(Value)"
+                   @onchange="ToggleState">
+        </div>
+        <div class="ms-2 text-default">
+            <label for="@Id" class="@LabelClass()">@LabelText</label>
+            <p id="helper-radio-text" class="@HelperTextClass()">@HelperText</p>
+        </div>
     </div>
-    <div class="ms-2 text-default">
-        <label for="@_elementId" class="@LabelClass()">@LabelText</label>
-        <p id="helper-radio-text" class="@HelperTextClass()">@HelperText</p>
-    </div>
-</div>
+}
+else
+{
+    <input id="@Id"
+           type="radio"
+           class="@ClassNames"
+           name="@GroupName"
+           disabled="@IsDisabled"
+           checked="@Id.Equals(Value)"
+           @onchange="ToggleState">
+}
 
 @code {
-    [Parameter, EditorRequired] public required string LabelText { get; set; }
+    [Parameter, EditorRequired] public required string Id { get; set; }
+    [Parameter, EditorRequired] public required string GroupName { get; set; }
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string LabelText { get; set; } = string.Empty;
     [Parameter] public string HelperText { get; set; } = string.Empty;
     [Parameter] public bool IsDisabled { get; set; }
-    [Parameter] public bool IsToggledOn { get; set; }
-    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
 
-    private readonly string _elementId = Guid.NewGuid().ToString();
-    private string InputClass() => new ClassBuilder("w-4 h-4 focus:ring-0 focus:ring-offset-0")
-        .Add("ring-offset-neutral-background-default border-neutral-background-border-divider bg-neutral-background-default")
-        .AddIf("rounded-full border-feedback-info-background border-4", IsToggledOn)
-        .AddIf("cursor-not-allowed", IsDisabled)
+    protected override string ClassNames => ClassBuilder
+        .Add("shrink-0 mt-0.5 border-gray-300 rounded-full text-blue-600 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800")
         .ToString();
 
     private string LabelClass() => new ClassBuilder("font-medium")
@@ -39,8 +57,6 @@
     private async Task ToggleState()
     {
         if (IsDisabled) return;
-        IsToggledOn = !IsToggledOn;
-        await ValueChanged.InvokeAsync(IsToggledOn);
-        await OnClick.InvokeAsync();
+        await ValueChanged.InvokeAsync(Id);
     }
 }
