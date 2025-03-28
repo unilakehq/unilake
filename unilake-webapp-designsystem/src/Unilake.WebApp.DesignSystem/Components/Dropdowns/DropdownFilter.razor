@@ -37,7 +37,7 @@
                             }
                             else
                             {
-                                <CheckboxTriState class="mr-2" Variant="CheckboxTriStateVariant" IsToggledOn="@context.IsSelected"
+                                <CheckboxTriState class="mr-2" Variant="CheckboxTriStateVariant" Value="@context.IsSelected"
                                                   OnClick="@(() => InnerOnItemClick(context))"/>
                             }
 
@@ -51,7 +51,7 @@
                         }
                         else
                         {
-                            <CheckboxTriState class="mr-2 ml-3" Variant="CheckboxTriStateVariant" IsToggledOn="@context.IsSelected"
+                            <CheckboxTriState class="mr-2 ml-3" Variant="CheckboxTriStateVariant" Value="@context.IsSelected"
                                               OnClick="@(() => InnerOnItemClick(context))"/>
                             <button @onclick="@(() => InnerOnItemClick(context))">
                                 @context.Label (@context.Count)
