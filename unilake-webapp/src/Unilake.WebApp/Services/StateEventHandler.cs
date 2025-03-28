@@ -107,7 +107,6 @@ sealed class StateChangeRegistration : IDisposable
         _name = name;
         _stateHandler = stateHandler;
         Handler = handler;
-        _stateHandler.RegisterStateHandler(name, Handler);
     }
 
     public void Dispose() => _stateHandler.RemoveStateHandler(_name, Handler);
