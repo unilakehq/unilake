@@ -1,0 +1,179 @@
+@namespace Unilake.WebApp.Components
+
+@* todo: add children attributes *@
+<Accordion>
+    <Header>
+        <div class="flex w-full justify-between min-w-[880px]">
+            <div class="flex gap-2 items-center">
+                <IntegrationStatus Value="@InputModel.Status"/>
+                <div
+                    class="flex flex-row divide-x divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider gap-2 items-center text-small">
+                    <p class="font-bold text-typography-headline dark:text-typography-dark-headline text-default truncate">
+                        @InputModel.EntityName
+                    </p>
+                    <p class="text-typography-headline dark:text-typography-dark-headline pl-2">
+                        <SelectInput class="min-w-[250px]"
+                                     Options="_selections"
+                                     Value="CurrentSelection"
+                                     ValueChanged="@(v => InputModel.RunType = (IntegrationPipelineRunType)int.Parse(v.Value))"
+                                     IsCloseOnSelection="@true"/>
+                    </p>
+                    @if (InputModel.RequiresCursor)
+                    {
+                        <div class="flex">
+                            <p class="text-typography-headline dark:text-typography-dark-headline pl-2">Cursor
+                                Field:</p>
+                            <p class="text-typography-body font-bold dark:text-typography-dark-body pl-2">@_cursorFieldId</p>
+                        </div>
+                    }
+                    <div class="flex">
+                        <p class="text-typography-headline dark:text-typography-dark-headline pl-2">
+                            Primary Key:
+                        </p>
+                        <p class="text-typography-body font-bold dark:text-typography-dark-body pl-2">
+                            @string.Join(", ", InputModel.PrimaryKeys.Select(x => x.Key))
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 text-small mr-3">
+                <Toggle Size="CheckboxSize.Small" @bind-Value="InputModel.IsIncluded">Include</Toggle>
+                <p class="font-bold">@GetCurrentCount()</p>
+            </div>
+        </div>
+    </Header>
+    <ChildContent>
+        <QuickGridWrap>
+            <QuickGrid
+                Class="min-w-full divide-y divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider"
+                Items="InputModel.Attributes.AsQueryable()" Theme="unilake">
+                <TemplateColumn Align="Align.Center" Class="px-4 py-1 w-[10px]">
+                    <HeaderTemplate>
+                        <CheckboxTriState Variant="CheckboxTriStateVariant.Filter"
+                                          ValueChanged="@(v => OnSelectionChanged(v, null))" @ref="_allSelection"
+                                          Value="AllSelectionStatus()"/>
+                    </HeaderTemplate>
+                    <ChildContent>
+                        <CheckboxTriState Variant="CheckboxTriStateVariant.Filter"
+                                          @bind-Value="@context.Value.IsIncluded"
+                                          OnClick="@(() => OnSelectionChanged(null, context.Value))"/>
+                    </ChildContent>
+                </TemplateColumn>
+                <TemplateColumn Class="px-4 py-1">
+                    <HeaderTemplate>
+                        Field Name
+                        <Tooltip class="p-2" Placement="Tooltip.TooltipPlacement.Bottom"
+                                 Text="Name of the column in the source">
+                            <Icon IconInstance="AnronIcons.QuestionBadge" Size="10"/>
+                        </Tooltip>
+                    </HeaderTemplate>
+                    <ChildContent>
+                        @context.Key
+                    </ChildContent>
+                </TemplateColumn>
+                <TemplateColumn Class="px-4 py-1 max-w-[20px]">
+                    <HeaderTemplate>
+                        Data Type
+                        <Tooltip class="p-2" Placement="Tooltip.TooltipPlacement.Bottom" Text="Data type at the source">
+                            <Icon IconInstance="AnronIcons.QuestionBadge" Size="10"/>
+                        </Tooltip>
+                    </HeaderTemplate>
+                    <ChildContent>
+                        @context.Value.DataType
+                    </ChildContent>
+                </TemplateColumn>
+                @if (InputModel.RequiresCursor)
+                {
+                    <TemplateColumn Title="Cursor Field" Align="Align.Center" Class="px-4 py-1 max-w-[20px]">
+                        <HeaderTemplate>
+                            Cursor Field
+                            <Tooltip class="p-2" Placement="Tooltip.TooltipPlacement.Bottom"
+                                     Text="Column used for delta determination">
+                                <Icon IconInstance="AnronIcons.QuestionBadge" Size="10"/>
+                            </Tooltip>
+                        </HeaderTemplate>
+                        <ChildContent>
+                            <RadioButton Id="@context.Key" @bind-Value="_cursorFieldId"
+                                         GroupName="@string.Concat("cursor-field-", InputModel.EntityName)"/>
+                        </ChildContent>
+                    </TemplateColumn>
+                }
+                <TemplateColumn Title="Primary Key" Align="Align.Center" Class="px-4 py-1 max-w-[20px]">
+                    <HeaderTemplate>
+                        Primary Key
+                        <Tooltip class="p-2" Placement="Tooltip.TooltipPlacement.Bottom"
+                                 Text="Primary key as known at source">
+                            <Icon IconInstance="AnronIcons.QuestionBadge" Size="10"/>
+                        </Tooltip>
+                    </HeaderTemplate>
+                    <ChildContent>
+                        <CheckboxTriState Variant="CheckboxTriStateVariant.Filter"
+                                          @bind-Value="@context.Value.IsPrimaryKey"/>
+                    </ChildContent>
+                </TemplateColumn>
+                <TemplateColumn Title="Hash Column" Align="Align.Center" Class="px-4 py-1 max-w-[20px]">
+                    <HeaderTemplate>
+                        Hash Column
+                        <Tooltip class="p-2" Placement="Tooltip.TooltipPlacement.Bottom"
+                                 Text="Hash content when processing this column">
+                            <Icon IconInstance="AnronIcons.QuestionBadge" Size="10"/>
+                        </Tooltip>
+                    </HeaderTemplate>
+                    <ChildContent>
+                        <CheckboxTriState Variant="CheckboxTriStateVariant.Filter"
+                                          @bind-Value="@context.Value.IsHashColumn"/>
+                    </ChildContent>
+                </TemplateColumn>
+            </QuickGrid>
+        </QuickGridWrap>
+    </ChildContent>
+</Accordion>
+
+@code {
+    // some internal state
+    private string _cursorFieldId = string.Empty;
+    private CheckboxTriState? _allSelection;
+
+    [Parameter, EditorRequired]
+    public required IntegrationPipelineEntitySelectionModel InputModel { get; set; }
+
+    // used to get the dropdown selections (from enum to select input options)
+    private SelectInputOption[] _selections = Enum.GetValues<IntegrationPipelineRunType>()
+        .Select(x => new SelectInputOption(x.GetDescription(), ((int)x).ToString()))
+        .ToArray();
+    SelectInputOption CurrentSelection => _selections[(int)InputModel.RunType];
+
+    /// <summary>
+    /// Returns the current count combination (min/max)
+    /// </summary>
+    private string GetCurrentCount()
+    {
+        var (current, max) = InputModel.SelectedCount;
+        return $"{current}/{max}";
+    }
+
+    /// <summary>
+    /// Keeps track of selection changes and in case we need to change all selections (in bulk)
+    /// </summary>
+    private Task OnSelectionChanged(bool? value, IntegrationPipelineEntityAttribute? attribute)
+    {
+        if (attribute == null)
+            foreach (var item in InputModel.Attributes.Values)
+                item.IsIncluded = value;
+        else if (_allSelection != null)
+            _allSelection.Value = AllSelectionStatus();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Returns the current selection status for all items
+    /// - false: all are not selected
+    /// - true: all are selected
+    /// - null: some are selected, others are not
+    /// </summary>
+    private bool? AllSelectionStatus()
+    {
+        var (current, max) = InputModel.SelectedCount;
+        return current == 0 ? false : current != max ? null : true;
+    }
+}

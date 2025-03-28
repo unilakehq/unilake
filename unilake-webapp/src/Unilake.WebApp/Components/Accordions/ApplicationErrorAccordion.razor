@@ -1,0 +1,45 @@
+@namespace Unilake.WebApp.Components
+
+<Accordion>
+    <Header>
+        <div class="flex w-full justify-between text-small">
+            <div class="flex gap-2 divide-x divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider">
+                <div class="flex gap-2 items-center">
+                    <div class="flex px-4 py-1 rounded-lg font-bold items-center justify-center outline outline-1 bg-feedback-error-background text-feedback-error-text outline-feedback-error-contrast dark:bg-feedback-error-dark-background dark:text-feedback-error-dark-text dark:outline-feedback-error-dark-contrast">
+                        @ErrorCode
+                    </div>
+                    <Icon Color="text-typography-icon dark:text-typography-dark-icon" IconInstance="ErrorTypeIcon"
+                          Size="16"/>
+                    <p>@ErrorTypeLabelText</p>
+                </div>
+                <div class="flex gap-2 items-center pl-2">
+                    <Icon Color="text-typography-icon dark:text-typography-dark-icon" IconInstance="ErrorMessageIcon"
+                          Size="16"/>
+                    <p>@ErrorMessage</p>
+
+                </div>
+            </div>
+            <div class="flex items-center mr-2">
+                <TimeagoPill Timestamp="OccuredUtc"/>
+            </div>
+        </div>
+    </Header>
+    <ChildContent>
+        <div class="text-small">
+            <p>@ErrorLocation</p>
+            <LogFileReaderEditor/>
+        </div>
+    </ChildContent>
+</Accordion>
+
+@code {
+    public int ErrorCode { get; set; } = 404;
+    public IIcon ErrorTypeIcon { get; set; } = AnronIcons.Eye;
+    public string ErrorTypeLabelText { get; set; } = "Data Product";
+    public IIcon ErrorMessageIcon { get; set; } = AnronIcons.Copy;
+    public string ErrorLocation { get; set; } = "/home/menno/Documents/Projects/sqlmesh_dev/models/some_folder/another_file.sql";
+    public string ErrorMessage { get; set; } = "The MODEL statement is required as the first statement in the definition....";
+    public DateTime OccuredUtc { get; set; } = DateTime.UtcNow.AddMinutes(-22);
+    public string ErrorStackTrace { get; set; } = "";
+
+}
