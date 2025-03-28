@@ -7,13 +7,13 @@
 
 @code {
     [Parameter] public bool IsDisabled { get; set; }
-    [Parameter] public bool? IsToggledOn { get; set; }
+    [Parameter] public bool? Value { get; set; }
     [Parameter] public EventCallback<bool?> ValueChanged { get; set; }
     [Parameter] public CheckboxTriStateVariant Variant { get; set; } = CheckboxTriStateVariant.Alpha;
 
-    private bool EmptyState => !IsToggledOn.HasValue;
-    private bool SelectedSate => IsToggledOn.HasValue && IsToggledOn.Value;
-    private bool DeselectedSate => IsToggledOn.HasValue && !IsToggledOn.Value;
+    private bool EmptyState => !Value.HasValue;
+    private bool SelectedSate => Value.HasValue && Value.Value;
+    private bool DeselectedSate => Value.HasValue && !Value.Value;
 
     private string ClassBgAlpha => new ClassBuilder()
         .AddIf("bg-brand-light-interaction dark:bg-brand-dark-interaction", SelectedSate || EmptyState)
@@ -35,7 +35,7 @@
         .AddIf("cursor-pointer", !IsDisabled)
         .ToString();
 
-    private IIcon GetIcon() => IsToggledOn switch
+    private IIcon GetIcon() => Value switch
     {
         true => AnronIcons.Check,
         false => AnronIcons.Check,
@@ -45,13 +45,13 @@
     private async Task ToggleState()
     {
         if (IsDisabled) return;
-        IsToggledOn = IsToggledOn switch
+        Value = Value switch
         {
             true => false,
             false => true,
             null => true
         };
-        await ValueChanged.InvokeAsync(IsToggledOn);
+        await ValueChanged.InvokeAsync(Value);
         await OnClick.InvokeAsync();
     }
 }
