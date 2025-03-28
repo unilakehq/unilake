@@ -1,7 +1,6 @@
 @namespace Unilake.WebApp.DesignSystem.Components
 @inherits UnilakeBaseComponent
 
-@* todo: dark mode *@
 <button class="@ClassNames"
         @onclick="OnClick">
     <div class="flex gap-2">
@@ -78,7 +77,7 @@
         .ToString();
 
     private string RightIconClassNames => new ClassBuilder("flex items-center")
-        .AddIf("text-typography-icon group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
+        .AddIf("text-typography-icon dark:text-typography-dark-icon group-hover:text-brand-light-interaction", NavItem.State is MenuItemState.Default or MenuItemState.Opened && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
         .AddIf("text-brand-light-interaction", NavItem.State is MenuItemState.ActiveClosed or MenuItemState.ActiveOpened && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
         .AddIf("text-brand-light-interaction", NavItem.State is MenuItemState.Active && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
         .AddIf("text-typography-disabled", NavItem.State is MenuItemState.Disabled && string.IsNullOrWhiteSpace(NavItem.RightIconColor))
