@@ -2,8 +2,8 @@
 @inherits UnilakeBaseComponent
 
 @* todo: proper dark mode *@
-<label class="inline-flex items-start cursor-pointer">
-    <input type="checkbox" checked="@IsToggledOn" @onclick="ToggleState" disabled="@IsDisabled" class="sr-only peer">
+<label class="inline-flex cursor-pointer">
+    <input type="checkbox" checked="@Value" @onclick="ToggleState" disabled="@IsDisabled" class="sr-only peer">
     <div class="@DivClass()"></div>
     <span class="@SpanClass()">
         <span class="@LabelTextClass()">
@@ -22,16 +22,16 @@
 
 @code {
     [Parameter] public bool IsDisabled { get; set; }
-    [Parameter] public bool IsToggledOn { get; set; }
+    [Parameter] public bool Value { get; set; }
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
     [Parameter] public string? LabelText { get; set; }
     [Parameter] public string? HelperText { get; set; }
     [Parameter] public CheckboxSize Size { get; set; } = CheckboxSize.Small;
-    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
 
-    protected async Task ToggleState()
+    private async Task ToggleState()
     {
-        IsToggledOn = !IsToggledOn;
-        await ValueChanged.InvokeAsync(IsToggledOn);
+        Value = !Value;
+        await ValueChanged.InvokeAsync(Value);
         await OnClick.InvokeAsync();
     }
 
@@ -55,8 +55,8 @@
         .ToString();
 
     private string LabelTextClass() => new ClassBuilder()
-        .AddIf("text-typography-faded", IsDisabled)
-        .AddIf("text-typography-headline", !IsDisabled)
+        .AddIf("text-typography-faded dark:text-typography-dark-faded", IsDisabled)
+        .AddIf("text-typography-headline dark:text-typography-dark-headline", !IsDisabled)
         .ToString();
 
 }
