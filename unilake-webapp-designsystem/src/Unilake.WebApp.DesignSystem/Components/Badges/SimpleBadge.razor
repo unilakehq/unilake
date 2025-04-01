@@ -4,7 +4,7 @@
 <div class="@ClassNames">
     @if (BadgeIcon != null)
     {
-        <Icon IconInstance="BadgeIcon" Size="12"/>
+        <Icon IconInstance="BadgeIcon" Size="@Size"/>
     }
     else if(!string.IsNullOrWhiteSpace(Content))
     {
@@ -17,10 +17,11 @@
 </div>
 
 @code {
-    [Parameter] public IIcon? BadgeIcon { get; set; }
-    [Parameter] public string? Content { get; set; }
-    [Parameter] public SimpleBadgeTheme Theme { get; set; } = SimpleBadgeTheme.TextOnly;
-    [Parameter] public SimpleBadgeColor Color { get; set; } = SimpleBadgeColor.Brand;
+    [Parameter] public IIcon? BadgeIcon { get; init; }
+    [Parameter] public string? Content { get; init; }
+    [Parameter] public SimpleBadgeTheme Theme { get; init; } = SimpleBadgeTheme.TextOnly;
+    [Parameter] public SimpleBadgeColor Color { get; init; } = SimpleBadgeColor.Brand;
+    [Parameter] public int Size { get; init; } = 12;
 
     private string IconCss => new ClassBuilder()
         .AddCompare("outline-1 outline outline-offset-[-1px]", Theme, SimpleBadgeTheme.IconOutline)
@@ -56,7 +57,7 @@
         .ToString();
 
     protected override string ClassNames => ClassBuilder
-        .AddIf("flex items-center px-1 h-5 min-w-5 rounded-[80px] justify-center", Theme != SimpleBadgeTheme.Dot)
+        .AddIf("flex items-center px-1 h-5 w-5 rounded-[80px] justify-center", Theme != SimpleBadgeTheme.Dot)
         .AddIf(IconCss, BadgeIcon != null)
         .AddIf(TextCss, !string.IsNullOrWhiteSpace(Content) || ChildContent != null)
         .AddCompare(BgColorCss, Theme, SimpleBadgeTheme.Dot)
