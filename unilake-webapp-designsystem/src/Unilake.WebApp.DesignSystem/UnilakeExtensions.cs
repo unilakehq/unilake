@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Unilake.WebApp.DesignSystem.Components.Offcanvas.Services;
+using Unilake.WebApp.DesignSystem.Components.Toasts.Services;
 using Unilake.WebApp.DesignSystem.Services;
 
 namespace Unilake.WebApp.DesignSystem;
