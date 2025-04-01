@@ -1,0 +1,1 @@
+These models should be removed later on, as models should be in a shared library, shared with the backend instead of purely front-end models. The front-end models we do have, are part of the components
