@@ -1,0 +1,104 @@
+@using Unilake.WebApp.Models
+@namespace Unilake.WebApp.Components
+
+@* todo: onclick should open an offcanvas *@
+<Accordion>
+    <Header>
+        <div class="flex justify-between w-full">
+            <div
+                class="flex gap-2 divide-x divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider text-small">
+                <div class="flex gap-2 items-center" @onclick:stopPropagation="true" @onclick:preventDefault="true">
+                    <a href="#"
+                       class="flex justify-center items-center w-7 h-7 text-typography-icon dark:text-typography-dark-icon bg-neutral-background-default dark:bg-neutral-background-dark-default rounded-full shadow-[0px_1px_2px_-1px_rgba(0,0,0,0.10)] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.10)]">
+                        <Icon IconInstance="@Value.LeftIcon" Size="14"/>
+                    </a>
+                    <a class="font-bold text-typography-headline dark:text-typography-dark-headline text-default hover:text-brand-light-link-hover dark:hover:text-brand-dark-link-hover" href="#">
+                        @Value.Title
+                    </a>
+                </div>
+                <div class="flex items-center pl-2">
+                    @Value.Description
+                </div>
+            </div>
+            @if (Value.DataProductStatusIndicator.HasValue)
+            {
+                <div class="mr-2">
+                    <DataProductStatus StatusIndicator="@Value.DataProductStatusIndicator.Value" StatusText="Data Contract"/>
+                </div>
+            }
+        </div>
+    </Header>
+    <ChildContent>
+        <div class="flex gap-2 divide-x divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider text-small">
+            @foreach (var dp in Value.DataProductContext ?? [])
+            {
+                <div class="pl-2">
+                    <Badge BadgeStyle="BadgeStyle.Default" BadgeTheme="BadgeTheme.Filter" LeftIcon="@dp.LeftIcon" LabelText="@dp.ItemText"/>
+                </div>
+            }
+            @if (Value.LastUpdated.HasValue)
+            {
+                <div class="flex gap-2">
+                    <DatePill Value="@Value.LastUpdated.Value"/>
+                    <TimePill Value="@Value.LastUpdated.Value.TimeOfDay"/>
+                </div>
+            }
+            <div class="flex gap-2 pl-2">
+                <Avatar Size="AvatarSize.Small" ImageUrl="@Value.DataOwner.Url"/>
+                @Value.DataOwner.FirstName @Value.DataOwner.LastName
+            </div>
+            <div class="pl-2">
+                <Tooltip Placement="Tooltip.TooltipPlacement.Bottom" Text="Top 20%" class="p-2">
+                    <PopularityIndicator Value="@Value.PopularityIndex"/>
+                </Tooltip>
+            </div>
+            @if (Value.SchemaCount.HasValue)
+            {
+                <div class="pl-2 flex gap-2">
+                    <p class="font-bold text-typography-faded dark:text-typography-dark-faded">Schema's</p>
+                    <SimpleBadge class="rounded-[80px]" Size="20" Theme="SimpleBadgeTheme.TextOnly" Color="SimpleBadgeColor.Neutral">@Value.SchemaCount.Value</SimpleBadge>
+                </div>
+            }
+            @if (Value.TableCount.HasValue)
+            {
+                <div class="pl-2 flex gap-2">
+                    <p class="font-bold text-typography-faded dark:text-typography-dark-faded">Table's</p>
+                    <SimpleBadge class="rounded-[80px]" Size="20" Theme="SimpleBadgeTheme.TextOnly" Color="SimpleBadgeColor.Neutral">@Value.TableCount.Value</SimpleBadge>
+                </div>
+            }
+            @if (Value.ViewCount.HasValue)
+            {
+                <div class="pl-2 flex gap-2">
+                    <p class="font-bold text-typography-faded dark:text-typography-dark-faded">Schema's</p>
+                    <SimpleBadge class="rounded-[80px]" Size="20" Theme="SimpleBadgeTheme.TextOnly" Color="SimpleBadgeColor.Neutral">@Value.ViewCount.Value</SimpleBadge>
+                </div>
+            }
+            @if (Value.MountCount.HasValue)
+            {
+                <div class="pl-2 flex gap-2">
+                    <p class="font-bold text-typography-faded dark:text-typography-dark-faded">Schema's</p>
+                    <SimpleBadge class="rounded-[80px]" Size="20" Theme="SimpleBadgeTheme.TextOnly" Color="SimpleBadgeColor.Neutral">@Value.MountCount.Value</SimpleBadge>
+                </div>
+            }
+            @if (Value.IsCertified.HasValue && Value.IsCertified.Value)
+            {
+                <div class="pl-2 flex">
+                    <Badge BadgeStyle="BadgeStyle.Default" BadgeTheme="BadgeTheme.Success" LeftIcon="AnronIcons.Check" LabelText="Certified"/>
+                </div>
+            }
+        </div>
+        <div class="pt-3">
+            @foreach (var badge in Value.Tags ?? [])
+            {
+                <Badge BadgeStyle="BadgeStyle.Secondary" BadgeTheme="BadgeTheme.Success" LeftIcon="@badge.Icon" Size="BadgeSize.Small">
+                    @badge.Description
+                </Badge>
+            }
+        </div>
+    </ChildContent>
+</Accordion>
+
+@code {
+    [Parameter, EditorRequired]
+    public required CatalogAccordionItem Value { get; init; }
+}

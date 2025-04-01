@@ -1,5 +1,6 @@
 @namespace Unilake.WebApp.Components
 
+@* todo: the message needs to be truncated in the accordion header, since the message can be very long and be multi-lined *@
 <Accordion>
     <Header>
         <div class="flex w-full justify-between text-small">
@@ -26,20 +27,27 @@
     </Header>
     <ChildContent>
         <div class="text-small">
-            <p>@ErrorLocation</p>
-            <LogFileReaderEditor/>
+            <p class="pb-2">@ErrorLocation</p>
+            <LogFileReaderEditor Message="@ErrorMessage" StackTrace="@ErrorStackTrace"/>
         </div>
     </ChildContent>
 </Accordion>
 
 @code {
-    public int ErrorCode { get; set; } = 404;
-    public IIcon ErrorTypeIcon { get; set; } = AnronIcons.Eye;
-    public string ErrorTypeLabelText { get; set; } = "Data Product";
-    public IIcon ErrorMessageIcon { get; set; } = AnronIcons.Copy;
-    public string ErrorLocation { get; set; } = "/home/menno/Documents/Projects/sqlmesh_dev/models/some_folder/another_file.sql";
-    public string ErrorMessage { get; set; } = "The MODEL statement is required as the first statement in the definition....";
-    public DateTime OccuredUtc { get; set; } = DateTime.UtcNow.AddMinutes(-22);
-    public string ErrorStackTrace { get; set; } = "";
-
+    [Parameter, EditorRequired]
+    public required int ErrorCode { get; init; }
+    [Parameter, EditorRequired]
+    public required IIcon ErrorTypeIcon { get; init; }
+    [Parameter, EditorRequired]
+    public required string ErrorTypeLabelText { get; init; }
+    [Parameter, EditorRequired]
+    public required IIcon ErrorMessageIcon { get; init; }
+    [Parameter, EditorRequired]
+    public required string ErrorLocation { get; init; }
+    [Parameter, EditorRequired]
+    public required string ErrorMessage { get; init; }
+    [Parameter, EditorRequired]
+    public required DateTime OccuredUtc { get; init; }
+    [Parameter, EditorRequired]
+    public required string ErrorStackTrace { get; init; }
 }

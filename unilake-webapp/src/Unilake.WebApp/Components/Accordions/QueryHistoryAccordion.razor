@@ -1,0 +1,72 @@
+@namespace Unilake.WebApp.Components
+
+@* todo: correctly set the query in the header, copy query id does not work, edit query does not work, and other items *@
+@* todo: perhaps a model is better for this component instead, that way it can be updated as well (query updates) *@
+<Accordion>
+    <Header>
+        <div class="flex w-full justify-between text-small">
+            <div class="flex gap-2 divide-x divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider">
+                <div class="flex gap-2 items-center">
+                    <ProcessStatusIndicator Value="@QueryStatus"/>
+                    <p>SELECT name_zip, name_Name_datetime, name_Name_datetime1, som...</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 mr-2 divide-x divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider">
+                <div class="flex text-brand-light-link dark:text-brand-dark-link gap-2 items-center">
+                    <Icon IconInstance="AnronIcons.Terminal" Size="20"/>
+                    <p>@ComputeName</p>
+                </div>
+                <div class="flex gap-2 pl-2">
+                    <DatePill Value="@ExecutedAtUtc"/>
+                    <TimePill Value="@ExecutedAtUtc.TimeOfDay"/>
+                </div>
+                <div class="flex items-center pl-2">
+                    <TimePill Value="@ExecutionDuration" IsClockedTime="@true" IsCurrentlyRunning="QueryStatus == ProcessStatusIndicatorType.Running"/>
+                </div>
+                <div class="flex items-center pl-2">
+                    <Avatar ImageUrl="https://media.licdn.com/dms/image/v2/C4D03AQFT8BhVHXf2Jg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1516585764563?e=1749081600&v=beta&t=W2kcyrByv_2El4wI3Ww9LA5N-TGIcEgGIIEcytYmSqM"/>
+                </div>
+                @if (IsPinned)
+                {
+                    <div class="flex items-center pl-2">
+                        <SimpleBadge Size="20" Theme="SimpleBadgeTheme.IconOnly" Color="SimpleBadgeColor.Brand" BadgeIcon="AnronIcons.Pin2"/>
+                    </div>
+                }
+            </div>
+        </div>
+    </Header>
+    <ChildContent>
+        <div class="text-small">
+            <div class="flex pb-2 gap-2">
+                <p class="font-bold text-default">ID</p>
+                <p>@QueryId</p>
+                <a>copy</a>
+            </div>
+            <QueryEditor Value="@QueryText"/>
+            <div class="pt-2">
+               @QueryDescription
+            </div>
+        </div>
+    </ChildContent>
+</Accordion>
+
+@code {
+    [Parameter] public bool IsPinned { get; init; }
+    [Parameter, EditorRequired]
+    public required string QueryId { get; init; }
+    [Parameter, EditorRequired]
+    public required string QueryText { get; set; }
+    /// <summary>
+    /// This can either be a description for the query (pinned query) or a description of an error
+    /// </summary>
+    [Parameter, EditorRequired]
+    public required string QueryDescription { get; set; }
+    [Parameter, EditorRequired]
+    public required string ComputeName { get; init; }
+    [Parameter, EditorRequired]
+    public DateTime ExecutedAtUtc { get; set; }
+    [Parameter, EditorRequired]
+    public TimeSpan ExecutionDuration { get; set; }
+    [Parameter, EditorRequired]
+    public ProcessStatusIndicatorType QueryStatus { get; set; }
+}
