@@ -1,0 +1,61 @@
+@inherits UnilakeBaseComponent
+@namespace Unilake.WebApp.DesignSystem.Components
+
+@* todo: add correct culture here *@
+@if (IsClockedTime)
+{
+ <Tooltip Text="@Value.ToString()" class="p-1" Placement="Tooltip.TooltipPlacement.Bottom">
+  <div class="@ClassNames">
+   <Icon IconInstance="AnronIcons.Time" Size="16"/>
+   @TimeDisplay
+  </div>
+ </Tooltip>
+}
+else
+{
+ <div class="@ClassNames">
+  <Icon IconInstance="AnronIcons.Time" Size="16"/>
+  @TimeDisplay
+ </div>
+}
+
+@code {
+
+ /// <summary>
+ /// If true this timer should show a clocked time (1.121 sec, for example)
+ /// </summary>
+ [Parameter]
+ public bool IsClockedTime { get; set; }
+ /// <summary>
+ /// If true, this clocked time should be updated
+ /// </summary>
+ [Parameter]
+ public bool IsCurrentlyRunning { get; set; }
+ [Parameter, EditorRequired] public required TimeSpan Value { get; set; }
+
+ private Timer? _timer;
+ protected override void OnParametersSet()
+ {
+  if(IsCurrentlyRunning)
+   _timer = new Timer(_ =>
+   {
+    Value += TimeSpan.FromMilliseconds(125);
+    StateHasChanged();
+   }, new AutoResetEvent(false), TimeSpan.Zero, TimeSpan.FromMilliseconds(125));
+ }
+
+ protected override string ClassNames => ClassBuilder
+  .Add("flex gap-1 px-2 items-center w-fit rounded-md bg-brand-bravo-100 text-feedback-info-text")
+  .AddIf("min-w-[80px]", IsClockedTime)
+  .AddIf("w-fit", !IsClockedTime)
+  .ToString();
+
+ private string TimeDisplay => IsClockedTime ?
+  Value >= TimeSpan.FromDays(1) ? $"{Value.TotalDays:##.##} d" :
+  Value >= TimeSpan.FromHours(1) ? $"{Value.TotalHours:##.##} h" :
+  Value >= TimeSpan.FromMinutes(1) ? $"{Value.TotalMinutes:##.##} m" :
+  Value >= TimeSpan.FromSeconds(1) ? Value.ToString("s\\.fff") + " s" :
+  Value.ToString("fff") + " ms"
+  : Value.ToString("hh':'mm':'ss");
+
+}

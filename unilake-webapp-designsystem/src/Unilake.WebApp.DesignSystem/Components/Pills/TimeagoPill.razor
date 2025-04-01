@@ -1,14 +1,16 @@
 @using Humanizer
+@inherits UnilakeBaseComponent
 @namespace Unilake.WebApp.DesignSystem.Components
 
 @* todo: add correct culture here *@
 <Tooltip Text="@Timestamp.ToString()" class="p-1" Placement="Tooltip.TooltipPlacement.Bottom">
- <div class="flex gap-1 px-2 items-center w-fit rounded-md bg-brand-bravo-100 text-feedback-info-text">
+
+ <div class="@ClassNames">
   <Icon IconInstance="AnronIcons.Time" Size="16"/>
   <p>
    @Timestamp.Humanize()
   </p>
-</div>
+ </div>
 
 </Tooltip>
 
@@ -17,6 +19,10 @@
 
  private string _humanizedTimeAgo = string.Empty;
  private Timer? _timer;
+
+ protected override string ClassNames => ClassBuilder
+  .Add("flex gap-1 px-2 items-center w-fit rounded-md bg-brand-bravo-100 text-feedback-info-text")
+  .ToString();
 
  protected override void OnParametersSet()
  {
