@@ -1,0 +1,15 @@
+@namespace Unilake.WebApp.Components
+
+<svg width="32" height="19" viewBox="0 0 32 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 9C0 7.89543 0.895431 7 2 7C3.10457 7 4 7.89543 4 9V17C4 18.1046 3.10457 19 2 19C0.895431 19 0 18.1046 0 17V9Z" fill="#FF6849" fill-opacity="@GetValue(1)"/>
+    <path d="M7 7C7 5.89543 7.89543 5 9 5C10.1046 5 11 5.89543 11 7V17C11 18.1046 10.1046 19 9 19C7.89543 19 7 18.1046 7 17V7Z" fill="#FF6849" fill-opacity="@GetValue(2)"/>
+    <path d="M14 6C14 4.89543 14.8954 4 16 4C17.1046 4 18 4.89543 18 6V17C18 18.1046 17.1046 19 16 19C14.8954 19 14 18.1046 14 17V6Z" fill="#FF6849" fill-opacity="@GetValue(3)"/>
+    <path d="M21 4C21 2.89543 21.8954 2 23 2C24.1046 2 25 2.89543 25 4V17C25 18.1046 24.1046 19 23 19C21.8954 19 21 18.1046 21 17V4Z" fill="#FF6849" fill-opacity="@GetValue(4)"/>
+    <path d="M28 2C28 0.895431 28.8954 0 30 0C31.1046 0 32 0.895431 32 2V17C32 18.1046 31.1046 19 30 19C28.8954 19 28 18.1046 28 17V2Z" fill="#FF6849" fill-opacity="@GetValue(5)"/>
+</svg>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Value { get; set; }
+    string GetValue(int level) => level <= Value ? "1" : "0.25";
+}
