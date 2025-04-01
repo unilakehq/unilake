@@ -1,9 +1,12 @@
 @using Unilake.WebApp.DesignSystem
 @namespace Unilake.WebApp.Components
+@inherits UnilakeBaseComponent
 
-<Button class="@ClassNames" Variant="ButtonVariant.Custom" Size="ButtonSize.Small" LeftIcon="LeftIcon" Text="@StatusText">
+<div @onclick:stopPropagation="true" @onclick:preventDefault="true">
+    <Button @onclick="OnClick" class="@ClassNames" Variant="ButtonVariant.Custom" Size="ButtonSize.Small" LeftIcon="LeftIcon" Text="@StatusText">
 
-</Button>
+    </Button>
+</div>
 
 @code {
     [Parameter, EditorRequired]

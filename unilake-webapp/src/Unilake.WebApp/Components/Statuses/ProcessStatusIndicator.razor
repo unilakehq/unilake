@@ -1,0 +1,26 @@
+@using Unilake.WebApp.DesignSystem
+@namespace Unilake.WebApp.Components
+
+<div class="@IndicatorClassNames()">
+    <Icon IconInstance="@GetProcessIcon()" Size="18"/>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required ProcessStatusIndicatorType Value { get; init; }
+
+    private IIcon GetProcessIcon() =>
+        Value == ProcessStatusIndicatorType.Succeeded ? AnronIcons.SuccessBadge :
+        Value == ProcessStatusIndicatorType.Failed ? AnronIcons.ErrorBadge :
+        Value == ProcessStatusIndicatorType.Running ? AnronIcons.Refresh :
+        AnronIcons.Loader2;
+
+    private string IndicatorClassNames() => new ClassBuilder("flex size-6 justify-center items-center rounded-[208px]")
+        .AddCompare("text-feedback-success-contrast dark:text-feedback-dark-success-contrast bg-feedback-success-background dark:bg-feedback-dark-success-background", Value, ProcessStatusIndicatorType.Succeeded)
+        .AddCompare("text-feedback-info-contrast dark:text-feedback-dark-info-contrast bg-feedback-info-background dark:bg-feedback-dark-info-background", Value, ProcessStatusIndicatorType.Running)
+        .AddCompare("text-feedback-error-contrast dark:text-feedback-dark-error-contrast bg-feedback-error-background dark:bg-feedback-dark-error-background", Value, ProcessStatusIndicatorType.Failed)
+        // todo: this needs better coloring, should not make use of neutral and typography as color
+        .AddCompare("text-neutral-50 bg-typography-body dark:bg-typography-dark-body", Value, ProcessStatusIndicatorType.Unknown)
+        .ToString();
+
+}
