@@ -1,0 +1,62 @@
+@using Unilake.WebApp.DesignSystem.Services.State
+@namespace Unilake.WebApp.Components
+@implements IDisposable
+
+@* todo: add log theme see for example: https://github.com/sumy7/monaco-language-log *@
+<div class="relative">
+    <div>
+        <StandaloneCodeEditor CssClass="h-[300px]" ConstructionOptions="EditorConstructionOptions" @ref="_editor"/>
+        <div class="flex items-center absolute right-0 top-0 mt-3 mr-3">
+            <Button Variant="ButtonVariant.Bravo" IsIcon="@true" Size="ButtonSize.XSmall" OnClick="@(async () => await UnilakeService.CopyToClipboard(await _editor!.GetValue()))">
+                <Icon IconInstance="AnronIcons.Copy" Size="16"/>
+            </Button>
+            <Button Variant="ButtonVariant.Bravo" IsIcon="@true" Size="ButtonSize.XSmall" OnClick="@(async () => await UnilakeService.CopyToClipboard(await _editor!.GetValue()))">
+                <Icon IconInstance="AnronIcons.Edit3" Size="16"/>
+            </Button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject] public required StateService StateService { get; init; }
+    [Inject] public required UnilakeService UnilakeService { get; init; }
+
+    [Parameter, EditorRequired]
+    public required string Value { get; init; }
+    private StandaloneCodeEditor? _editor;
+    private IDisposable? _eventHandler;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _eventHandler ??= StateService.RegisterStateHandler(StateKey.DarkMode, async e =>
+        {
+            await _editor!.UpdateOptions(new EditorUpdateOptions
+            {
+                Theme = EditorTheme(e.GetNewState<bool>())
+            });
+        });
+    }
+    private string EditorTheme(bool isDarkMode) => isDarkMode ? "vs-dark" : "vs";
+    private StandaloneEditorConstructionOptions EditorConstructionOptions(StandaloneCodeEditor editor)
+    {
+        return new()
+        {
+            AutomaticLayout = true,
+            Minimap = new EditorMinimapOptions
+            {
+                Enabled = false
+            },
+            Language = "sql",
+            Value = Value,
+            Theme = EditorTheme(StateService.GetState<bool>(StateKey.DarkMode)),
+            ReadOnly = true,
+            Contextmenu = false,
+            FontSize = 12,
+        };
+    }
+    public void Dispose()
+    {
+        _editor?.Dispose();
+        _eventHandler?.Dispose();
+    }
+}
