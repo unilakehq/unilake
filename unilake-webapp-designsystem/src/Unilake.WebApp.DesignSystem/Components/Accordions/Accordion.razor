@@ -2,11 +2,11 @@
 @inherits UnilakeBaseComponent
 
 <div class="@ClassNames">
-    <Button Variant="ButtonVariant.Custom" OnClick="Toggle" class="flex justify-between w-full items-center bg-neutral-background-faded
+    <div @onclick="Toggle" class="flex justify-between w-full items-center bg-neutral-background-faded cursor-pointer
     dark:bg-neutral-background-dark-faded rounded-lg border border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider px-3 py-2">
         @Header
         <Icon IconInstance="ToggleIcon" Size="20"></Icon>
-    </Button>
+    </div>
     <div class="@ContentClassNames -mt-1 p-3 rounded-bl-lg rounded-br-lg border-l border-r border-b border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider">
         <div class="mt-1">
             @ChildContent
