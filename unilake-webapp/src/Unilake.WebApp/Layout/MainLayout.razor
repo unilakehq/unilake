@@ -1,14 +1,16 @@
 ﻿@using Unilake.WebApp.DesignSystem
-@using Unilake.WebApp.Services
+@using Unilake.WebApp.DesignSystem.Services.Messaging
+@using Unilake.WebApp.DesignSystem.Services.State
 @inherits LayoutComponentBase
 
 <div class="@AppClass">
     @* containers *@
     <ModalContainer/>
     @* topnav *@
-    <Topnav OnSideNavToggle="ToggleSidebarNav" OnDarkModeToggle="ToggleDarkMode" IsDarkMode="StateService.GetState<bool>(State.DarkMode)">
+    <Topnav OnSideNavToggle="ToggleSidebarNav" OnDarkModeToggle="ToggleDarkMode" IsDarkMode="StateService.GetState<bool>(StateKey.DarkMode)">
         <LeftContent>
-            <Button Variant="ButtonVariant.Bravo">search button</Button>
+            @* <Button Variant="ButtonVariant.Bravo">search button</Button> *@
+            -
         </LeftContent>
         <ChildContent>
             -
@@ -22,7 +24,7 @@
         <ToastContainer/>
         <OffcanvasContainer/>
         @* navbar *@
-        <SidebarNav IsCollapsed="StateService.GetState<bool>(State.SideNavCollapsed)" NavItems="StateService.GetState<IEnumerable<NavItem>>(State.NavigationMenu)"/>
+        <SidebarNav IsCollapsed="StateService.GetState<bool>(StateKey.SideNavCollapsed)" NavItems="StateService.GetState<IEnumerable<NavItem>>(StateKey.NavigationMenu)"/>
         @* content *@
         <main class="w-full overflow-y-auto">
             @* page body *@
@@ -36,9 +38,17 @@
 @code
 {
     [Inject] public required StateService StateService { get; init; }
-    private Task ToggleDarkMode() => StateService.DispatchStateEvent<bool>(State.DarkMode, x => !x);
-    private Task ToggleSidebarNav() => StateService.DispatchStateEvent<bool>(State.SideNavCollapsed, x => !x);
+    [Inject] public required MessageService MessageService { get; init; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await StateService.InitializeAsync();
+        await MessageService.ConnectAsync();
+    }
+
+    private async Task ToggleDarkMode() => await StateService.DispatchStateEvent<bool>(StateKey.DarkMode, x => !x);
+    private async Task ToggleSidebarNav() => await StateService.DispatchStateEvent<bool>(StateKey.SideNavCollapsed, x => !x);
     string AppClass => new ClassBuilder()
-        .AddIfElse("dark", StateService.GetState<bool>(State.DarkMode), "")
+        .AddIfElse("dark", StateService.GetState<bool>(StateKey.DarkMode), "")
         .ToString();
 }
