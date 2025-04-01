@@ -4,7 +4,8 @@
     Copyright (c) 2020 Joakim Dangården
 *@
 @namespace Unilake.WebApp.DesignSystem.Components
-@using Unilake.WebApp.DesignSystem.Services
+@using Unilake.WebApp.DesignSystem.Components.Toasts.Services
+@using Unilake.WebApp.DesignSystem.Services.Messaging
 @implements IDisposable
 
 @{
@@ -55,11 +56,18 @@
 }
 
 @code {
-    [Inject] public required ToastService ToastService { get; set; }
+    [Inject] public required ToastService ToastService { get; init; }
+    [Inject] public required MessageService MessageService{ get; init; }
+    private IDisposable? _messageHandler;
 
     protected override void OnInitialized()
     {
         ToastService.OnChanged += OnToastChanged;
+        //todo: properly implement this, so we can show toasts from a webapi event
+        _messageHandler = MessageService.RegisterMessageHandler("toast", async message =>
+        {
+            await ToastService.AddToastAsync("toast message!");
+        });
     }
 
     private async Task OnToastChanged()
@@ -72,6 +80,7 @@
     public void Dispose()
     {
         ToastService.OnChanged -= OnToastChanged;
+        _messageHandler?.Dispose();
     }
 
 }

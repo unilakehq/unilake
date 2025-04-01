@@ -3,9 +3,8 @@
 // MIT License
 // Copyright (c) 2020 Joakim Dangården
 //
-using Unilake.WebApp.DesignSystem.Components;
 
-namespace Unilake.WebApp.DesignSystem.Services;
+namespace Unilake.WebApp.DesignSystem.Components.Toasts.Services;
 
 public class ToastService
 {

@@ -1,16 +1,16 @@
 using Unilake.WebApp.DesignSystem.Components;
 
-namespace Unilake.WebApp.Services;
+namespace Unilake.WebApp.DesignSystem.Services.State;
 
 public class StaticStateServiceImpl : StateService
 {
     public StaticStateServiceImpl()
     {
-        StateHandler.SetInitialState(State.DarkMode, true);
-        StateHandler.SetInitialState(State.SideNavCollapsed, false);
-        StateHandler.SetInitialState(State.NavigationMenu, NavigationMenu);
+        StateHandler.SetInitialState(StateKey.DarkMode, true);
+        StateHandler.SetInitialState(StateKey.SideNavCollapsed, false);
+        StateHandler.SetInitialState(StateKey.NavigationMenu, NavigationMenu);
         // todo: see how we are going to handle this and how we adjust it
-        StateHandler.SetInitialState(State.Culture, "en-UK");
+        StateHandler.SetInitialState(StateKey.Culture, "en-UK");
     }
 
     public IEnumerable<NavItem> NavigationMenu { get; } =
@@ -95,7 +95,8 @@ public class StaticStateServiceImpl : StateService
             [
                 new()
                 {
-                    Label = "Develop"
+                    Label = "Develop",
+                    Uri = "/workspace/datascience/develop"
                 },
                 new()
                 {
@@ -104,4 +105,10 @@ public class StaticStateServiceImpl : StateService
             ]
         }
     ];
+
+    public override Task InitializeAsync()
+    {
+        Console.WriteLine("Static state service initialized. No need to connect to any external services.");
+        return Task.CompletedTask;
+    }
 }

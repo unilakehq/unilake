@@ -1,4 +1,4 @@
-namespace Unilake.WebApp.Services;
+namespace Unilake.WebApp.DesignSystem.Services.State;
 
 public abstract class StateService
 {
@@ -13,7 +13,8 @@ public abstract class StateService
     /// <param name="name">Name of the state to dispatch</param>
     /// <param name="state">State changes, both old and new state</param>
     /// <param name="autoPopulateOldValue">Automatically populate the old state with the current state if true</param>
-    public Task DispatchStateEvent<T>(string name, StateChangeEvent state, bool autoPopulateOldValue = true) => StateHandler.DispatchStateEvent<T>(name, state, autoPopulateOldValue);
+    public async Task DispatchStateEvent<T>(string name, StateChangeEvent state, bool autoPopulateOldValue = true) =>
+        await StateHandler.DispatchStateEvent<T>(name, state, autoPopulateOldValue);
 
     /// <summary>
     /// Dispatch a state change event to all registered handlers for the specified state, updating the state using the provided function.
@@ -21,14 +22,16 @@ public abstract class StateService
     /// <param name="name">Name of the state to dispatch</param>
     /// <param name="updateStateFunc">Function to change the state in place</param>
     /// <typeparam name="T">Type of the state stored</typeparam>
-    public Task DispatchStateEvent<T>(string name, Func<T, T> updateStateFunc) => StateHandler.DispatchStateEvent(name, updateStateFunc);
+    public async Task DispatchStateEvent<T>(string name, Func<T, T> updateStateFunc) =>
+        await StateHandler.DispatchStateEvent(name, updateStateFunc);
 
     /// <summary>
     /// Register a state change handler for a specific state. Returns an IDisposable to unregister the handler when no longer needed.
     /// </summary>
     /// <param name="name">Name of the state to track</param>
     /// <param name="handler">Function to invoke on state changes</param>
-    public IDisposable RegisterStateHandler(string name, Func<StateChangeEvent, Task> handler) => StateHandler.RegisterStateHandler(name, handler);
+    public IDisposable RegisterStateHandler(string name, Func<StateChangeEvent, Task> handler) =>
+        StateHandler.RegisterStateHandler(name, handler);
 
     /// <summary>
     /// Get the current value for a specific state.
@@ -37,4 +40,10 @@ public abstract class StateService
     /// <typeparam name="T">Expected state type</typeparam>
     /// <returns></returns>
     public T GetState<T>(string name) => StateHandler.GetState<T>(name);
+
+    /// <summary>
+    /// Initialize the state service. This should be called once during application startup.
+    /// </summary>
+    /// <returns></returns>
+    public abstract Task InitializeAsync();
 }

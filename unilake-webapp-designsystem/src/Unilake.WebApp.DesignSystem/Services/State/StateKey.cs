@@ -1,6 +1,6 @@
-namespace Unilake.WebApp.Services;
+namespace Unilake.WebApp.DesignSystem.Services.State;
 
-public static class State
+public static class StateKey
 {
     /// <summary>
     /// Determines if the application is in dark mode or not.

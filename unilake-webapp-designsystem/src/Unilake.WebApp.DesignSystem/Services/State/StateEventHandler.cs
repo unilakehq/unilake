@@ -1,6 +1,6 @@
 using Ardalis.GuardClauses;
 
-namespace Unilake.WebApp.Services;
+namespace Unilake.WebApp.DesignSystem.Services.State;
 
 /// <summary>
 /// Main state handler, this class contains and distributes state changes.
@@ -61,7 +61,7 @@ public class StateEventHandler : IDisposable
         Guard.Against.Null(state);
 
         if(!_currentState.TryAdd(name, state))
-            throw new InvalidOperationException($"State '{name}' already exists");
+            throw new InvalidOperationException($"State '{name}' already initialized. Cannot initialize state again.");
     }
 
     public void RemoveStateHandler(string name, Func<StateChangeEvent, Task> handler)

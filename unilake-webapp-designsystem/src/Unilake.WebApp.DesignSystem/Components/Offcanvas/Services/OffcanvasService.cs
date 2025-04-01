@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using Unilake.WebApp.DesignSystem.Components;
 
-namespace Unilake.WebApp.DesignSystem.Services;
+namespace Unilake.WebApp.DesignSystem.Components.Offcanvas.Services;
 
 public class OffcanvasService : IOffcanvasService
 {
