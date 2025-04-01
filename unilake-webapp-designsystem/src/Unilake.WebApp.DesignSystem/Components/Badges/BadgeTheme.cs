@@ -9,6 +9,7 @@ public enum BadgeTheme
     Warning,
     Neutral,
     UserInput,
+    Filter,
     Custom
 }
 

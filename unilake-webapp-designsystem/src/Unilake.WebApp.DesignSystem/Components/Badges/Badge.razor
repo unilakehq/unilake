@@ -67,6 +67,7 @@
 
       private string ClassNamesDefault() => new ClassBuilder("rounded-md")
             .AddCompare("bg-feedback-info-background dark:bg-feedback-info-dark-background", BadgeTheme, BadgeTheme.Info)
+            .AddCompare("bg-brand-bravo-100", BadgeTheme, BadgeTheme.Filter)
             .AddCompare("bg-feedback-error-background dark:bg-feedback-error-dark-background", BadgeTheme, BadgeTheme.Error)
             .AddCompare("bg-feedback-brand-background dark:bg-feedback-brand-dark-background text-feedback-brand-contrast dark:text-feedback-brand-dark-contrast", BadgeTheme, BadgeTheme.Brand)
             .AddCompare("bg-feedback-success-background dark:bg-feedback-success-dark-background", BadgeTheme, BadgeTheme.Success)
@@ -98,6 +99,7 @@
       private string TextClassNamesDefault() => new ClassBuilder()
             .AddCompare("text-feedback-brand-contrast dark:text-feedback-brand-dark-contrast", BadgeTheme, BadgeTheme.Brand)
             .AddCompare("text-feedback-info-contrast dark:text-feedback-info-dark-contrast", BadgeTheme, BadgeTheme.Info)
+            .AddCompare("text-feedback-info-text", BadgeTheme, BadgeTheme.Filter)
             .AddCompare("text-feedback-error-contrast dark:text-feedback-error-dark-contrast", BadgeTheme, BadgeTheme.Error)
             .AddCompare("text-feedback-success-contrast dark:text-feedback-success-dark-contrast", BadgeTheme, BadgeTheme.Success)
             .AddCompare("text-feedback-warning-contrast dark:text-feedback-warning-dark-contrast", BadgeTheme, BadgeTheme.Warning)
