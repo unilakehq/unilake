@@ -1,17 +1,20 @@
-use crate::backend::app::generic::FedResult;
-use crate::frontend::BatchRequest;
 use crate::frontend::RpcRequest;
+use crate::frontend::{
+    BaseMetaDataColumn, BatchRequest, ColumnData, DataFlags, MetaDataColumn, TokenColMetaData,
+    TokenInfo, TokenRow, TokenSessionState, TypeInfo,
+};
+use std::collections::VecDeque;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio_stream::Stream;
 use unilake_common::error::TdsWireResult;
 
-pub mod azdatastudio;
-pub mod generic;
-// Hashmap with key being the SQL query to search for and a function to execute it
-// Make use of: https://docs.rs/ahash/latest/ahash/struct.AHashMap.html
-// Generic approaches accommodate the above
-// Also: I think this mod should be placed elsewhere (sql perhaps?), or not
+mod dbeaver;
+mod generic;
+mod pbi;
+mod ssms;
+mod unilake;
+mod vscode;
 
 pub enum FederatedRequestType<'a> {
     Query(&'a BatchRequest),
@@ -25,7 +28,17 @@ impl FederatedFrontendHandler {
         hash: u64,
         request: FederatedRequestType,
     ) -> TdsWireResult<Option<FedResultStream>> {
-        Ok(generic::process_static(hash, &request))
+        let found = generic::process_static(hash, &request)
+            .or_else(|| dbeaver::process_static(hash, &request))
+            .or_else(|| pbi::process_static(hash, &request))
+            .or_else(|| ssms::process_static(hash, &request))
+            .or_else(|| unilake::process_static(hash, &request));
+
+        if found.is_some() {
+            tracing::info!("Static query result found for hash: {}", hash);
+        }
+
+        Ok(found)
     }
 }
 
@@ -44,5 +57,100 @@ impl Stream for FedResultStream {
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         Pin::new(&mut self.it).poll_next(cx)
+    }
+}
+
+impl From<&mut ResultSet> for TokenColMetaData {
+    fn from(value: &mut ResultSet) -> Self {
+        let mut col = TokenColMetaData::new(value.columns.len());
+        while let Some(column) = value.columns.pop_front() {
+            col.add_column(column);
+        }
+        col
+    }
+}
+
+impl Iterator for ResultSet {
+    type Item = TokenRow;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.rows.pop_front();
+        if let Some(row) = current {
+            let mut token_row = TokenRow::new(self.columns.len(), false);
+            for item in row {
+                token_row.push_row(item);
+            }
+            Some(token_row)
+        } else {
+            None
+        }
+    }
+}
+
+// todo(mrhamburg): we need to check where we do the set commands for sessions and which one we support
+pub enum FedResult {
+    Tabular(ResultSet),
+    Info(TokenInfo),
+    State(TokenSessionState),
+    Empty,
+}
+
+pub struct ResultSet {
+    columns: VecDeque<MetaDataColumn>,
+    rows: VecDeque<VecDeque<ColumnData>>,
+}
+
+impl ResultSet {
+    pub fn new() -> Self {
+        ResultSet {
+            columns: VecDeque::new(),
+            rows: VecDeque::new(),
+        }
+    }
+}
+
+struct ResultSetBuilder {
+    result: ResultSet,
+}
+
+impl ResultSetBuilder {
+    pub fn new() -> Self {
+        ResultSetBuilder {
+            result: ResultSet::new(),
+        }
+    }
+
+    pub fn add_column(mut self, name: Option<&str>, ty: TypeInfo, flags: DataFlags) -> Self {
+        self.result.columns.push_back(MetaDataColumn {
+            col_name: name.map(|s| s.to_string()).unwrap_or_default(),
+            base: BaseMetaDataColumn { flags, ty },
+        });
+
+        self
+    }
+
+    pub fn add_row(mut self, cells: &[ColumnData]) -> Self {
+        self.result.rows.push_back(cells.to_vec().into());
+        self
+    }
+}
+
+impl BatchRequest {
+    pub fn contains(&self, keyword: &str, case_insensitive: bool) -> bool {
+        if case_insensitive {
+            self.query_lowercased
+                .contains(keyword.to_lowercase().as_str())
+        } else {
+            self.query.contains(keyword)
+        }
+    }
+
+    pub fn starts_with(&self, keyword: &str, case_insensitive: bool) -> bool {
+        if case_insensitive {
+            self.query_lowercased
+                .starts_with(keyword.to_lowercase().as_str())
+        } else {
+            self.query.starts_with(keyword)
+        }
     }
 }

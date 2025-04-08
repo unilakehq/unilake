@@ -2,20 +2,22 @@ mod extensions;
 mod query;
 mod session;
 
-use crate::backend::app::generic::FedResult;
-use crate::backend::app::{FedResultStream, FederatedFrontendHandler, FederatedRequestType};
+use crate::backend::app::{
+    FedResult, FedResultStream, FederatedFrontendHandler, FederatedRequestType,
+};
 use crate::backend::data::BackendInstance;
 use crate::backend::starrocks::session::StarRocksSession;
 use crate::backend::telemetry::{QueryTelemetry, QueryTelemetryHandler};
+use crate::frontend::tds::collation::Collation;
 use crate::frontend::{
     prot::{
         ServerInstance, ServerInstanceMessage, SessionAuditMessage, SessionUserInfo,
         TdsWireHandlerFactory,
     },
     tds::server_context::ServerContext,
-    BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, TdsBackendResponse, TokenColMetaData,
-    TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck, TokenPreLoginFedAuthRequiredOption,
-    TokenRow,
+    BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, RpcRequest, TdsBackendResponse,
+    TokenColMetaData, TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck,
+    TokenPreLoginFedAuthRequiredOption, TokenRow,
 };
 use crate::session::{
     SessionInfo, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE, SESSION_VARIABLE_DIALECT,
@@ -25,6 +27,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
 use futures::{Sink, StreamExt};
 use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
+use serde::__private::de::Content::U64;
+use std::str::FromStr;
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
@@ -630,6 +634,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         } else {
             "".to_string()
         };
+        // todo: check context for which database to change to
         let new_database = msg.db_name.clone().unwrap_or_else(|| "main".to_string());
         self.send_token(
             client,
@@ -650,10 +655,11 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         session_info.set_schema(new_database);
 
         // set collation change
-        // return_msg.add_token(TokenEnvChange::new_collation_change(
-        //     "".to_string(),
-        //     "".to_string(),
-        // ));
+        self.send_token(
+            client,
+            TokenEnvChange::new_collation_change(None, Some(Collation::default())),
+        )
+        .await?;
 
         // set language change
         self.send_token(
@@ -713,6 +719,31 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         todo!()
     }
 
+    async fn on_remote_procedure_call<C>(
+        &self,
+        client: &mut C,
+        session_info: &mut StarRocksSession,
+        msg: &RpcRequest,
+    ) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send,
+    {
+        if let Some(statement) = msg.parameters.first() {
+            tracing::info!("Received RPC request: {:?}", statement.value);
+        }
+
+        // check for federated query
+        let hash = msg.get_hash();
+        if let Some(handler) =
+            FederatedFrontendHandler::exec_request(hash, FederatedRequestType::Rpc(msg))?
+        {
+            return self.handle_fed_resultset(client, handler).await;
+        }
+        tracing::trace!("No federated query found for: {}", hash);
+
+        Ok(())
+    }
+
     async fn on_sql_batch_request<C>(
         &self,
         client: &mut C,
@@ -728,7 +759,12 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         let telemetry = QueryTelemetryHandler::new(self.inner.server_instance.clone());
 
         // check for federated query
-        let hash = msg.get_hash();
+        let hash = if let Ok(sent_hash) = u64::from_str(msg.query.as_str()) {
+            sent_hash
+        } else {
+            msg.get_hash()
+        };
+
         if let Some(handler) =
             FederatedFrontendHandler::exec_request(hash, FederatedRequestType::Query(msg))?
         {
@@ -747,6 +783,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
                         .tcp_port(9030)
                         .user(Some("root"))
                         .prefer_socket(Some(false))
+                        .wait_timeout(Some(100))
                 })
                 .await;
 

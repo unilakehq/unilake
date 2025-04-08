@@ -1,5 +1,3 @@
-use std::usize;
-
 use crate::frontend::{
     sqlstring::SqlString, BaseMetaDataColumn, ColumnData, DataFlags, MetaDataColumn, TokenRow,
     TypeInfo, UpdatableFlags,
@@ -12,31 +10,36 @@ use mysql_async::Row;
 impl Into<MetaDataColumn> for &mysql_async::Column {
     fn into(self) -> MetaDataColumn {
         let name = String::from_utf8(self.name_ref().to_vec()).unwrap();
+        let is_nullable = !self.flags().contains(ColumnFlags::NOT_NULL_FLAG);
         let ty = match self.column_type() {
             mysql_async::consts::ColumnType::MYSQL_TYPE_NEWDECIMAL
-            | mysql_async::consts::ColumnType::MYSQL_TYPE_DECIMAL => {
-                TypeInfo::new_decimal(self.column_length() as u8, self.decimals())
+            | mysql_async::consts::ColumnType::MYSQL_TYPE_DECIMAL => TypeInfo::new_decimaln(38, 9),
+            mysql_async::consts::ColumnType::MYSQL_TYPE_TINY => {
+                TypeInfo::new_tiny_intn(is_nullable)
             }
-            mysql_async::consts::ColumnType::MYSQL_TYPE_TINY => TypeInfo::new_tinyint(true),
-            mysql_async::consts::ColumnType::MYSQL_TYPE_SHORT => TypeInfo::new_smallint(true),
-            mysql_async::consts::ColumnType::MYSQL_TYPE_LONGLONG => TypeInfo::new_bigint(true),
-            mysql_async::consts::ColumnType::MYSQL_TYPE_LONG => TypeInfo::new_int(true),
-            mysql_async::consts::ColumnType::MYSQL_TYPE_FLOAT => TypeInfo::new_float_32(true),
-            mysql_async::consts::ColumnType::MYSQL_TYPE_DOUBLE => TypeInfo::new_float_64(true),
+            mysql_async::consts::ColumnType::MYSQL_TYPE_SHORT => {
+                TypeInfo::new_small_intn(is_nullable)
+            }
+            mysql_async::consts::ColumnType::MYSQL_TYPE_LONGLONG => {
+                TypeInfo::new_big_intn(is_nullable)
+            }
+            mysql_async::consts::ColumnType::MYSQL_TYPE_LONG => TypeInfo::new_intn(is_nullable),
+            mysql_async::consts::ColumnType::MYSQL_TYPE_FLOAT => {
+                TypeInfo::new_floatn_32(is_nullable)
+            }
+            mysql_async::consts::ColumnType::MYSQL_TYPE_DOUBLE => {
+                TypeInfo::new_floatn_64(is_nullable)
+            }
             mysql_async::consts::ColumnType::MYSQL_TYPE_JSON
             | mysql_async::consts::ColumnType::MYSQL_TYPE_BLOB
             | mysql_async::consts::ColumnType::MYSQL_TYPE_STRING
             | mysql_async::consts::ColumnType::MYSQL_TYPE_VAR_STRING => {
-                // TypeInfo::new_nvarchar(self.column_length() as usize)
-                // if self.column_length() < 240 {
-                //     TypeInfo::new_nvarchar(self.column_length() as usize)
-                // } else {
-                //     TypeInfo::new_string()
-                // }
-                TypeInfo::new_string()
+                // todo: fix this and make sure it is known when writing rows, so we can more efficiently handle strings
+                // TypeInfo::new_nvarchar(Some(self.column_length() as usize))
+                TypeInfo::new_nvarchar(None)
             }
-            mysql_async::consts::ColumnType::MYSQL_TYPE_DATETIME => TypeInfo::new_datetime(),
-            mysql_async::consts::ColumnType::MYSQL_TYPE_DATE => TypeInfo::new_date(),
+            mysql_async::consts::ColumnType::MYSQL_TYPE_DATETIME => TypeInfo::new_datetime2(),
+            mysql_async::consts::ColumnType::MYSQL_TYPE_DATE => TypeInfo::new_daten(is_nullable),
             _ => {
                 tracing::error!("Unknown column type: {:?}", self.column_type());
                 unreachable!()
@@ -47,7 +50,7 @@ impl Into<MetaDataColumn> for &mysql_async::Column {
         let mut flags = DataFlags::default();
         flags.is_key = self.flags().contains(ColumnFlags::PART_KEY_FLAG);
         flags.updatable = UpdatableFlags::NotUpdatable;
-        flags.is_nullable = true;
+        flags.is_nullable = is_nullable;
 
         MetaDataColumn {
             base: BaseMetaDataColumn { flags, ty },
@@ -121,10 +124,12 @@ impl Into<TokenRow> for Row {
                     mysql_async::consts::ColumnType::MYSQL_TYPE_DATE
                     | mysql_async::consts::ColumnType::MYSQL_TYPE_NEWDATE => {
                         let x: Option<NaiveDate> = self.take(i).unwrap_or_default();
-                        ColumnData::Date(x)
+                        found_null |= x.is_none();
+                        ColumnData::DateN(x)
                     }
                     mysql_async::consts::ColumnType::MYSQL_TYPE_YEAR => {
                         let x: Option<i16> = self.take(i).unwrap_or_default(); // `YEAR` can be treated as an i16
+                        found_null |= x.is_none();
                         ColumnData::I16N(x)
                     }
                     mysql_async::consts::ColumnType::MYSQL_TYPE_VARCHAR
@@ -137,7 +142,7 @@ impl Into<TokenRow> for Row {
                     | mysql_async::consts::ColumnType::MYSQL_TYPE_JSON => {
                         let x: Option<String> = self.take_opt(i).unwrap().ok().unwrap_or_default();
                         found_null |= x.is_none();
-                        ColumnData::String(SqlString::from_string(x, usize::MAX))
+                        ColumnData::String(SqlString::from_string(x, None))
                     }
                     _ => unimplemented!(),
                 }
