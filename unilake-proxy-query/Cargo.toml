@@ -25,7 +25,6 @@ unilake-sql = { path = "src/sql" }
 unilake-security = { path = "src/security" }
 
 # Crates.io dependencies
-xxhash-rust = { version = "0.8.12", features = ["xxh3"] }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18" }
 chrono = { version = "0.4.38" }
@@ -61,7 +60,6 @@ serde_json = { version = "1.0.129" }
 serde = { version = "1.0.210", features = ["derive"] }
 #casbin = { version = "2.5.0", default-features = false, features = ["runtime-tokio", "logging", "incremental", "explain"] }
 casbin = { git = "https://github.com/mrhamburg/casbin-rs.git", branch = "mrhamburg-function-map", features = ["explain", "logging", "glob", "cached"] }
-backon = { version = "1.2.0" }
 moka = { version = "0.12.8", features = ["future"] }
 redis = { version = "0.27.5", features = ["futures", "tokio", "aio", "tokio-comp", "cluster-async", "cluster"] }
 base64 = { version = "0.22.1" }
