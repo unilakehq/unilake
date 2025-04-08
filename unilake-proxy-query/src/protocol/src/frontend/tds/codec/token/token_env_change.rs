@@ -1,4 +1,5 @@
 use crate::frontend::tds::codec::{decode, encode};
+use crate::frontend::tds::collation::Collation;
 use crate::frontend::utils::ReadAndAdvance;
 use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType};
 use std::fmt::{self, Debug};
@@ -69,7 +70,7 @@ pub enum TokenEnvChange {
     CharacterSet(String, String),
     RealTimeLogShipping(String, String),
     PacketSize(String, String),
-    SqlCollation(String, String),
+    SqlCollation(Option<Collation>, Option<Collation>),
     BeginTransaction([u8; 8]),
     CommitTransaction,
     RollbackTransaction,
@@ -81,17 +82,17 @@ pub enum TokenEnvChange {
 }
 
 impl TokenEnvChange {
-    pub fn new_database_change(from: String, to: String) -> Self {
-        Self::Database(from, to)
+    pub fn new_database_change(old: String, new: String) -> Self {
+        Self::Database(old, new)
     }
-    pub fn new_language_change(from: String, to: String) -> Self {
-        Self::Language(from, to)
+    pub fn new_language_change(old: String, new: String) -> Self {
+        Self::Language(old, new)
     }
-    pub fn new_collation_change(from: String, to: String) -> Self {
-        Self::SqlCollation(from, to)
+    pub fn new_collation_change(old: Option<Collation>, new: Option<Collation>) -> Self {
+        Self::SqlCollation(old, new)
     }
-    pub fn new_packet_size_change(from: String, to: String) -> Self {
-        Self::PacketSize(from, to)
+    pub fn new_packet_size_change(old: String, new: String) -> Self {
+        Self::PacketSize(old, new)
     }
     pub fn new_reset_connection_ack() -> Self {
         Self::ResetConnection
@@ -139,14 +140,32 @@ impl TdsTokenCodec for TokenEnvChange {
 
         // write changed data
         match self {
-            TokenEnvChange::Database(new, old)
-            | TokenEnvChange::SqlCollation(new, old)
-            | TokenEnvChange::PacketSize(new, old)
-            | TokenEnvChange::Language(new, old)
-            | TokenEnvChange::CharacterSet(new, old)
-            | TokenEnvChange::RealTimeLogShipping(new, old) => {
-                encode::write_b_varchar(&mut buff, old)?;
+            TokenEnvChange::Database(old, new)
+            | TokenEnvChange::PacketSize(old, new)
+            | TokenEnvChange::Language(old, new)
+            | TokenEnvChange::CharacterSet(old, new)
+            | TokenEnvChange::RealTimeLogShipping(old, new) => {
                 encode::write_b_varchar(&mut buff, new)?;
+                encode::write_b_varchar(&mut buff, old)?;
+            }
+            TokenEnvChange::SqlCollation(old, new) => {
+                // todo: improve collation use and encoding, this should be a collation object and not raw bytes
+                if let Some(new) = new {
+                    buff.put_u8(5);
+                    buff.put_u16_le(new.codepage);
+                    buff.put_u16_le(new.flags);
+                    buff.put_u8(new.charset_id);
+                } else {
+                    buff.put_u8(0);
+                }
+                if let Some(old) = old {
+                    buff.put_u8(5);
+                    buff.put_u16_le(old.codepage);
+                    buff.put_u16_le(old.flags);
+                    buff.put_u8(old.charset_id);
+                } else {
+                    buff.put_u8(0);
+                }
             }
             _ => {
                 buff.put_u8(0);

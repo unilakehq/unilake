@@ -152,7 +152,7 @@ impl RowBitmap {
                 | ColumnData::DateTime(None)
                 | ColumnData::SmallDateTime(None)
                 | ColumnData::Time(None)
-                | ColumnData::Date(None)
+                | ColumnData::DateN(None)
                 | ColumnData::DateTime2(None)
                 | ColumnData::DateTimeOffset(None) => {
                     ret.set_null(i);

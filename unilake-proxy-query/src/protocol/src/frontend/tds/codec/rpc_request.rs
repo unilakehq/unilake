@@ -1,6 +1,7 @@
 // MS-TDS: [2.2.6.6]
 use crate::frontend::tds::codec::decode::read_b_varchar;
 use crate::frontend::{ColumnData, TdsMessage, TdsMessageCodec, TypeInfo};
+use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BytesMut};
 use unilake_common::error::TdsWireResult;
 
@@ -27,17 +28,30 @@ uint_enum! {
 
 #[derive(Debug)]
 pub struct RpcRequest {
-    outstanding_requests: u32,
-    procedure_type: ProcedureType,
-    parameters: Vec<RpcParameter>,
+    pub outstanding_requests: u32,
+    pub procedure_type: ProcedureType,
+    pub parameters: Vec<RpcParameter>,
+}
+
+impl RpcRequest {
+    pub fn get_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        let mut bytes = BytesMut::new();
+        // todo: fix this unwrap, should be handled properly
+        self.parameters
+            .iter()
+            .for_each(|v| v.value.encode(&mut bytes).unwrap());
+        hasher.write(bytes.as_ref());
+        hasher.finish()
+    }
 }
 
 #[derive(Debug)]
 pub struct RpcParameter {
-    name: String,
-    status: u8,
-    type_info: TypeInfo,
-    value: ColumnData,
+    pub name: String,
+    pub status: u8,
+    pub type_info: TypeInfo,
+    pub value: ColumnData,
 }
 
 impl TdsMessageCodec for RpcRequest {

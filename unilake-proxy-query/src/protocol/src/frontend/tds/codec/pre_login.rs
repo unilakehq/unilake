@@ -21,7 +21,7 @@ pub struct ActivityId {
 pub struct PreloginMessage {
     /// [BE] token=0x00
     /// Either the driver version (client) or the version of the SQL instance (server)
-    pub version: u32,
+    pub version: (u8, u8, u16),
     pub sub_build: u16,
     /// token=0x01
     pub encryption: Option<EncryptionLevel>,
@@ -54,7 +54,9 @@ impl PreloginMessage {
     pub fn new() -> PreloginMessage {
         let driver_version = crate::frontend::get_driver_version();
         PreloginMessage {
-            version: driver_version as u32,
+            // version: driver_version as u32,
+            // todo: fix this above
+            version: (0, 0, 0),
             sub_build: 0,
             encryption: Some(EncryptionLevel::NotSupported),
             instance_name: None,
@@ -106,7 +108,7 @@ impl TdsMessageCodec for PreloginMessage {
             match token {
                 // version
                 PRELOGIN_VERSION => {
-                    ret.version = src.get_u32();
+                    ret.version = (src.get_u8(), src.get_u8(), src.get_u16());
                     ret.sub_build = src.get_u16();
                     decode_offset_initial += 6;
                 }
@@ -238,7 +240,9 @@ impl TdsMessageCodec for PreloginMessage {
         }
 
         // write version
-        dst.put_u32(self.version);
+        dst.put_u8(self.version.0);
+        dst.put_u8(self.version.1);
+        dst.put_u16(self.version.2);
         dst.put_u16(self.sub_build);
 
         // write thread_id

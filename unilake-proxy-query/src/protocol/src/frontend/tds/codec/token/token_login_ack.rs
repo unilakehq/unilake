@@ -19,7 +19,7 @@ pub struct TokenLoginAck {
     pub tds_version: FeatureLevel,
     pub prog_name: String,
     /// major.minor.buildhigh.buildlow
-    pub version: u32,
+    pub version: (u8, u8, u16),
 }
 
 impl TokenLoginAck {
@@ -42,7 +42,12 @@ impl TdsTokenCodec for TokenLoginAck {
         buff.put_u8(self.interface);
         buff.put_u32(self.tds_version as u32);
         encode::write_b_varchar(&mut buff, &self.prog_name)?;
-        buff.put_u32_le(self.version);
+
+        // set version
+        let (major, minor, build) = self.version;
+        buff.put_u8(major);
+        buff.put_u8(minor);
+        buff.put_u16(build);
 
         // push length and content
         dest.put_u16_le(buff.len() as u16);
@@ -60,13 +65,15 @@ impl TdsTokenCodec for TokenLoginAck {
         })?;
 
         let prog_name = decode::read_b_varchar(src)?;
-        let version = src.get_u32_le();
+        let major_version = src.get_u8();
+        let minor_version = src.get_u8();
+        let build_version = src.get_u16();
 
         Ok(TdsToken::LoginAck(TokenLoginAck {
             interface,
             tds_version,
             prog_name,
-            version,
+            version: (major_version, minor_version, build_version),
         }))
     }
 }
@@ -103,7 +110,7 @@ mod tests {
         let input = TokenLoginAck {
             interface: 12,
             prog_name: "test".to_string(),
-            version: 0x74000004,
+            version: (16, 0, 4140),
             tds_version: FeatureLevel::SqlServerN,
         };
 
