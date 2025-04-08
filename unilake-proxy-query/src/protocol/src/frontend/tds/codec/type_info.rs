@@ -18,71 +18,94 @@ impl TypeInfo {
     pub fn new_bit() -> Self {
         Self::FixedLen(FixedLenType::Bit)
     }
-    pub fn new_tinyint(is_nullable: bool) -> Self {
+    pub fn new_tiny_intn(is_nullable: bool) -> Self {
         if is_nullable {
             return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 1, None));
         }
         Self::FixedLen(FixedLenType::Int1)
     }
-    pub fn new_smallint(is_nullable: bool) -> Self {
+    pub fn new_small_intn(is_nullable: bool) -> Self {
         if is_nullable {
             return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 2, None));
         }
         Self::FixedLen(FixedLenType::Int2)
     }
-    pub fn new_int(is_nullable: bool) -> Self {
+    pub fn new_intn(is_nullable: bool) -> Self {
         if is_nullable {
             return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 4, None));
         }
         Self::FixedLen(FixedLenType::Int4)
     }
-    pub fn new_bigint(is_nullable: bool) -> Self {
+    pub fn new_big_intn(is_nullable: bool) -> Self {
         if is_nullable {
             return Self::VarLenSized(VarLenContext::new(VarLenType::Intn, 8, None));
         }
         Self::FixedLen(FixedLenType::Int8)
     }
-    pub fn new_decimal(precision: u8, scale: u8) -> Self {
+    pub fn new_decimaln(precision: u8, scale: u8) -> Self {
         Self::VarLenSizedPrecision {
             ty: VarLenType::Decimaln,
-            size: (precision + scale) as usize,
-            precision: precision,
-            scale: scale,
+            size: match precision {
+                1..=8 => 4,
+                9..=18 => 8,
+                19..=27 => 12,
+                28..=38 => 16,
+                _ => todo!("return unsupported precision error"),
+            },
+            precision,
+            scale,
         }
     }
-    pub fn new_float_32(is_nullable: bool) -> Self {
+    pub fn new_floatn_32(is_nullable: bool) -> Self {
         if is_nullable {
             return Self::VarLenSized(VarLenContext::new(VarLenType::Floatn, 4, None));
         }
         Self::FixedLen(FixedLenType::Float4)
     }
-    pub fn new_float_64(is_nullable: bool) -> Self {
+    pub fn new_floatn_64(is_nullable: bool) -> Self {
         if is_nullable {
             return Self::VarLenSized(VarLenContext::new(VarLenType::Floatn, 8, None));
         }
         Self::FixedLen(FixedLenType::Float8)
     }
-    pub fn new_date() -> Self {
-        Self::VarLenSized(VarLenContext::new(VarLenType::Daten, 0, None))
+    pub fn new_daten(is_nullable: bool) -> Self {
+        Self::VarLenSized(VarLenContext::new(
+            VarLenType::Daten,
+            if is_nullable { 0 } else { 3 },
+            None,
+        ))
     }
-    pub fn new_datetime() -> Self {
+    pub fn new_datetime2() -> Self {
         Self::VarLenSized(VarLenContext::new(VarLenType::Datetime2, 7, None))
     }
-    pub fn new_nvarchar(max_len: usize) -> Self {
+    /// Creates a new `TypeInfo` instance for an NVARCHAR type.
+    ///
+    /// # Parameters
+    ///
+    /// * `max_len`: An `Option<usize>` that specifies the maximum length of the NVARCHAR.
+    ///   - If `Some(value)`, `value` is used as the maximum length.
+    ///   - If `None`, the maximum length is set to 0xFFFF (65535), which represents NVARCHAR(MAX).
+    ///
+    /// # Returns
+    ///
+    /// Returns a `TypeInfo` instance configured for an NVARCHAR type with the specified or default maximum length
+    /// and default collation settings.
+    pub fn new_nvarchar(max_len: Option<usize>) -> Self {
         Self::VarLenSized(VarLenContext::new(
             VarLenType::NVarchar,
-            max_len,
+            max_len.unwrap_or_else(|| 0xFFFF),
             Some(Collation::default()),
         ))
     }
-    pub fn new_string() -> Self {
+    /// Creates a new `TypeInfo` instance for an SYSNAME type.
+    /// this is a special type used in SQL Server for tables
+    pub fn new_sysname() -> Self {
         Self::VarLenSized(VarLenContext::new(
             VarLenType::NVarchar,
-            0xFFFF,
+            128,
             Some(Collation::default()),
         ))
     }
-    //todo(mrhamburg): ssvariant?
 }
 
 #[derive(Clone, Debug, Copy)]
@@ -122,6 +145,7 @@ impl VarLenContext {
 }
 
 uint_enum! {
+    /// 2.2.5.4.2
     #[repr(u8)]
     pub enum FixedLenType {
         Null = 0x1F,
@@ -138,7 +162,7 @@ uint_enum! {
 }
 
 uint_enum! {
-    /// 2.2.5.4.2
+    /// 2.2.5.4.3
     #[repr(u8)]
     pub enum VarLenType {
         Intn = 0x26,
@@ -157,8 +181,6 @@ uint_enum! {
         BigChar = 0xAF,
         NVarchar = 0xE7,
         NChar = 0xEF,
-        // TODO: this needs to be implemented
-        SSVariant = 0x62,
     }
 }
 
@@ -192,7 +214,6 @@ impl TypeInfo {
                     | VarLenType::BigVarChar
                     | VarLenType::BigBinary
                     | VarLenType::BigVarBin => src.get_u16_le() as usize,
-                    _ => todo!("not yet implemented for {:?}", ty),
                 };
 
                 let collation = match ty {
@@ -237,10 +258,9 @@ impl TypeInfo {
             TypeInfo::VarLenSized(ty) => {
                 dest.put_u8(ty.r#type as u8);
 
-                // write length
+                // write length (type_varlen)
                 match ty.r#type {
                     VarLenType::Timen
-                    | VarLenType::DatetimeOffsetn
                     | VarLenType::Datetime2
                     | VarLenType::Bitn
                     | VarLenType::Intn
@@ -249,20 +269,16 @@ impl TypeInfo {
                     VarLenType::NChar
                     | VarLenType::BigChar
                     | VarLenType::NVarchar
-                    | VarLenType::BigVarChar
-                    | VarLenType::BigBinary
-                    | VarLenType::BigVarBin => dest.put_u16_le(ty.len() as u16),
-                    _ => {}
+                    | VarLenType::BigVarChar => dest.put_u16_le(ty.len() as u16),
+                    VarLenType::Daten => {}
+                    _ => unimplemented!("not yet implemented for {:?}", ty),
                 }
 
                 // write collation
-                match ty.collation {
-                    Some(c) => {
-                        dest.put_u16_le(c.codepage);
-                        dest.put_u16_le(c.flags);
-                        dest.put_u8(c.charset_id);
-                    }
-                    _ => {}
+                if let Some(c) = ty.collation {
+                    dest.put_u16_le(c.codepage);
+                    dest.put_u16_le(c.flags);
+                    dest.put_u8(c.charset_id);
                 }
             }
             TypeInfo::VarLenSizedPrecision {

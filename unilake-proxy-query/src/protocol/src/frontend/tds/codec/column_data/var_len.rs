@@ -66,11 +66,10 @@ pub(crate) fn decode(
             let string = read_us_varchar(src)?;
             return Ok(Some(ColumnData::String(SqlString::from_string(
                 string.into(),
-                0,
+                None,
             ))));
         }
         VarLenType::NChar => {}
-        VarLenType::SSVariant => {}
     }
 
     Ok(None)

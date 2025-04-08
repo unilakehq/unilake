@@ -9,6 +9,7 @@ mod date;
 mod datetime2;
 pub mod decimal;
 mod fixed_len;
+mod nchar;
 mod numeric;
 mod plp;
 pub mod sqlstring;
@@ -48,6 +49,10 @@ pub enum ColumnData {
     BitN(Option<bool>),
     /// A string value.
     String(SqlString),
+    /// A string value.
+    NVarchar(SqlString),
+    /// A char value.
+    NChar(SqlString),
     /// Binary data.
     Binary(Option<String>),
     /// Numeric value (a decimal).
@@ -59,7 +64,7 @@ pub enum ColumnData {
     /// Time value.
     Time(Option<NaiveTime>),
     /// Date value.
-    Date(Option<NaiveDate>),
+    DateN(Option<NaiveDate>),
     /// DateTime2 value.
     DateTime2(Option<NaiveDateTime>),
     /// DateTime2 value with an offset.
@@ -67,8 +72,8 @@ pub enum ColumnData {
 }
 
 impl ColumnData {
-    pub fn new_varchar(value: &str, max_length: usize) -> Self {
-        ColumnData::String(SqlString::from_string(Some(value.to_string()), max_length))
+    pub fn new_nvarchar(value: Option<String>, max_length: Option<usize>) -> Self {
+        ColumnData::String(SqlString::from_string(value, max_length))
     }
 
     /// Returns the size of the column data in bytes.
@@ -131,7 +136,7 @@ impl ColumnData {
                     0
                 }
             }
-            ColumnData::String(v) => {
+            ColumnData::NVarchar(v) | ColumnData::NChar(v) | ColumnData::String(v) => {
                 if !v.is_empty() {
                     v.len() * 2
                 } else {
@@ -173,7 +178,7 @@ impl ColumnData {
                     0
                 }
             }
-            ColumnData::Date(v) => {
+            ColumnData::DateN(v) => {
                 if v.is_some() {
                     4
                 } else {
@@ -214,27 +219,32 @@ impl ColumnData {
             | ColumnData::I64N(_)
             | ColumnData::F32N(_)
             | ColumnData::F64N(_) => var_len::encode(dest, &self)?,
-            ColumnData::String(s) => s.encode(dest)?,
-            ColumnData::Date(_) => date::encode(dest, &self),
+            ColumnData::NVarchar(s) | ColumnData::NChar(s) | ColumnData::String(s) => {
+                s.encode(dest)?
+            }
+            ColumnData::DateN(_) => date::encode(dest, &self),
             ColumnData::DateTime2(_) => datetime2::encode(dest, &self)?,
             ColumnData::Numeric(n) => {
                 numeric::encode(dest, &n)?;
             }
+            // todo: instead, provide an error
             _ => unreachable!("ColumData of type {:?} is not supported", self),
         }
 
         Ok(())
     }
 
-    // todo(mrhamburg): further implement these types
     pub fn decode(src: &mut BytesMut, typeinfo: &TypeInfo) -> TdsWireResult<Self> {
         match typeinfo {
-            TypeInfo::FixedLen(fl) => todo!(),
             TypeInfo::VarLenSized(vs) => match vs.r#type() {
-                VarLenType::NVarchar => Ok(ColumnData::String(SqlString::decode(src, vs.len())?)),
-                _ => todo!(),
+                VarLenType::NVarchar => {
+                    Ok(ColumnData::String(SqlString::decode(src, Some(vs.len()))?))
+                }
+                // todo: provide an error
+                _ => unimplemented!(),
             },
-            TypeInfo::VarLenSizedPrecision { .. } => todo!(),
+            // todo: provide an error
+            _ => unimplemented!(),
         }
     }
 }

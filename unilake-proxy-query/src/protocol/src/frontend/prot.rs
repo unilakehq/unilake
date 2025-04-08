@@ -1,7 +1,7 @@
 use crate::backend::data::BackendHandler;
 use crate::backend::telemetry::QueryTelemetry;
 use crate::frontend::{
-    tds::server_context::ServerContext, BatchRequest, LoginMessage, PreloginMessage,
+    tds::server_context::ServerContext, BatchRequest, LoginMessage, PreloginMessage, RpcRequest,
     TdsBackendResponse, TdsMessage, TdsToken,
 };
 use crate::session::SessionInfo;
@@ -90,6 +90,16 @@ where
     /// such a message arrives in response to federated authentication info, not when the
     /// token is part of a login request.
     fn on_federated_authentication_token_message(&self, session: &S);
+
+    /// Called when RPC request arrives
+    async fn on_remote_procedure_call<C>(
+        &self,
+        client: &mut C,
+        session_info: &mut S,
+        rpc: &RpcRequest,
+    ) -> TdsWireResult<()>
+    where
+        C: Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when SQL batch request arrives
     async fn on_sql_batch_request<C>(

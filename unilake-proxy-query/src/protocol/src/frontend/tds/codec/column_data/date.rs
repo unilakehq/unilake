@@ -6,7 +6,7 @@ const BASE_DATE: Option<NaiveDate> = NaiveDate::from_ymd_opt(1, 1, 1);
 
 pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) {
     match data {
-        ColumnData::Date(Some(val)) => {
+        ColumnData::DateN(Some(val)) => {
             let base_date = BASE_DATE.unwrap();
             let days_since_base = (*val - base_date).num_days() as u32;
 
@@ -33,7 +33,7 @@ mod tests {
     #[test]
     fn test_encode_date() -> TdsWireResult<()> {
         let mut buf = BytesMut::new();
-        let data = ColumnData::Date(Some(NaiveDate::from_ymd_opt(2003, 12, 31).unwrap()));
+        let data = ColumnData::DateN(Some(NaiveDate::from_ymd_opt(2003, 12, 31).unwrap()));
 
         date::encode(&mut buf, &data);
 

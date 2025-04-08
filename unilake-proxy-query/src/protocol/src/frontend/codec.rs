@@ -5,12 +5,11 @@ use crate::frontend::{
 };
 use crate::session::SessionInfo;
 use derive_new::new;
-use futures::future::poll_fn;
 use futures::{SinkExt, StreamExt};
 use std::io::Error as IOError;
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::bytes::{Buf, BytesMut};
@@ -200,7 +199,12 @@ where
                     handlers
                         .on_sql_batch_request(socket, session_info, &b)
                         .await?;
+                } else if let TdsMessage::RemoteProcedureCall(rpc) = message {
+                    handlers
+                        .on_remote_procedure_call(socket, session_info, &rpc)
+                        .await?;
                 }
+
                 // todo(mrhamburg): implement error handling for specific message types which we do not expect here
             }
             TdsSessionState::RequestReceived => todo!(),

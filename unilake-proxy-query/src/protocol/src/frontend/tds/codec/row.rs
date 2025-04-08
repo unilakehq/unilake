@@ -61,8 +61,6 @@ pub enum ColumnType {
     NVarchar,
     /// A string value with UTF-16 encoding.
     NChar,
-    /// An SQL variant type.
-    SSVariant,
 }
 
 impl From<&TypeInfo> for ColumnType {
@@ -97,7 +95,6 @@ impl From<&TypeInfo> for ColumnType {
                 VarLenType::BigChar => Self::BigChar,
                 VarLenType::NVarchar => Self::NVarchar,
                 VarLenType::NChar => Self::NChar,
-                VarLenType::SSVariant => Self::SSVariant,
             },
             TypeInfo::VarLenSizedPrecision { ty, .. } => match ty {
                 VarLenType::Intn => Self::Intn,
@@ -116,7 +113,6 @@ impl From<&TypeInfo> for ColumnType {
                 VarLenType::BigChar => Self::BigChar,
                 VarLenType::NVarchar => Self::NVarchar,
                 VarLenType::NChar => Self::NChar,
-                VarLenType::SSVariant => Self::SSVariant,
             },
         }
     }

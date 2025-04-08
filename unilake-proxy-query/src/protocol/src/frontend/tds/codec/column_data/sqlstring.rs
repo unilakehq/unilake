@@ -8,7 +8,21 @@ pub struct SqlString {
 }
 
 impl SqlString {
-    pub fn from_string(value: Option<String>, max_length: usize) -> SqlString {
+    /// Creates a new `SqlString` instance from an optional string value and maximum length.
+    /// `max_length` must equal the columns maximum length.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - An `Option<String>` representing the string value to be stored.
+    ///             If `None`, the `SqlString` will be created without a value.
+    /// * `max_length` - An `Option<usize>` specifying the maximum allowed length for the string.
+    ///                  If `None`, it defaults to `usize::MAX`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `SqlString` instance with the specified value and maximum length.
+    pub fn from_string(value: Option<String>, max_length: Option<usize>) -> SqlString {
+        let max_length = max_length.unwrap_or(usize::MAX);
         SqlString { max_length, value }
     }
 
@@ -21,9 +35,9 @@ impl SqlString {
         Ok(())
     }
 
-    pub(crate) fn decode(src: &mut BytesMut, max_len: usize) -> TdsWireResult<Self> {
+    pub(crate) fn decode(src: &mut BytesMut, max_len: Option<usize>) -> TdsWireResult<Self> {
         Ok(SqlString::from_string(
-            super::plp::decode(src, &max_len)?,
+            super::plp::decode(src, &max_len.unwrap_or(usize::MAX))?,
             max_len,
         ))
     }
