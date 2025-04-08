@@ -4,7 +4,7 @@
 
 services:
   db:
-    container_name: unilake_db
+    container_name: unilake-db
     image: postgres:17-alpine3.21
     restart: always
     environment:
@@ -16,7 +16,7 @@ services:
         timeout: 5s
 
   redis:
-      container_name: unilake_redis
+      container_name: unilake-redis
       image: redis:8.0-M02-alpine
       restart: on-failure
       command: redis-server --maxmemory-policy allkeys-lru --maxmemory 200mb
@@ -27,61 +27,126 @@ services:
           retries: 10
 
   minio:
-    container_name: unilake_minio 
-    image: minio/minio:latest
+    container_name: unilake-minio
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: miniouser
+      MINIO_ROOT_PASSWORD: miniopassword
+    image: minio/minio:latest
+    ports:
+      - "9001:9001"
+      - "9000:9000"
     entrypoint: sh
     command: '-c ''mkdir -p /minio_data/starrocks && minio server /minio_data --console-address ":9001"'''
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio_mc:
+    # This service is short lived, it does this:
+    # - starts up
+    # - checks to see if the MinIO service `minio` is ready
+    # - creates a MinIO Access Key that the StarRocks services will use
+    # - exits
+    container_name: unilake-minio-mc
+    image: minio/mc:latest
+    entrypoint:
+      - sh
+      - -c
+      - |
+        until mc ls minio > /dev/null 2>&1; do
+          sleep 2.0
+        done
+
+        mc alias set myminio http://minio:9000 miniouser miniopassword
+        mc admin user svcacct add --access-key AAAAAAAAAAAAAAAAAAAA \
+        --secret-key BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB \
+        myminio \
+        miniouser
+    depends_on:
+        minio:
+          condition: service_healthy
 
   starrocks-fe:
-    container_name: unilake_starrocks_fe
     image: starrocks/fe-ubuntu:3.4-latest
     hostname: starrocks-fe
+    container_name: unilake-starrocks-fe
     user: root
-    command: >
-      bash -c "echo run_mode=shared_data >> /opt/starrocks/fe/conf/fe.conf &&
-      echo aws_s3_path=starrocks >> /opt/starrocks/fe/conf/fe.conf &&
-      echo aws_s3_endpoint=minio:9000 >> /opt/starrocks/fe/conf/fe.conf &&
-      echo aws_s3_use_instance_profile=false >> /opt/starrocks/fe/conf/fe.conf &&
-      echo cloud_native_storage_type=S3 >> /opt/starrocks/fe/conf/fe.conf &&
-      echo aws_s3_use_aws_sdk_default_behavior=true >> /opt/starrocks/fe/conf/fe.conf &&
-      bash /opt/starrocks/fe/bin/start_fe.sh"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "# enable arrow flight" >> /opt/starrocks/fe/conf/fe.conf
+        echo "arrow_flight_port=9408" >> /opt/starrocks/fe/conf/fe.conf
+
+        echo "# enable shared data, set storage type, set endpoint" >> /opt/starrocks/fe/conf/fe.conf
+        echo "run_mode = shared_data" >> /opt/starrocks/fe/conf/fe.conf
+        echo "cloud_native_storage_type = S3" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_endpoint = minio:9000" >> /opt/starrocks/fe/conf/fe.conf
+
+        echo "# set the path in MinIO" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_path = starrocks" >> /opt/starrocks/fe/conf/fe.conf
+
+        echo "# credentials for MinIO object read/write" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_access_key = AAAAAAAAAAAAAAAAAAAA" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_secret_key = BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_use_instance_profile = false" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_use_aws_sdk_default_behavior = false" >> /opt/starrocks/fe/conf/fe.conf
+
+        echo "# Set this to false if you do not want default" >> /opt/starrocks/fe/conf/fe.conf
+        echo "# storage created in the object storage using" >> /opt/starrocks/fe/conf/fe.conf
+        echo "# the details provided above" >> /opt/starrocks/fe/conf/fe.conf
+        echo "enable_load_volume_from_conf = true" >> /opt/starrocks/fe/conf/fe.conf
+
+        /opt/starrocks/fe/bin/start_fe.sh --host_type FQDN
+    ports:
+      - 8030:8030
+      - 9020:9020
+      - 9030:9030
     healthcheck:
-      test: 'mysql -uroot -h starrocks-fe -P 9030 -e "show frontends\G" |grep "Alive: true"'
+      test: 'mysql -u root -h starrocks-fe -P 9030 -e "show frontends\G" |grep "Alive: true"'
       interval: 10s
       timeout: 5s
       retries: 3
     depends_on:
-      minio:
-        condition: service_healthy
+        minio:
+            condition: service_healthy
 
   starrocks-cn:
-    container_name: unilake_starrocks_cn
     image: starrocks/cn-ubuntu:3.4-latest
     command:
       - /bin/bash
       - -c
       - |
         sleep 15s;
+        ulimit -u 65535;
+        ulimit -n 65535;
+
+        echo "# enable arrow flight" >> /opt/starrocks/cn/conf/cn.conf
+        echo "arrow_flight_port=9419" >> /opt/starrocks/cn/conf/cn.conf
+
         mysql --connect-timeout 2 -h starrocks-fe -P9030 -uroot -e "ALTER SYSTEM ADD COMPUTE NODE \"starrocks-cn:9050\";"
         /opt/starrocks/cn/bin/start_cn.sh
+    environment:
+      - HOST_TYPE=FQDN
     hostname: starrocks-cn
+    container_name: unilake-starrocks-cn
     user: root
     depends_on:
       starrocks-fe:
         condition: service_healthy
+        restart: true
       minio:
         condition: service_healthy
     healthcheck:
-      test: 'mysql -uroot -h starrocks-fe -P 9030 -e "SHOW COMPUTE NODES\G" |grep "Alive: true"'
+      test: 'mysql -u root -h starrocks-fe -P 9030 -e "SHOW COMPUTE NODES\G" |grep "Alive: true"'
       interval: 10s
       timeout: 5s
       retries: 3
 
   opensearch:
-    container_name: unilake_opensearch
+    container_name: unilake-opensearch
     image: opensearchproject/opensearch:latest
     environment:
       - cluster.name=opensearch-cluster 
@@ -99,38 +164,8 @@ services:
         soft: 65536
         hard: 65536
 
-  zookeeper:
-    container_name: unilake_zookeeper
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
-  kafka:
-    container_name: unilake_kafka
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-  kafka_ui:
-      container_name: unilake_kafka_ui
-      image: provectuslabs/kafka-ui:latest
-      restart: on-failure
-      environment:
-          KAFKA_CLUSTERS_0_NAME: local
-          KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-          DYNAMIC_CONFIG_ENABLED: 'true'
-
   gravitino:
-    container_name: unilake_gravitino 
+    container_name: unilake-gravitino 
     image: apache/gravitino:0.7.0-incubating
     entrypoint: /bin/bash /tmp/gravitino/init.sh
     volumes:

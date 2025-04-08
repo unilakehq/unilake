@@ -24,6 +24,13 @@ services:
     ports:
       - 9001:9001
 
+  minio_mc:
+    extends:
+       file: docker-compose.base.yml
+       service: minio_mc
+    depends_on:
+      - minio
+
   starrocks-fe:
     extends:
        file: docker-compose.base.yml
@@ -34,6 +41,7 @@ services:
       - 8030:8030
       - 9020:9020
       - 9030:9030
+      - 9408:9408
 
   starrocks-cn:
     extends:
@@ -50,27 +58,6 @@ services:
       - 9200:9200
       - 9600:9600
 
-  zookeeper:
-    extends:
-       file: docker-compose.base.yml
-       service: zookeeper 
-
-  kafka:
-    extends:
-       file: docker-compose.base.yml
-       service: kafka 
-    depends_on:
-      - zookeeper
-    ports:
-      - 9092:9092
-
-  kafka_ui:
-    extends:
-       file: docker-compose.base.yml
-       service: kafka_ui 
-    ports:
-      - 8080:8080
-  
   gravitino:
     extends:
        file: docker-compose.base.yml
