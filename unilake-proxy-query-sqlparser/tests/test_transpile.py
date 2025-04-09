@@ -5,7 +5,7 @@ from sqlparser import transpile, scan
 
 # todo: make sure transpiling of windows functions are supported! so order by x is also hashed(x)
 # todo: also make sure that the order of unpacking a star is consistent with the input schema
-# todo: add tests for window functions, expressions:
+# todo: add tests for window functions, expressions (these work, but need tests, to make sure they are kept in a working state):
 #   - order by
 #   - group by
 #   - partition by

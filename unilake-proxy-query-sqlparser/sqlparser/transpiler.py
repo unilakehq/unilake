@@ -61,22 +61,27 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         return ScanOutput(
             objects=[],
             dialect=dialect,
-            query={"query": sql},
+            query=sql,
             type=ScanOutputType.UNKNOWN,
             error=None,
             target_entity=None,
+            args=None
         )
     dialect = _get_dialect(dialect)
 
     parsed = parse_one(sql, dialect=dialect)
+    query_type = ScanOutputType.from_key(parsed.key)
     parsed = qualify(parsed, catalog=catalog, db=database)
     scoped = traverse_scope(parsed)
+    if "internal" in parsed.args and parsed.args["internal"] == "true":
+        parsed_args = parsed.args
+    else:
+        parsed_args = None
 
     entities: list[set] = [set()]
     attributes: list[set] = [set()]
     aggregates = []
 
-    query_type = ScanOutputType.from_key(parsed.key)
     objects = []
 
     target_entity = None
@@ -131,6 +136,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
             type=query_type,
             error=None,
             target_entity=target_entity,
+            args=parsed_args,
         )
 
     return ScanOutput(
@@ -140,6 +146,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         type=query_type,
         error=None,
         target_entity=target_entity,
+        args=parsed_args,
     )
 
 def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: list):

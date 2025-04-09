@@ -105,6 +105,13 @@ class ScanOutputType(str, Enum):
     COMMAND = "COMMAND"
     EXPORT = "EXPORT"
     SET = "SET"
+    USE = "USE"
+    RESET = "RESET"
+    IMPERSONATE = "IMPERSONATE"
+    SHOW = "SHOW"
+    APPLY = "APPLY"
+    ANALYZE = "ANALYZE"
+    TRANSPILE = "TRANSPILE"
 
     @classmethod
     def from_key(cls, key: str) -> "ScanOutputType":
@@ -127,7 +134,6 @@ class ScanOutputObject:
         }
 
 
-# todo: scan output can also include internal commands, we need to pass them from the scan operation (expand ScanOutput)
 @dataclass
 class ScanOutput:
     objects: list[ScanOutputObject]
@@ -136,6 +142,7 @@ class ScanOutput:
     type: ScanOutputType
     error: ParserError | None
     target_entity: str | None
+    args: dict | None
 
     def to_json(self) -> dict:
         return {
@@ -145,6 +152,7 @@ class ScanOutput:
             "type": self.type.value,
             "error": self.error.to_json() if self.error else None,
             "target_entity": self.target_entity,
+            "args": self.args,
         }
 
     @staticmethod
@@ -156,6 +164,7 @@ class ScanOutput:
             type=ScanOutputType.UNKNOWN,
             error=parser_error,
             target_entity=None,
+            args=None,
         )
 
 

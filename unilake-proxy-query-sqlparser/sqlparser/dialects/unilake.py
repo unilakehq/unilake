@@ -1,33 +1,6 @@
-from dataclasses import dataclass
 from sqlglot import exp, tokens, Parser, Generator
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.tokens import Tokenizer, TokenType
-
-
-@dataclass
-class CreateTag:
-    name: str
-
-
-@dataclass
-class UpdateTag:
-    name: str
-
-
-@dataclass
-class DeleteTag:
-    name: str
-
-
-@dataclass
-class DescribeTag:
-    name: str
-    pass
-
-
-@dataclass
-class ShowTag:
-    pass
 
 
 class Unilake(Dialect):
@@ -47,6 +20,9 @@ class Unilake(Dialect):
             "USAGE": TokenType.DEFAULT,
             "TRANSPILE": TokenType.DEFAULT,
             "SCAN": TokenType.DEFAULT,
+            "RESET": TokenType.DEFAULT,
+            "IMPERSONATE": TokenType.DEFAULT,
+            "EXECUTE": TokenType.DEFAULT,
         }
 
         COMMANDS = {*tokens.Tokenizer.COMMANDS, TokenType.END}
@@ -59,13 +35,23 @@ class Unilake(Dialect):
             TokenType.DELETE: lambda self: self._parse_delete(),
             TokenType.DESCRIBE: lambda self: self._parse_describe(),
             TokenType.DEFAULT: lambda self: self._parse_default(),
+            TokenType.USE: lambda self: self._parse_use(),
+            TokenType.SET: lambda self: self._parse_set(),
         }
 
         def _parse_default(self) -> exp.Command:
             if self._prev.text == "TRANSPILE":
                 return self._parse_transpile()
-            if self._prev.text == "SCAN" and self._curr.text == "TAGS":
+            if self._prev.text == "SCAN":
                 return self._parse_scan()
+            if self._prev.text == "RESET":
+                return self._parse_reset()
+            if self._prev.text == "IMPERSONATE":
+                return self._parse_impersonate()
+            if self._prev.text == "EXECUTE":
+                return self._parse_execute()
+
+            self.raise_error("Unrecognized command '%s'" % self._prev.text)
 
         def _advance_and_consume(self) -> str:
             start = self._curr
@@ -73,34 +59,85 @@ class Unilake(Dialect):
                 self._advance()
             return self._find_sql(start, self._prev)
 
-        def _parse_transpile(self) -> exp.Command:
-            return exp.Command(this="TRANSPILE", expression=self._advance_and_consume())
+        def _match_and_expect_token(self, token_type:TokenType, error_message: str):
+            if not self._match(token_type):
+                self.raise_error(error_message)
 
-        def _parse_scan(self):
-            self._advance()  # consume SCAN
-            return exp.Command(this="SCAN TAGS", expression=self._advance_and_consume())
+        def _match_and_expect_text(self, text: str, error_message: str):
+            if not self._match_text_seq(text):
+                self.raise_error(error_message)
+
+        def _match_and_parse_string(self, error_message: str) -> str:
+            if not self._match(TokenType.STRING, advance=False):
+                self.raise_error(error_message)
+            return self._parse_string().this
+
+        def _parse_set(self, unset: bool = False, tag: bool = False) -> exp.Set | exp.Command:
+            found = super()._parse_set()
+            found_var: exp.EQ = found.find(exp.EQ)
+            if found_var is not None:
+                return exp.Set(variable=found_var.this.name, value=found_var.expression.name, internal="true")
+            return found
+
+        def _parse_impersonate(self) -> exp.Command:
+            # clear command
+            if self._match_text_seq("CANCEL"):
+                return exp.Command(this="IMPERSONATE", user="", internal="true")
+
+            # set impression command
+            self._match_and_expect_text("AS", "Expected 'AS' or 'CANCEL' after 'IMPERSONATE'")
+            target_user = self._parse_var_or_string()
+            if target_user is None:
+                self.raise_error("Expected username after 'AS'")
+            return exp.Command(this="IMPERSONATE", user=target_user.name, internal="true")
+
+        def _parse_execute(self) -> exp.Command:
+            self._match_and_expect_text("AUDIT", "Expected 'AUDIT'")
+            self._match_l_paren()
+            audit_id = self._match_and_parse_string("Expected string input variable")
+            self._match_and_expect_token(TokenType.COMMA, "Expected ',' after audit ID")
+            audit_environment = self._match_and_parse_string("Expected string input variable")
+            self._match_r_paren()
+            self._match_and_expect_token(TokenType.ALIAS, "Expected 'AS'")
+
+            return exp.Command(this="EXECUTE", expression=self._advance_and_consume(), kind="AUDIT", id=audit_id, environment=audit_environment, internal="true")
+
+        def _parse_transpile(self) -> exp.Command:
+            return exp.Command(this="TRANSPILE", expression=self._advance_and_consume(), internal="true")
+
+        def _parse_reset(self) -> exp.Command:
+            # self._match_and_expect_text("RESET", "Expected 'RESET'")
+            found = self._parse_var_or_string()
+            return exp.Command(this="RESET", variable=found.name if found is not None else "", internal="true")
+
+        def _parse_scan(self) -> exp.Command:
+            self._match_and_expect_text("TAGS", "Expected 'TAGS'")
+            return exp.Command(this="SCAN", kind="TAGS", expression=self._advance_and_consume(), internal="true")
 
         def _parse_describe(self) -> exp.Describe | exp.Command:
-            print("Parsing DESCRIBE statement")
+            if self._match_text_seq("ACCESS"):
+                return exp.Describe(this="ACCESS", expression=self._advance_and_consume(), internal="true")
             return super()._parse_describe()
 
         def _parse_delete(self) -> exp.Delete | exp.Command:
-            print("Parsing DELETE statement")
             return super()._parse_delete()
 
         def _parse_update(self) -> exp.Update | exp.Command:
-            print("Parsing UPDATE statement")
             return super()._parse_update()
+
+        def _parse_use(self) -> exp.Use | exp.Command:
+            kind = self._advance_any()
+            if kind is None or kind.text.upper() not in ["CATALOG", "DATABASE", "SCHEMA"]:
+                self.raise_error("Expected 'CATALOG', 'DATABASE' or 'SCHEMA' after 'USE'")
+            return exp.Use(kind=kind.text.upper(), target=self._advance_and_consume(), internal="true")
 
         def _parse_create(self) -> exp.Create | exp.Command:
             replace = False
             if super()._match_pair(TokenType.OR, TokenType.REPLACE):
                 replace = True
             if super()._match_text_seq("MASKING", "RULESET"):
-                print("masking ruleset")
                 return self.expression(exp.Create, replace=replace)
             elif super()._match_text_seq("TAG"):
-                print("CREATE TAG")
                 return exp.Create(this="TAG", name="", description="")
 
             return super()._parse_create()
@@ -113,8 +150,6 @@ class Unilake(Dialect):
         def tag_sql(self, expression: exp.Create):
             pass
 
-
-# TRANSPILE <SQL STATEMENT>
 
 # CREATE TAG [category].[name] (WITH DESCRIPTION 'Example Tag');
 # UPDATE TAG [category].[name] SET description = 'Updated Example Tag'
@@ -159,7 +194,7 @@ class Unilake(Dialect):
 # DESCRIBE ACCESS POLICY example_policy_with_bundle (DESCRIPTION | USAGE) -- returns a table with all access policies that are in use and their status
 # SHOW ACCESS POLICY (workspace) -- returns a table with all access policies in the specified workspace or if not specified in any workspace
 
-# ANALYZE ACCESS (SELECT * FROM TABLE) -- returns information about any security policies applied to the given query, this can be used for the split between local execution and sql flight. Should not trigger activity update
+# ANALYZE ACCESS SELECT * FROM TABLE -- returns information about any security policies applied to the given query, this can be used for the split between local execution and sql flight. Should not trigger activity update
 
 # TODO(mrhamburg): this also needs functions for handling files
 # TODO(mrhamburg): this also needs to check for statements we will not support?

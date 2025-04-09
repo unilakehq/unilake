@@ -27,6 +27,9 @@ def transpile(
     except sqlglot.errors.ParseError as e:
         parser_error = ParserError.from_sqlglot_parse_error(e)
         return TranspilerOutput.from_parser_error(parser_error)
+    except sqlglot.errors.OptimizeError as e:
+        parser_error = ParserError.from_sqlglot_optimize_error(e)
+        return TranspilerOutput.from_parser_error(parser_error)
     except Exception as e:
         parser_error = ParserError(error_type="INTERNAL_ERROR", message=str(e), errors=[])
         return TranspilerOutput.from_parser_error(parser_error)
