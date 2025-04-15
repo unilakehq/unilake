@@ -1,63 +1,15 @@
-//! Error module
+use crate::error_code::ErrorCode;
 
-use std::fmt;
+pub type Result<T> = std::result::Result<T, ErrorCode>;
+
 pub use std::io::Error as IOError;
 pub use std::io::ErrorKind as IoErrorKind;
 use thiserror::Error;
 
-/// Error token [2.2.7.10]
-/// Used to send an error message to the client.
-#[derive(Clone, Debug)]
-pub struct TokenError {
-    /// ErrorCode
-    pub code: u32,
-    /// ErrorState (describing code)
-    pub state: u8,
-    /// The class (severity) of the error
-    pub class: u8,
-    /// The error message
-    pub message: String,
-    pub server: String,
-    pub procedure: String,
-    pub line: u32,
-}
-
-impl fmt::Display for TokenError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "'{}' on server {} executing {} on line {} (code: {}, state: {}, class: {})",
-            self.message, self.server, self.procedure, self.line, self.code, self.state, self.class
-        )
-    }
-}
-
-impl TokenError {
-    pub fn new(
-        code: u32,
-        state: u8,
-        class: u8,
-        message: String,
-        server: String,
-        procedure: String,
-        line: u32,
-    ) -> TokenError {
-        TokenError {
-            code,
-            state,
-            class,
-            message,
-            server,
-            procedure,
-            line,
-        }
-    }
-}
-
 /// A unified error enum that contains several errors that might occur during
-/// the lifecycle of this codec
+/// the lifecycle of connections.
 #[derive(Error, Debug)]
-pub enum TdsWireError {
+pub enum WireError {
     #[error("Protocol error: {}", _0)]
     /// An error happened during the request or response parsing.
     Protocol(String),
@@ -76,9 +28,9 @@ pub enum TdsWireError {
     #[error("Error parsing an integer: {}", _0)]
     /// Tried to parse an integer that was not an integer.
     ParseInt(std::num::ParseIntError),
-    #[error("Token error: {}", _0)]
+    // #[error("Token error: {}", _0)]
     /// An error returned by the server.
-    Server(TokenError),
+    // Server(TokenError),
     #[error("Error forming TLS connection: {}", _0)]
     /// An error in the TLS handshake.
     Tls(String),
@@ -87,17 +39,22 @@ pub enum TdsWireError {
     Input(String),
 }
 
-impl From<TdsWireError> for std::io::Error {
-    fn from(e: TdsWireError) -> Self {
+impl From<WireError> for std::io::Error {
+    fn from(e: WireError) -> Self {
         std::io::Error::new(std::io::ErrorKind::Other, e)
     }
 }
-impl From<std::io::Error> for TdsWireError {
+
+impl From<std::io::Error> for WireError {
     fn from(value: std::io::Error) -> Self {
         println!(" Error occurred: {}", value);
         todo!()
     }
 }
 
-pub type TdsWireResult<T> = Result<T, TdsWireError>;
-pub type Error = TdsWireError;
+/// Unified error enum for server errors.
+#[derive(Error, Debug)]
+pub enum ServerError {
+    #[error("Server error: {}", _0)]
+    General(String),
+}

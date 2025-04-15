@@ -1,11 +1,12 @@
-use crate::frontend::{utils::ReadAndAdvance, TdsMessage, TdsMessageCodec};
+use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
+use crate::frontend::utils::ReadAndAdvance;
 use byteorder::{ByteOrder, LittleEndian};
 use core::panic;
 use enumflags2::{bitflags, BitFlags};
 use std::fmt::Debug;
 use std::ops::Index;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::{TdsWireError, TdsWireResult};
+use unilake_common::error::{Result, WireError};
 
 uint_enum! {
     #[repr(u32)]
@@ -238,7 +239,7 @@ impl LoginMessage {
 
 impl TdsMessageCodec for LoginMessage {
     #[rustfmt::skip]
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>
+    fn encode(&self, dst: &mut BytesMut) -> Result<()>
     {
         let get_length = |opt: &Option<String>| opt.as_ref().map_or(0, |s| s.len());
         let mut total_length = FIXED_LEN + // fixed packet length
@@ -398,14 +399,14 @@ impl TdsMessageCodec for LoginMessage {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage> {
+    fn decode(src: &mut BytesMut) -> Result<TdsMessage> {
         // For decoding the clientid: https://docs.rs/mac_address/latest/src/mac_address/lib.rs.html#167
         let mut ret = Self::new();
 
         // Decode Packet Header
         let length = src.get_u32_le();
         if length > 128 * 1024 {
-            return Err(TdsWireError::Protocol("Login message too long".to_string()));
+            return Err(WireError::Protocol("Login message too long".to_string()));
         }
 
         ret.tds_version =
@@ -435,7 +436,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // HostName, too long
-            return Err(TdsWireError::Protocol("HostName too long".to_string()));
+            return Err(WireError::Protocol("HostName too long".to_string()));
         }
         options.push((
             VariableProperty::UserName,
@@ -444,7 +445,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // UserName, too long
-            return Err(TdsWireError::Protocol("UserName too long".to_string()));
+            return Err(WireError::Protocol("UserName too long".to_string()));
         }
         options.push((
             VariableProperty::Password,
@@ -453,7 +454,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 60_000) {
             // Password, too long
-            return Err(TdsWireError::Protocol("Password too long".to_string()));
+            return Err(WireError::Protocol("Password too long".to_string()));
         }
         options.push((
             VariableProperty::ApplicationName,
@@ -462,9 +463,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // ApplicationName, too long
-            return Err(TdsWireError::Protocol(
-                "ApplicationName too long".to_string(),
-            ));
+            return Err(WireError::Protocol("ApplicationName too long".to_string()));
         }
         options.push((
             VariableProperty::ServerName,
@@ -473,7 +472,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // ServerName, too long
-            return Err(TdsWireError::Protocol("ServerName too long".to_string()));
+            return Err(WireError::Protocol("ServerName too long".to_string()));
         }
 
         if ret.option_flags_3.contains(OptionFlag3::ExtensionUsed) {
@@ -484,7 +483,7 @@ impl TdsMessageCodec for LoginMessage {
             ));
             if !validate_length(&options, 255) {
                 // FeatureExt, too long
-                return Err(TdsWireError::Protocol("FeatureExt too long".to_string()));
+                return Err(WireError::Protocol("FeatureExt too long".to_string()));
             }
         } else {
             src.get_u16_le();
@@ -497,7 +496,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // LibraryName, too long
-            return Err(TdsWireError::Protocol("LibraryName too long".to_string()));
+            return Err(WireError::Protocol("LibraryName too long".to_string()));
         }
         options.push((
             VariableProperty::Language,
@@ -506,7 +505,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // Language, too long
-            return Err(TdsWireError::Protocol("Language too long".to_string()));
+            return Err(WireError::Protocol("Language too long".to_string()));
         }
         options.push((
             VariableProperty::Database,
@@ -515,7 +514,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // Database, too long
-            return Err(TdsWireError::Protocol("Database too long".to_string()));
+            return Err(WireError::Protocol("Database too long".to_string()));
         }
 
         let (_, _client_id) = src.read_and_advance(6);
@@ -532,7 +531,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 260 * 2) {
             // AttachedDatabaseFile, too long
-            return Err(TdsWireError::Protocol(
+            return Err(WireError::Protocol(
                 "AttachedDatabaseFile too long".to_string(),
             ));
         }
@@ -543,9 +542,7 @@ impl TdsMessageCodec for LoginMessage {
         ));
         if !validate_length(&options, 128 * 2) {
             // ChangePassword, too long
-            return Err(TdsWireError::Protocol(
-                "ChangePassword too long".to_string(),
-            ));
+            return Err(WireError::Protocol("ChangePassword too long".to_string()));
         }
 
         let sspi_length = src.get_u32_le();
@@ -599,7 +596,7 @@ impl TdsMessageCodec for LoginMessage {
                     if length / 2 == 65535 {
                         if sspi_length > 0 {
                             // We don't know how to handle SSPI packets that exceed TDS packet size
-                            return Err(TdsWireError::Protocol(
+                            return Err(WireError::Protocol(
                                 "Long SSPI blobs are not supported yet".to_string(),
                             ));
                         }
@@ -769,11 +766,11 @@ impl TdsMessageCodec for LoginMessage {
 
 #[cfg(test)]
 mod tests {
-    use tokio_util::bytes::BytesMut;
-
     use crate::frontend::tds::codec::login::FedAuthExt;
-    use crate::frontend::{LoginMessage, OptionFlag3, PacketHeader};
-    use crate::frontend::{TdsMessage, TdsMessageCodec};
+    use crate::frontend::tds::codec::{
+        LoginMessage, OptionFlag3, PacketHeader, TdsMessage, TdsMessageCodec,
+    };
+    use tokio_util::bytes::BytesMut;
 
     const RAW_BYTES: [u8; 2064] = [
         0x10, 0x01, 0x08, 0x10, 0x00, 0x00, 0x01, 0x00, 0x08, 0x08, 0x00, 0x00, 0x04, 0x00, 0x00,

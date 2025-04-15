@@ -1,8 +1,8 @@
 use crate::backend::app::{FedResult, FedResultStream, FederatedRequestType, ResultSetBuilder};
-use crate::frontend::sqlstring::SqlString;
-use crate::frontend::{BatchRequest, ColumnData, DataFlags, TypeInfo};
+use crate::frontend::tds::codec::sqlstring::SqlString;
+use crate::frontend::tds::codec::{BatchRequest, ColumnData, DataFlags, TypeInfo};
 use async_stream::stream;
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 pub(crate) fn process_static(hash: u64, req: &FederatedRequestType) -> Option<FedResultStream> {
     // hash based
@@ -94,11 +94,11 @@ fn set_statement(req: &BatchRequest) -> Option<FedResult> {
     Some(FedResult::Empty)
 }
 
-fn noop() -> TdsWireResult<FedResult> {
+fn noop() -> Result<FedResult> {
     Ok(FedResult::Empty)
 }
 
-fn backup_info(_req: &BatchRequest) -> TdsWireResult<FedResult> {
+fn backup_info(_req: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("Within 24hrs"),
@@ -120,7 +120,7 @@ fn backup_info(_req: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn database_size_info(_: &BatchRequest) -> TdsWireResult<FedResult> {
+fn database_size_info(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("name"),
@@ -138,10 +138,7 @@ fn database_size_info(_: &BatchRequest) -> TdsWireResult<FedResult> {
             DataFlags::default(),
         )
         .add_row(&[
-            ColumnData::String(SqlString::from_string(
-                Some("default_catalog".to_string()),
-                Some(255),
-            )),
+            ColumnData::String(SqlString::from_string(Some("default_catalog"), Some(255))),
             ColumnData::I32(0),
             ColumnData::I32(0),
         ]);
@@ -149,7 +146,7 @@ fn database_size_info(_: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn context_info(_: &BatchRequest) -> TdsWireResult<FedResult> {
+fn context_info(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             None,
@@ -160,7 +157,7 @@ fn context_info(_: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn databases(_: &BatchRequest) -> TdsWireResult<FedResult> {
+fn databases(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("name"),
@@ -168,13 +165,13 @@ fn databases(_: &BatchRequest) -> TdsWireResult<FedResult> {
             DataFlags::default(),
         )
         .add_row(&[ColumnData::String(SqlString::from_string(
-            Some("dwh".to_string()),
+            Some("dwh"),
             Some(100),
         ))]);
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn session_properties(_: &BatchRequest) -> TdsWireResult<FedResult> {
+fn session_properties(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_intn(false), DataFlags::default())
         .add_column(None, TypeInfo::new_intn(false), DataFlags::default())
@@ -183,7 +180,7 @@ fn session_properties(_: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn engine_edition(_: &BatchRequest) -> TdsWireResult<FedResult> {
+fn engine_edition(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(None, TypeInfo::new_intn(false), DataFlags::default())
         // todo: 40
@@ -217,22 +214,22 @@ fn engine_edition(_: &BatchRequest) -> TdsWireResult<FedResult> {
         .add_row(&[
             ColumnData::I32(3),
             ColumnData::String(SqlString::from_string(
-                Some("Microsoft SQL Server".to_string()),
+                Some("Microsoft SQL Server"),
                 Some(100),
             )),
-            ColumnData::String(SqlString::from_string(Some("RTM".to_string()), Some(100))),
+            ColumnData::String(SqlString::from_string(Some("RTM"), Some(100))),
             ColumnData::String(SqlString::from_string(
-                Some("Developer Edition (64-bit)".to_string()),
-                Some(100),
-            )),
-            ColumnData::String(SqlString::from_string(
-                // todo: set server name from context
-                Some("8e833a79ef92".to_string()),
+                Some("Developer Edition (64-bit)"),
                 Some(100),
             )),
             ColumnData::String(SqlString::from_string(
                 // todo: set server name from context
-                Some("8e833a79ef92".to_string()),
+                Some("8e833a79ef92"),
+                Some(100),
+            )),
+            ColumnData::String(SqlString::from_string(
+                // todo: set server name from context
+                Some("8e833a79ef92"),
                 Some(100),
             )),
             ColumnData::I32(1),

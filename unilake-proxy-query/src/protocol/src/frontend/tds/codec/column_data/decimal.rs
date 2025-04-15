@@ -1,7 +1,7 @@
-use crate::frontend::TdsTokenCodec;
+use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec};
 use bigdecimal::{num_bigint::Sign, BigDecimal, ToPrimitive};
 use tokio_util::bytes::{BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 /// Represent a sql Decimal type. It is stored in an i128 and has a
 /// maximum precision of 38 decimals.
@@ -80,7 +80,7 @@ impl Decimal {
         }
     }
 
-    pub(crate) fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    pub(crate) fn encode(&self, dst: &mut BytesMut) {
         dst.put_u8(self.len());
 
         if self.value < 0 {
@@ -100,13 +100,11 @@ impl Decimal {
             }
             _ => dst.put_u128_le(value as u128),
         }
-
-        Ok(())
     }
 }
 
 impl TdsTokenCodec for BigDecimal {
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         let value = self.abs() * 10i128.pow(self.fractional_digit_count() as u32);
         let value = value.to_i128().unwrap();
 
@@ -140,7 +138,7 @@ impl TdsTokenCodec for BigDecimal {
         Ok(())
     }
 
-    fn decode(_: &mut BytesMut) -> TdsWireResult<crate::frontend::TdsToken> {
+    fn decode(_: &mut BytesMut) -> Result<TdsToken> {
         unimplemented!()
     }
 }

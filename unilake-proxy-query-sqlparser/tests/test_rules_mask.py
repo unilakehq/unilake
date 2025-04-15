@@ -7,7 +7,7 @@ class TestRulesMask(TestQuery):
         self.run_test_with_masking_rule(
             {"name": "xxhash3", "properties": None},
             "SELECT a, len(a) as b from b",
-            "SELECT XX_HASH3_128(`b`.`a`) AS `a`, LENGTH(XX_HASH3_128(`b`.`a`)) AS `b` FROM `catalog`.`database`.`b` AS `b`",
+            "SELECT XX_HASH3_128(`b`.`a`) AS `a`, CHAR_LENGTH(XX_HASH3_128(`b`.`a`)) AS `b` FROM `catalog`.`database`.`b` AS `b`",
         )
 
     def test_rules_mask_xxhash3(self):
@@ -28,7 +28,7 @@ class TestRulesMask(TestQuery):
         self.run_test_with_masking_rule(
             {"name": "replace_char", "properties": {"replacement": "X"}},
             "SELECT a from b",
-            "SELECT REPEAT('X', LENGTH(`b`.`a`)) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
+            "SELECT REPEAT('X', CHAR_LENGTH(`b`.`a`)) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
         )
 
     def test_rules_mask_replace_string(self):
@@ -48,7 +48,7 @@ class TestRulesMask(TestQuery):
                 "properties": {"value": "X", "len": "3"},
             },
             "SELECT a from b",
-            "SELECT CONCAT(REPEAT('X', LENGTH(`b`.`a`) - 3), RIGHT(`b`.`a`, 3)) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
+            "SELECT CONCAT(REPEAT('X', CHAR_LENGTH(`b`.`a`) - 3), RIGHT(`b`.`a`, 3)) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
         )
 
     def test_rules_mask_except_first(self):
@@ -58,7 +58,7 @@ class TestRulesMask(TestQuery):
                 "properties": {"value": "X", "len": "3"},
             },
             "SELECT a from b",
-            "SELECT CONCAT(LEFT(`b`.`a`, 3), REPEAT('X', LENGTH(`b`.`a`) - 3)) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
+            "SELECT CONCAT(LEFT(`b`.`a`, 3), REPEAT('X', CHAR_LENGTH(`b`.`a`) - 3)) AS `a` FROM `catalog`.`database`.`b` AS `b` ",
         )
 
     def test_rules_mask_rounding(self):
@@ -158,6 +158,7 @@ class TestRulesMask(TestQuery):
                 {
                     "scope": 1,
                     "attribute": '"b"."a"',
+                    "attribute_id": "some_guid",
                     "policy_id": "some_guid",
                     "rule_definition": {"name": "replace_null"},
                 }
@@ -195,6 +196,7 @@ class TestRulesMask(TestQuery):
                 {
                     "scope": 0,
                     "attribute": '"test2"."a"',
+                    "attribute_id": "some_guid",
                     "policy_id": "some_guid",
                     "rule_definition": {"name": "replace_null"},
                 }

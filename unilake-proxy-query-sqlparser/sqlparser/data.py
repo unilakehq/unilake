@@ -105,13 +105,6 @@ class ScanOutputType(str, Enum):
     COMMAND = "COMMAND"
     EXPORT = "EXPORT"
     SET = "SET"
-    USE = "USE"
-    RESET = "RESET"
-    IMPERSONATE = "IMPERSONATE"
-    SHOW = "SHOW"
-    APPLY = "APPLY"
-    ANALYZE = "ANALYZE"
-    TRANSPILE = "TRANSPILE"
 
     @classmethod
     def from_key(cls, key: str) -> "ScanOutputType":
@@ -140,6 +133,7 @@ class ScanOutput:
     dialect: str
     query: str | None
     type: ScanOutputType
+    kind: str | None
     error: ParserError | None
     target_entity: str | None
     args: dict | None
@@ -150,6 +144,7 @@ class ScanOutput:
             "dialects": self.dialect,
             "query": self.query,
             "type": self.type.value,
+            "kind": self.kind,
             "error": self.error.to_json() if self.error else None,
             "target_entity": self.target_entity,
             "args": self.args,
@@ -162,6 +157,7 @@ class ScanOutput:
             dialect="",
             query=None,
             type=ScanOutputType.UNKNOWN,
+            kind=None,
             error=parser_error,
             target_entity=None,
             args=None,

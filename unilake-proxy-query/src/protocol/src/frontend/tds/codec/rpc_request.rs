@@ -1,9 +1,9 @@
 // MS-TDS: [2.2.6.6]
 use crate::frontend::tds::codec::decode::read_b_varchar;
-use crate::frontend::{ColumnData, TdsMessage, TdsMessageCodec, TypeInfo};
+use crate::frontend::tds::codec::{ColumnData, TdsMessage, TdsMessageCodec, TypeInfo};
 use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 uint_enum! {
     #[repr(u16)]
@@ -55,7 +55,7 @@ pub struct RpcParameter {
 }
 
 impl TdsMessageCodec for RpcRequest {
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage>
+    fn decode(src: &mut BytesMut) -> Result<TdsMessage>
     where
         Self: Sized,
     {
@@ -102,7 +102,7 @@ impl TdsMessageCodec for RpcRequest {
         }))
     }
 
-    fn encode(&self, _: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, _: &mut BytesMut) -> Result<()> {
         unimplemented!("Encode on RpcRequest is not a server implementation")
     }
 }
@@ -110,7 +110,7 @@ impl TdsMessageCodec for RpcRequest {
 #[cfg(test)]
 mod tests {
     use crate::frontend::tds::codec::rpc_request::RpcRequest;
-    use crate::frontend::{TdsMessage, TdsMessageCodec};
+    use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
     use tokio_util::bytes::{Buf, BytesMut};
 
     const RAW_BYTES: &[u8] = &[

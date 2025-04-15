@@ -1,6 +1,6 @@
 use crate::frontend::tds::collation::Collation;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::{Error, TdsWireResult};
+use unilake_common::error::Result;
 
 #[derive(Debug)]
 pub enum TypeInfo {
@@ -185,7 +185,7 @@ uint_enum! {
 }
 
 impl TypeInfo {
-    pub fn decode(src: &mut BytesMut) -> TdsWireResult<Self> {
+    pub fn decode(src: &mut BytesMut) -> Result<Self> {
         let ty = src.get_u8();
 
         if let Ok(ty) = FixedLenType::try_from(ty) {

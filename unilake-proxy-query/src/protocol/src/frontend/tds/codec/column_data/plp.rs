@@ -1,5 +1,5 @@
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 /// Variable length-prefixed token [2.2.5.2.2]
 pub(crate) fn encode(dest: &mut BytesMut, type_length: &usize, data: Option<&String>) {
@@ -38,7 +38,7 @@ pub(crate) fn encode(dest: &mut BytesMut, type_length: &usize, data: Option<&Str
     }
 }
 
-pub(crate) fn decode(src: &mut BytesMut, type_length: &usize) -> TdsWireResult<Option<String>> {
+pub(crate) fn decode(src: &mut BytesMut, type_length: &usize) -> Result<Option<String>> {
     match *type_length {
         0 => Ok(None),
         n if n < 0xffff => {

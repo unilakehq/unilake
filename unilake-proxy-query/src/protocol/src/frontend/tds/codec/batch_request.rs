@@ -1,10 +1,9 @@
-use crate::frontend::tds::codec::{AllHeaderTy, ALL_HEADERS_LEN_TX};
+use crate::frontend::tds::codec::{AllHeaderTy, TdsMessage, TdsMessageCodec, ALL_HEADERS_LEN_TX};
 use crate::frontend::utils::ReadAndAdvance;
-use crate::frontend::{TdsMessage, TdsMessageCodec};
 use byteorder::{ByteOrder, LittleEndian};
 use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::{Error, TdsWireResult, TokenError};
+use unilake_common::error::Result;
 
 /// SQLBatch Message [2.2.6.7]
 #[derive(Debug)]
@@ -25,7 +24,7 @@ impl BatchRequest {
 }
 
 impl TdsMessageCodec for BatchRequest {
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage> {
+    fn decode(src: &mut BytesMut) -> Result<TdsMessage> {
         let _headers = {
             let mut headers = Vec::with_capacity(2);
             headers.push(src.get_u32_le());
@@ -71,7 +70,7 @@ impl TdsMessageCodec for BatchRequest {
         }))
     }
 
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         dst.put_u32_le(ALL_HEADERS_LEN_TX as u32);
         dst.put_u32_le(ALL_HEADERS_LEN_TX as u32 - 4);
         dst.put_u16_le(AllHeaderTy::TransactionDescriptor as u16);
@@ -90,13 +89,12 @@ impl TdsMessageCodec for BatchRequest {
 #[cfg(test)]
 mod tests {
     use crate::frontend::tds::codec::batch_request::BatchRequest;
-    use crate::frontend::TdsMessage;
-    use crate::frontend::TdsMessageCodec;
+    use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
     use tokio_util::bytes::BytesMut;
-    use unilake_common::error::TdsWireResult;
+    use unilake_common::error::Result;
 
     #[test]
-    fn encode_decode_batchrequest() -> TdsWireResult<()> {
+    fn encode_decode_batchrequest() -> Result<()> {
         let query = String::from(
             "SELECT * FROM transactions WHERE transaction = ? AND transaction_descriptor = ?",
         );

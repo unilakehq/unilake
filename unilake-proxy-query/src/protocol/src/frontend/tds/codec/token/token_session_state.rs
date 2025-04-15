@@ -1,6 +1,7 @@
-use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType};
 use tokio_util::bytes::{BufMut, BytesMut};
-use unilake_common::error::{TdsWireError, TdsWireResult};
+use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 /// SESSIONSTATE token [2.2.7.21]
 /// For sending session state information to the client
@@ -24,7 +25,7 @@ impl TokenSessionState {
 }
 
 impl TdsTokenCodec for TokenSessionState {
-    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::SessionState as u8);
         dest.put_u32_le(6 + self.state_value.len() as u32);
         dest.put_u32_le(self.seq_no);
@@ -35,9 +36,9 @@ impl TdsTokenCodec for TokenSessionState {
         Ok(())
     }
 
-    fn decode(_: &mut BytesMut) -> TdsWireResult<TdsToken> {
-        Err(TdsWireError::Protocol(
-            "token(session_state): decode unsupported".into(),
+    fn decode(_: &mut BytesMut) -> Result<TdsToken> {
+        Err(ErrorCode::TdsProtocolError(
+            "token(session_state): decode unsupported",
         ))
     }
 }

@@ -1,10 +1,12 @@
-use crate::frontend::prot::TdsSessionState;
+use crate::backend::telemetry::QueryTelemetry;
+use crate::frontend::tds::prot::TdsSessionState;
 use crate::frontend::tds::server_context::ServerContext;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use ulid::Ulid;
+use unilake_security::handler::SecurityHandler;
 
 pub const SESSION_VARIABLE_DIALECT: &str = "proxy_dialect";
 pub const SESSION_VARIABLE_CATALOG: &str = "proxy_catalog";
@@ -133,6 +135,51 @@ impl SessionVariable {
             SessionVariable::Some(value) => value.clone(),
             SessionVariable::Default(default_value) => default_value.clone(),
             SessionVariable::None => Arc::from(""),
+        }
+    }
+}
+
+pub enum ServerInstanceMessage {
+    /// Used to send an audit message for a connected session
+    Audit(SessionAuditMessage),
+    /// Used to send telemetry data
+    Telemetry,
+    /// Used to send activity data (Connection)
+    ActivityConnection(String),
+    /// Used to send Query Telemetry data
+    QueryTelemetry(QueryTelemetry),
+}
+
+/// These messages should be forwarded to SIEM/Audit logging endpoint
+/// todo(mrhamburg): extend and expand where needed
+pub enum SessionAuditMessage {
+    /// Sql execution by a user
+    SqlQuery(SessionUserInfoEto, SecurityHandler),
+    /// Login succeeded event
+    LoginSucceeded(SessionUserInfoEto),
+    /// Login failed event
+    LoginFailed(SessionUserInfoEto),
+}
+
+pub struct SessionUserInfoEto {
+    socket_addr: SocketAddr,
+    userid: String,
+}
+
+impl SessionUserInfoEto {
+    pub fn from(info: &dyn SessionInfo) -> Self {
+        SessionUserInfoEto {
+            socket_addr: info.socket_addr(),
+            userid: info.get_sql_user_id().to_string(),
+        }
+    }
+}
+
+impl From<&dyn SessionInfo> for SessionUserInfoEto {
+    fn from(info: &dyn SessionInfo) -> Self {
+        SessionUserInfoEto {
+            socket_addr: info.socket_addr(),
+            userid: info.get_sql_user_id().to_string(),
         }
     }
 }

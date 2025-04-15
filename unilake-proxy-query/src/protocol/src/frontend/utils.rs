@@ -1,10 +1,10 @@
 use rand::random;
 use tokio_util::bytes::{Buf, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 pub(crate) trait ReadAndAdvance {
     fn read_and_advance(&mut self, max_bytes: usize) -> (usize, BytesMut);
-    fn put_and_advance(&mut self, target: &mut [u8]) -> TdsWireResult<()>;
+    fn put_and_advance(&mut self, target: &mut [u8]) -> Result<()>;
 }
 
 impl ReadAndAdvance for BytesMut {
@@ -21,7 +21,7 @@ impl ReadAndAdvance for BytesMut {
         (bytes_to_read, buf)
     }
 
-    fn put_and_advance(&mut self, target: &mut [u8]) -> TdsWireResult<()> {
+    fn put_and_advance(&mut self, target: &mut [u8]) -> Result<()> {
         let bytes_to_write = self.len().min(target.len());
         target[..bytes_to_write].copy_from_slice(&self.split_to(bytes_to_write));
         Ok(())

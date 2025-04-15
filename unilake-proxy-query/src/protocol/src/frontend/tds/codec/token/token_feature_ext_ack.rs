@@ -1,6 +1,7 @@
-use crate::frontend::{utils::ReadAndAdvance, FeatureExt, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::{FeatureExt, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::utils::ReadAndAdvance;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 /// Feature Extension Acknowledgement token [2.2.7.11]
 /// Introduced in TDS 7.4, FEATUREEXTACK is used to send an optional acknowledge
@@ -31,7 +32,7 @@ impl FeatureAck {
 }
 
 impl TdsTokenCodec for TokenFeatureExtAck {
-    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::FeatureExtAck as u8);
         for item in self.features.iter() {
             match item {
@@ -51,7 +52,7 @@ impl TdsTokenCodec for TokenFeatureExtAck {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let mut features = Vec::new();
         loop {
             let feature_id = src.get_u8();
@@ -82,11 +83,10 @@ impl TdsTokenCodec for TokenFeatureExtAck {
 
 #[cfg(test)]
 mod tests {
-    use tokio_util::bytes::{Buf, BytesMut};
-
-    use crate::frontend::{
+    use crate::frontend::tds::codec::{
         FeatureAck, FedAuthAck, TdsToken, TdsTokenCodec, TdsTokenType, TokenFeatureExtAck,
     };
+    use tokio_util::bytes::{Buf, BytesMut};
 
     #[test]
     fn encode_decode_token_feature_ext_ack() {

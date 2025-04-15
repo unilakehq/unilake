@@ -34,11 +34,11 @@ def _scan_transform(node, scope_id: int, entities: list[set], attributes: list[s
     # Get tables
     if node_type is exp.Table:
         if node.alias:
-            entities[scope_id].add(ScanEntity(catalog=node.catalog or None, db=node.db or None, name=node.name, alias=node.alias))
+            entities[scope_id].add(ScanEntity(catalog=node.catalog or None, db=node.db or None, name=node.kind, alias=node.alias))
 
     # Get columns
     elif node_type is exp.Column and not node.is_star:
-        attributes[scope_id].add(ScanAttribute(entity_alias=node.table, name=node.name))
+        attributes[scope_id].add(ScanAttribute(entity_alias=node.table, name=node.kind))
 
     # Get Stars
     elif node_type is exp.Select and node.is_star:
@@ -56,6 +56,13 @@ def _scan_transform(node, scope_id: int, entities: list[set], attributes: list[s
     return node
 
 
+def get_kind_name(expression: Expression) -> str | None:
+    if "kind" in expression.arg_types and expression.arg_types["kind"]:
+        return expression.args["kind"]
+    elif expression.name != "":
+        return expression.name
+    return None
+
 def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutput:
     if not sql:
         return ScanOutput(
@@ -65,7 +72,8 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
             type=ScanOutputType.UNKNOWN,
             error=None,
             target_entity=None,
-            args=None
+            args=None,
+            kind=None
         )
     dialect = _get_dialect(dialect)
 
@@ -137,6 +145,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
             error=None,
             target_entity=target_entity,
             args=parsed_args,
+            kind=get_kind_name(parsed)
         )
 
     return ScanOutput(
@@ -147,6 +156,7 @@ def inner_scan(sql: str, dialect: str, catalog: str, database: str) -> ScanOutpu
         error=None,
         target_entity=target_entity,
         args=parsed_args,
+        kind=get_kind_name(parsed)
     )
 
 def _transform_filters(node: exp.Select, scope_id: int, filter_lookup: list):

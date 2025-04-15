@@ -1,7 +1,7 @@
 use enumflags2::{bitflags, BitFlags};
 use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 uint_enum! {
     /// the type of the packet [2.2.3.1.1]
@@ -105,7 +105,7 @@ impl PacketHeader {
         }
     }
 
-    pub fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         tracing::debug!(
             message = "Sending packet",
             message_type = self.ty.to_string(),
@@ -133,7 +133,7 @@ impl PacketHeader {
         Ok(())
     }
 
-    pub fn decode(src: &mut BytesMut) -> TdsWireResult<Self> {
+    pub fn decode(src: &mut BytesMut) -> Result<Self> {
         let raw_ty = src.get_u8();
         let ty = PacketType::try_from(raw_ty).map_err(|_| {
             unilake_common::error::Error::Protocol(
@@ -161,9 +161,8 @@ impl PacketHeader {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontend::tds::codec::{PacketHeader, PacketType};
     use tokio_util::bytes::BytesMut;
-
-    use crate::frontend::{PacketHeader, PacketType};
 
     const RAW_BYTES: [u8; 8] = [0x12, 0x01, 0x00, 0x2f, 0x00, 0x00, 0x01, 0x00];
 

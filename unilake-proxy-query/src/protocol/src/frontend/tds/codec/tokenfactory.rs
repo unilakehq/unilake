@@ -1,7 +1,6 @@
-use super::TdsToken;
-use crate::frontend::{PacketHeader, TdsMessage};
+use super::{PacketHeader, TdsMessage, TdsToken};
 use tokio_util::bytes::{Buf, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 // Complete Frontend Request
 pub struct TdsFrontendRequest {
@@ -9,7 +8,7 @@ pub struct TdsFrontendRequest {
 }
 
 impl TdsFrontendRequest {
-    pub fn decode(buf: &mut BytesMut) -> TdsWireResult<Option<Self>> {
+    pub fn decode(buf: &mut BytesMut) -> Result<Option<Self>> {
         let mut messages = Vec::new();
         while buf.has_remaining() {
             let header = PacketHeader::decode(buf)?;

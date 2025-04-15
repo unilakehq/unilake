@@ -1,38 +1,36 @@
-mod extensions;
-mod query;
-mod session;
+mod starrocks_serialize;
+mod starrocks_session;
 
 use crate::backend::app::{
     FedResult, FedResultStream, FederatedFrontendHandler, FederatedRequestType,
 };
 use crate::backend::data::BackendInstance;
-use crate::backend::starrocks::session::StarRocksSession;
+use crate::backend::starrocks::starrocks_session::StarRocksSession;
 use crate::backend::telemetry::{QueryTelemetry, QueryTelemetryHandler};
-use crate::frontend::tds::collation::Collation;
-use crate::frontend::{
-    prot::{
-        ServerInstance, ServerInstanceMessage, SessionAuditMessage, SessionUserInfo,
-        TdsWireHandlerFactory,
-    },
-    tds::server_context::ServerContext,
+use crate::frontend::tds::codec::{
     BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, RpcRequest, TdsBackendResponse,
     TokenColMetaData, TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck,
     TokenPreLoginFedAuthRequiredOption, TokenRow,
 };
+use crate::frontend::tds::collation::Collation;
+use crate::frontend::tds::prot::TdsWireHandlerFactory;
+use crate::frontend::tds::server_context::ServerContext;
+use crate::server::ServerInstance;
 use crate::session::{
-    SessionInfo, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE, SESSION_VARIABLE_DIALECT,
+    ServerInstanceMessage, SessionAuditMessage, SessionInfo, SessionUserInfoEto,
+    SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE, SESSION_VARIABLE_DIALECT,
     SESSION_VARIABLE_SEND_TELEMETRY,
 };
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
 use futures::{Sink, StreamExt};
 use mysql_async::{prelude::Queryable, Conn, Error, OptsBuilder, Pool};
-use serde::__private::de::Content::U64;
 use std::str::FromStr;
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
-use unilake_common::error::{TdsWireError, TdsWireResult, TokenError};
+use unilake_common::error::{Result, WireError};
+use unilake_common::error_code::ErrorCode;
 use unilake_common::settings::{
     settings_backend_register_activity_timeout_in_seconds, settings_server_transparent_mode,
 };
@@ -66,7 +64,7 @@ impl StarRocksBackend {
         }
     }
 
-    pub async fn get_conn(&self, userid: &str) -> TdsWireResult<Conn> {
+    pub async fn get_conn(&self, userid: &str) -> Result<Conn> {
         match self.mysql_pool.get_conn().await {
             Ok(conn) => {
                 let mut session_counter = self.session_count.lock().await;
@@ -78,8 +76,8 @@ impl StarRocksBackend {
 
                 Ok(conn)
             }
-            Err(_) => Err(TdsWireError::Protocol(
-                "Failed to get connection from pool".to_string(),
+            Err(_) => Err(ErrorCode::StarRocksConnectionPoolError(
+                "Failed to get connection from pool",
             )),
         }
     }
@@ -188,7 +186,7 @@ impl StarRocksTdsHandlerFactoryInnnerState {
         if let Err(e) = self
             .server_instance
             .process_message(ServerInstanceMessage::Audit(SessionAuditMessage::SqlQuery(
-                SessionUserInfo::from(user_info),
+                SessionUserInfoEto::from(user_info),
                 query,
             )))
         {
@@ -219,7 +217,7 @@ impl StarRocksTdsHandlerFactory {
         client: &mut C,
         session_info: &StarRocksSession,
         e: TE,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
         TE: Into<TokenError>,
@@ -237,7 +235,7 @@ impl StarRocksTdsHandlerFactory {
         client: &mut C,
         session_info: &StarRocksSession,
         e: Error,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -260,7 +258,7 @@ impl StarRocksTdsHandlerFactory {
         &self,
         client: &mut C,
         mut fed_result: FedResultStream,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -299,7 +297,7 @@ impl StarRocksTdsHandlerFactory {
     async fn get_new_security_handler(
         &self,
         session_info: &StarRocksSession,
-    ) -> TdsWireResult<SecurityHandler> {
+    ) -> Result<SecurityHandler> {
         let instance = self.get_backend_instance(session_info).await;
         Ok(SecurityHandler::new(
             instance.get_cached_adapter(),
@@ -328,7 +326,7 @@ impl StarRocksTdsHandlerFactory {
         session_info: &StarRocksSession,
         query_telemetry: &mut QueryTelemetryHandler,
         query: &str,
-    ) -> TdsWireResult<Option<Arc<str>>>
+    ) -> Result<Option<Arc<str>>>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -403,7 +401,7 @@ impl StarRocksTdsHandlerFactory {
         session: &StarRocksSession,
         mut query_telemetry: QueryTelemetryHandler,
         query: &str,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -482,7 +480,7 @@ impl StarRocksTdsHandlerFactory {
         client: &mut C,
         telemetry: QueryTelemetry,
         session: &StarRocksSession,
-    ) -> Result<(), TdsWireError>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -509,11 +507,23 @@ impl StarRocksTdsHandlerFactory {
         client: &mut C,
         cause: Vec<TranspilerDenyCause>,
         access_links: Option<Vec<PolicyAccessRequestUrl>>,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
         // todo: we want to present the user with at least the access link to request for access, the other ones are errors and messages?
+        // send request for url from the API
+        // send back the results of this request in an error token
+        let error_token = TokenError::new(
+            0,
+            0,
+            0,
+            "".to_string(),
+            self.inner.server_instance.ctx.server_name.clone(),
+            "".to_string(),
+            0,
+        );
+
         todo!()
     }
 
@@ -521,12 +531,41 @@ impl StarRocksTdsHandlerFactory {
         &self,
         client: &mut C,
         error: SecurityHandlerError,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
-        // todo: this could be an error like no user found
-        todo!()
+        let mut error_token = TokenError::new(
+            0,
+            0,
+            0,
+            "".to_string(),
+            self.inner.server_instance.ctx.server_name.clone(),
+            "".to_string(),
+            0,
+        );
+
+        match error {
+            SecurityHandlerError::WireError(error_code, error) => {
+                error_token.code = error_code;
+                error_token.message = error.to_string();
+                error_token.procedure = "WIRE".to_string();
+            }
+            SecurityHandlerError::QueryError(error_code, query_id, parser_err) => {
+                error_token.code = error_code;
+                error_token.message = format!("{}. Query ID: {}", parser_err.message, query_id);
+                error_token.procedure = parser_err.error_type;
+            }
+            SecurityHandlerError::SecurityError(error_code, query_id, security_err) => {
+                error_token.code = error_code;
+                error_token.message = format!("{}. Query ID: {}", security_err.message, query_id);
+                error_token.procedure = "SECURITY".to_string();
+            }
+        }
+
+        self.send_token(client, error_token).await?;
+        self.send_token(client, TokenDone::new_error(0)).await?;
+        Ok(())
     }
 }
 
@@ -536,7 +575,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         &self,
         socket_addr: &SocketAddr,
         instance_info: Arc<ServerInstance>,
-    ) -> Result<StarRocksSession, TdsWireError> {
+    ) -> Result<StarRocksSession> {
         tracing::info!("New session for: {}", socket_addr);
         Ok(StarRocksSession::new(
             socket_addr.clone(),
@@ -560,7 +599,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         client: &mut C,
         session_info: &mut StarRocksSession,
         msg: &PreloginMessage,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -573,6 +612,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         let mut prelogin_msg = PreloginMessage::new();
         prelogin_msg.version = server_context.get_server_version();
         prelogin_msg.encryption = Some(encryption);
+        // todo(mrhamburg): implement mars
         prelogin_msg.mars = false;
         prelogin_msg.fed_auth_required = Some(false);
         prelogin_msg.instance_name = Some("".to_string());
@@ -600,7 +640,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         client: &mut C,
         session_info: &mut StarRocksSession,
         msg: &LoginMessage,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -617,13 +657,13 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
 
         // check for sspi (which we do not support)
         if msg.option_flags_2.contains(OptionFlag2::IntegratedSecurity) {
-            return Err(TdsWireError::Protocol(
+            return Err(WireError::Protocol(
                 "SSPI authentication is not supported".to_string(),
             ));
         }
 
         // expect this to be basic auth, which will be implemented later
-        // todo(mrhamburg): implement authentication
+        // todo(mrhamburg): properly implement authentication
         if let Some(ref client_id) = msg.client_id {
             session_info.set_sql_user_id(client_id.clone());
         }
@@ -724,7 +764,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         client: &mut C,
         session_info: &mut StarRocksSession,
         msg: &RpcRequest,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {
@@ -749,7 +789,7 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
         client: &mut C,
         session_info: &mut StarRocksSession,
         msg: &BatchRequest,
-    ) -> TdsWireResult<()>
+    ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
     {

@@ -92,7 +92,7 @@ pub struct ScanOutput {
     pub objects: Vec<ScanOutputObject>,
     pub dialect: String,
     pub query: Option<String>,
-    /// Expect: SELECT, UPDATE, DELETE, INSERT, ALTER
+    /// Expect: SELECT, UPDATE, DELETE, INSERT, ALTER, etc ...
     pub query_type: String,
     pub error: Option<ParserError>,
     /// Full target entity path, expressed in: "some_catalog"."some_schema"."some_table"

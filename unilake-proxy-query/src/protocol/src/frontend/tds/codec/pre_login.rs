@@ -1,9 +1,9 @@
 use crate::frontend::tds::codec::guid::reorder_bytes;
-use crate::frontend::tds::EncryptionLevel;
+use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
+use crate::frontend::tds::server_context::EncryptionLevel;
 use crate::frontend::utils::ReadAndAdvance;
-use crate::frontend::{TdsMessage, TdsMessageCodec};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 use uuid::Uuid;
 
 /// Client application activity id token used for debugging purposes introduced in TDS 7.4.
@@ -70,7 +70,7 @@ impl PreloginMessage {
 }
 
 impl TdsMessageCodec for PreloginMessage {
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage> {
+    fn decode(src: &mut BytesMut) -> Result<TdsMessage> {
         let mut ret = PreloginMessage::new();
         let options = {
             let mut options = Vec::new();
@@ -115,13 +115,11 @@ impl TdsMessageCodec for PreloginMessage {
                 // encryption
                 PRELOGIN_ENCRYPTION => {
                     let encrypt = src.get_u8();
-                    ret.encryption = Some(
-                        crate::frontend::tds::EncryptionLevel::try_from(encrypt).map_err(|_| {
-                            unilake_common::error::Error::Protocol(
-                                format!("invalid encryption value: {}", encrypt).into(),
-                            )
-                        })?,
-                    );
+                    ret.encryption = Some(EncryptionLevel::try_from(encrypt).map_err(|_| {
+                        unilake_common::error::Error::Protocol(
+                            format!("invalid encryption value: {}", encrypt).into(),
+                        )
+                    })?);
                     decode_offset_initial += 1;
                 }
                 // instance name
@@ -200,7 +198,7 @@ impl TdsMessageCodec for PreloginMessage {
         Ok(TdsMessage::PreLogin(ret))
     }
 
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         // create headers
         let mut options = Vec::<(u8, u16, u16)>::with_capacity(3);
         options.push((PRELOGIN_VERSION, 6, 0));
@@ -278,9 +276,8 @@ impl TdsMessageCodec for PreloginMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::PacketHeader;
-
     use super::*;
+    use crate::frontend::tds::codec::{PacketHeader, TdsMessage};
 
     const RAW_BYTES: &[u8] = &[
         0x12, 0x01, 0x00, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x06, 0x01, 0x00,
@@ -291,7 +288,7 @@ mod tests {
     ];
 
     #[test]
-    fn prelogin_decode_raw() -> TdsWireResult<()> {
+    fn prelogin_decode_raw() -> Result<()> {
         let mut bytes = BytesMut::from(&RAW_BYTES[..]);
         let _header = PacketHeader::decode(&mut bytes)?;
         let _message = PreloginMessage::decode(&mut bytes)?;
@@ -302,7 +299,7 @@ mod tests {
     }
 
     #[test]
-    fn prelogin_roundtrip() -> TdsWireResult<()> {
+    fn prelogin_roundtrip() -> Result<()> {
         let input = PreloginMessage::new();
 
         // arrange

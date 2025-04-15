@@ -1,9 +1,9 @@
-use crate::frontend::{TypeInfo, VarLenType};
+use crate::frontend::tds::codec::{TypeInfo, VarLenType};
 use bigdecimal::BigDecimal;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use sqlstring::SqlString;
 use tokio_util::bytes::BytesMut;
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 mod date;
 mod datetime2;
@@ -72,7 +72,7 @@ pub enum ColumnData {
 }
 
 impl ColumnData {
-    pub fn new_nvarchar(value: Option<String>, max_length: Option<usize>) -> Self {
+    pub fn new_nvarchar(value: Option<impl ToString>, max_length: Option<usize>) -> Self {
         ColumnData::String(SqlString::from_string(value, max_length))
     }
 
@@ -203,7 +203,7 @@ impl ColumnData {
     }
 
     /// Encode this value into the given destination buffer.
-    pub fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    pub fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         match self {
             ColumnData::Bit(_)
             | ColumnData::U8(_)
@@ -211,19 +211,19 @@ impl ColumnData {
             | ColumnData::I32(_)
             | ColumnData::I64(_)
             | ColumnData::F32(_)
-            | ColumnData::F64(_) => fixed_len::encode(dest, &self)?,
+            | ColumnData::F64(_) => fixed_len::encode(dest, &self),
             ColumnData::BitN(_)
             | ColumnData::U8N(_)
             | ColumnData::I16N(_)
             | ColumnData::I32N(_)
             | ColumnData::I64N(_)
             | ColumnData::F32N(_)
-            | ColumnData::F64N(_) => var_len::encode(dest, &self)?,
+            | ColumnData::F64N(_) => var_len::encode(dest, &self),
             ColumnData::NVarchar(s) | ColumnData::NChar(s) | ColumnData::String(s) => {
                 s.encode(dest)?
             }
             ColumnData::DateN(_) => date::encode(dest, &self),
-            ColumnData::DateTime2(_) => datetime2::encode(dest, &self)?,
+            ColumnData::DateTime2(_) => datetime2::encode(dest, &self),
             ColumnData::Numeric(n) => {
                 numeric::encode(dest, &n)?;
             }
@@ -234,7 +234,7 @@ impl ColumnData {
         Ok(())
     }
 
-    pub fn decode(src: &mut BytesMut, typeinfo: &TypeInfo) -> TdsWireResult<Self> {
+    pub fn decode(src: &mut BytesMut, typeinfo: &TypeInfo) -> Result<Self> {
         match typeinfo {
             TypeInfo::VarLenSized(vs) => match vs.r#type() {
                 VarLenType::NVarchar => {

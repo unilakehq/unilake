@@ -1,10 +1,10 @@
 use crate::backend::app::{FedResult, FedResultStream, FederatedRequestType, ResultSetBuilder};
-use crate::frontend::{BatchRequest, ColumnData, DataFlags, TypeInfo};
+use crate::frontend::tds::codec::{BatchRequest, ColumnData, DataFlags, TypeInfo};
 use async_stream::stream;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
 use std::str::FromStr;
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 pub(crate) fn process_static(hash: u64, request: &FederatedRequestType) -> Option<FedResultStream> {
     let found = match request {
@@ -28,7 +28,7 @@ pub(crate) fn process_static(hash: u64, request: &FederatedRequestType) -> Optio
 
     None
 }
-fn test_generic(_: &BatchRequest) -> TdsWireResult<FedResult> {
+fn test_generic(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("date"),
@@ -40,7 +40,7 @@ fn test_generic(_: &BatchRequest) -> TdsWireResult<FedResult> {
     Ok(FedResult::Tabular(result_set.result))
 }
 
-fn test_datatypes(_: &BatchRequest) -> TdsWireResult<FedResult> {
+fn test_datatypes(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
             Some("nvarchar(40)"),
@@ -124,7 +124,7 @@ fn test_datatypes(_: &BatchRequest) -> TdsWireResult<FedResult> {
             DataFlags::default(),
         )
         .add_row(&[
-            ColumnData::new_nvarchar(Some("Unilake SQL Proxy".to_owned()), Some(40)),
+            ColumnData::new_nvarchar(Some("Unilake SQL Proxy"), Some(40)),
             ColumnData::I64N(None),
             ColumnData::I64(1988),
             ColumnData::Bit(true),

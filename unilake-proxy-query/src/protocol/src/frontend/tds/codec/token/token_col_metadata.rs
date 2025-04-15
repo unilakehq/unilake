@@ -1,7 +1,8 @@
-use crate::frontend::tds::codec::{decode, encode};
-use crate::frontend::{Column, ColumnType, TdsToken, TdsTokenCodec, TdsTokenType, TypeInfo};
+use crate::frontend::tds::codec::{
+    decode, encode, Column, ColumnType, TdsToken, TdsTokenCodec, TdsTokenType, TypeInfo,
+};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 /// Column Metadata Token [2.2.7.4]
 /// Describes the result set for interpretation of following ROW data streams.
@@ -172,7 +173,7 @@ impl TokenColMetaData {
 }
 
 impl TdsTokenCodec for TokenColMetaData {
-    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::ColMetaData as u8);
 
         // fixed length value if there are no columns' metadata
@@ -193,7 +194,7 @@ impl TdsTokenCodec for TokenColMetaData {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let column_count = src.get_u16_le();
         let mut columns = Vec::with_capacity(column_count as usize);
 
@@ -211,7 +212,7 @@ impl TdsTokenCodec for TokenColMetaData {
 }
 
 impl BaseMetaDataColumn {
-    pub fn decode(src: &mut BytesMut) -> TdsWireResult<Self> {
+    pub fn decode(src: &mut BytesMut) -> Result<Self> {
         let _user_ty = src.get_u32_le();
         let flags = DataFlags::from_flags(src.get_u16_le());
         let ty = TypeInfo::decode(src)?;
@@ -231,14 +232,14 @@ impl BaseMetaDataColumn {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{DataFlags, UpdatableFlags};
+    use crate::frontend::tds::codec::{DataFlags, UpdatableFlags};
     use tokio_util::bytes::{BufMut, BytesMut};
-    use unilake_common::error::TdsWireResult;
+    use unilake_common::error::Result;
 
     const RAW_DATA: &[u8] = &[0x11, 0x00];
 
     #[test]
-    fn col_metadata_flags_test() -> TdsWireResult<()> {
+    fn col_metadata_flags_test() -> Result<()> {
         let mut bytes = BytesMut::new();
         let mut flags = DataFlags::default();
         flags.is_identity = true;

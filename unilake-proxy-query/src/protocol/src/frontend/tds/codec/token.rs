@@ -29,14 +29,15 @@ pub use token_session_state::*;
 pub use token_sspi::*;
 pub use token_type::*;
 
+use crate::frontend::tds::codec::token::token_error::TokenError;
 use tokio_util::bytes::BytesMut;
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 #[derive(Debug)]
 pub enum TdsToken {
     Done(TokenDone),
     EnvChange(TokenEnvChange),
-    Error(unilake_common::error::TokenError),
+    Error(TokenError),
     Info(TokenInfo),
     Order(TokenOrder),
     FeatureExtAck(TokenFeatureExtAck),
@@ -50,8 +51,8 @@ pub enum TdsToken {
 }
 
 pub trait TdsTokenCodec {
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>;
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken>;
+    fn encode(&self, dst: &mut BytesMut) -> Result<()>;
+    fn decode(src: &mut BytesMut) -> Result<TdsToken>;
 }
 
 macro_rules! encode_match {
@@ -65,7 +66,7 @@ macro_rules! encode_match {
 }
 
 impl TdsToken {
-    pub fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         encode_match!(
             self,
             dst,
@@ -99,7 +100,7 @@ macro_rules! impl_into_tdstoken {
 impl_into_tdstoken!(TokenInfo, TdsToken::Info);
 impl_into_tdstoken!(TokenDone, TdsToken::Done);
 impl_into_tdstoken!(TokenEnvChange, TdsToken::EnvChange);
-impl_into_tdstoken!(unilake_common::error::TokenError, TdsToken::Error);
+impl_into_tdstoken!(TokenError, TdsToken::Error);
 impl_into_tdstoken!(TokenOrder, TdsToken::Order);
 impl_into_tdstoken!(TokenFeatureExtAck, TdsToken::FeatureExtAck);
 impl_into_tdstoken!(TokenColMetaData, TdsToken::ColMetaData);

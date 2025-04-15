@@ -1,8 +1,10 @@
-use super::{batch_request::BatchRequest, ResponseMessage};
+use super::{
+    batch_request::BatchRequest, AttentionSignal, LoginMessage, PacketType, PreloginMessage,
+    ResponseMessage, TokenFedAuth,
+};
 use crate::frontend::tds::codec::rpc_request::RpcRequest;
-use crate::frontend::{AttentionSignal, LoginMessage, PacketType, PreloginMessage, TokenFedAuth};
 use tokio_util::bytes::BytesMut;
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 #[derive(Debug)]
 pub enum TdsMessage {
@@ -16,7 +18,7 @@ pub enum TdsMessage {
 }
 
 impl TdsMessage {
-    pub fn decode(buf: &mut BytesMut, packet_type: PacketType) -> TdsWireResult<TdsMessage> {
+    pub fn decode(buf: &mut BytesMut, packet_type: PacketType) -> Result<TdsMessage> {
         // 2.2.1 Client Messages
         match packet_type {
             PacketType::PreLogin => PreloginMessage::decode(buf),
@@ -35,7 +37,7 @@ impl TdsMessage {
         }
     }
 
-    pub fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         // 2.2.2 Server Messages
         match self {
             TdsMessage::PreLogin(p) => p.encode(dst),
@@ -50,10 +52,10 @@ impl TdsMessage {
 }
 
 pub trait TdsMessageCodec {
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsMessage>
+    fn decode(src: &mut BytesMut) -> Result<TdsMessage>
     where
         Self: Sized;
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()>;
+    fn encode(&self, dst: &mut BytesMut) -> Result<()>;
 }
 
 macro_rules! impl_into_tdsmessage {

@@ -1,20 +1,19 @@
-use crate::frontend::RpcRequest;
-use crate::frontend::{
-    BaseMetaDataColumn, BatchRequest, ColumnData, DataFlags, MetaDataColumn, TokenColMetaData,
-    TokenInfo, TokenRow, TokenSessionState, TypeInfo,
+use crate::frontend::tds::codec::{
+    BaseMetaDataColumn, BatchRequest, ColumnData, DataFlags, MetaDataColumn, RpcRequest,
+    TokenColMetaData, TokenInfo, TokenRow, TokenSessionState, TypeInfo,
 };
 use std::collections::VecDeque;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio_stream::Stream;
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
-mod dbeaver;
-mod generic;
-mod pbi;
-mod ssms;
-mod unilake;
-mod vscode;
+mod app;
+mod app_dbeaver;
+mod app_pbi;
+mod app_ssms;
+mod app_unilake;
+mod app_vscode;
 
 pub enum FederatedRequestType<'a> {
     Query(&'a BatchRequest),
@@ -27,12 +26,12 @@ impl FederatedFrontendHandler {
     pub fn exec_request(
         hash: u64,
         request: FederatedRequestType,
-    ) -> TdsWireResult<Option<FedResultStream>> {
-        let found = generic::process_static(hash, &request)
-            .or_else(|| dbeaver::process_static(hash, &request))
-            .or_else(|| pbi::process_static(hash, &request))
-            .or_else(|| ssms::process_static(hash, &request))
-            .or_else(|| unilake::process_static(hash, &request));
+    ) -> Result<Option<FedResultStream>> {
+        let found = app::process_static(hash, &request)
+            .or_else(|| app_dbeaver::process_static(hash, &request))
+            .or_else(|| app_pbi::process_static(hash, &request))
+            .or_else(|| app_ssms::process_static(hash, &request))
+            .or_else(|| app_unilake::process_static(hash, &request));
 
         if found.is_some() {
             tracing::info!("Static query result found for hash: {}", hash);
@@ -43,17 +42,17 @@ impl FederatedFrontendHandler {
 }
 
 pub struct FedResultStream {
-    it: Pin<Box<dyn Stream<Item = TdsWireResult<FedResult>> + Send>>,
+    it: Pin<Box<dyn Stream<Item = Result<FedResult>> + Send>>,
 }
 
 impl FedResultStream {
-    pub fn new(it: Pin<Box<dyn Stream<Item = TdsWireResult<FedResult>> + Send>>) -> Self {
+    pub fn new(it: Pin<Box<dyn Stream<Item = Result<FedResult>> + Send>>) -> Self {
         Self { it }
     }
 }
 
 impl Stream for FedResultStream {
-    type Item = TdsWireResult<FedResult>;
+    type Item = Result<FedResult>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         Pin::new(&mut self.it).poll_next(cx)
@@ -120,7 +119,12 @@ impl ResultSetBuilder {
         }
     }
 
-    pub fn add_column(mut self, name: Option<&str>, ty: TypeInfo, flags: DataFlags) -> Self {
+    pub fn add_column(
+        mut self,
+        name: Option<impl ToString>,
+        ty: TypeInfo,
+        flags: DataFlags,
+    ) -> Self {
         self.result.columns.push_back(MetaDataColumn {
             col_name: name.map(|s| s.to_string()).unwrap_or_default(),
             base: BaseMetaDataColumn { flags, ty },

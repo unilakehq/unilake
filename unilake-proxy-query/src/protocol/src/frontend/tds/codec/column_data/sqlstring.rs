@@ -1,5 +1,6 @@
+use crate::frontend::tds::codec::TypeInfo;
 use tokio_util::bytes::BytesMut;
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 #[derive(Debug, Clone)]
 pub struct SqlString {
@@ -21,12 +22,12 @@ impl SqlString {
     /// # Returns
     ///
     /// Returns a new `SqlString` instance with the specified value and maximum length.
-    pub fn from_string(value: Option<String>, max_length: Option<usize>) -> SqlString {
+    pub fn from_string(value: Option<impl ToString>, max_length: Option<usize>) -> SqlString {
         let max_length = max_length.unwrap_or(usize::MAX);
         SqlString { max_length, value }
     }
 
-    pub(crate) fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         if let Some(ref str) = self.value {
             super::plp::encode(dest, &self.max_length, Some(str));
         } else {
@@ -35,7 +36,7 @@ impl SqlString {
         Ok(())
     }
 
-    pub(crate) fn decode(src: &mut BytesMut, max_len: Option<usize>) -> TdsWireResult<Self> {
+    pub(crate) fn decode(src: &mut BytesMut, max_len: Option<usize>) -> Result<Self> {
         Ok(SqlString::from_string(
             super::plp::decode(src, &max_len.unwrap_or(usize::MAX))?,
             max_len,
@@ -50,9 +51,9 @@ impl SqlString {
         self.value.as_ref().map(|s| s.len()).unwrap_or(0)
     }
 
-    pub fn new_empty(ty: &crate::frontend::TypeInfo) -> SqlString {
+    pub fn new_empty(ty: &TypeInfo) -> SqlString {
         match ty {
-            crate::frontend::TypeInfo::VarLenSized(l) => SqlString {
+            TypeInfo::VarLenSized(l) => SqlString {
                 max_length: l.len(),
                 value: None,
             },

@@ -5,7 +5,7 @@ use super::{
     TokenLoginAck, TokenOrder, TokenReturnValue,
 };
 
-use unilake_common::error::{TdsWireError, TdsWireResult, TokenError};
+use unilake_common::error::{Result, WireError};
 
 #[derive(Debug)]
 pub struct ResponseMessage {
@@ -25,7 +25,7 @@ impl ResponseMessage {
         self.tokens.insert(index, token);
     }
 
-    fn inner_encode(token: &TdsToken, dst: &mut BytesMut) -> TdsWireResult<()> {
+    fn inner_encode(token: &TdsToken, dst: &mut BytesMut) -> Result<()> {
         match token {
             TdsToken::Done(token) => token.encode(dst),
             TdsToken::EnvChange(token) => token.encode(dst),
@@ -46,14 +46,14 @@ impl ResponseMessage {
 }
 
 impl TdsMessageCodec for ResponseMessage {
-    fn decode(src: &mut BytesMut) -> TdsWireResult<super::TdsMessage>
+    fn decode(src: &mut BytesMut) -> Result<super::TdsMessage>
     where
         Self: Sized,
     {
         let mut ret = ResponseMessage::new();
         while src.has_remaining() {
             let token_type = TdsTokenType::try_from(src.get_u8())
-                .map_err(|_| TdsWireError::Protocol("Unknown token type".to_string()))?;
+                .map_err(|_| WireError::Protocol("Unknown token type".to_string()))?;
 
             let token = match token_type {
                 TdsTokenType::ColMetaData => TokenColMetaData::decode(src)?,
@@ -70,7 +70,7 @@ impl TdsMessageCodec for ResponseMessage {
         Ok(super::TdsMessage::Response(ret))
     }
 
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         self.tokens
             .iter()
             .try_for_each(|token| Self::inner_encode(token, dst))?;
@@ -80,11 +80,9 @@ impl TdsMessageCodec for ResponseMessage {
 
 #[cfg(test)]
 mod tests {
-    use tokio_util::bytes::BytesMut;
-
-    use crate::frontend::{PacketHeader, TdsMessage};
-
     use super::*;
+    use crate::frontend::tds::codec::{PacketHeader, TdsMessage};
+    use tokio_util::bytes::BytesMut;
 
     const RAW_BYTES: &[u8] = &[
         0x04, 0x01, 0x01, 0x61, 0x00, 0x00, 0x01, 0x00, 0xE3, 0x1B, 0x00, 0x01, 0x06, 0x6D, 0x00,
@@ -114,12 +112,12 @@ mod tests {
     ];
 
     #[test]
-    fn raw_decode_test() -> TdsWireResult<()> {
+    fn raw_decode_test() -> Result<()> {
         raw_decode().unwrap();
         Ok(())
     }
 
-    fn raw_decode() -> TdsWireResult<ResponseMessage> {
+    fn raw_decode() -> Result<ResponseMessage> {
         let mut bytes = BytesMut::from(&RAW_BYTES[..]);
         let header = PacketHeader::decode(&mut bytes).unwrap();
         let message = ResponseMessage::decode(&mut bytes).unwrap();
@@ -133,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn raw_encode_roundtrip() -> TdsWireResult<()> {
+    fn raw_encode_roundtrip() -> Result<()> {
         let sut = raw_decode().unwrap();
         let mut bytes = BytesMut::new();
         sut.encode(&mut bytes).unwrap();

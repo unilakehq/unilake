@@ -1,6 +1,8 @@
-use crate::frontend::{utils::ReadAndAdvance, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::utils::ReadAndAdvance;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 #[derive(PartialEq, Debug)]
 pub enum TokenFedAuthOption {
@@ -23,7 +25,7 @@ pub struct TokenFedAuth {
 }
 
 impl TdsTokenCodec for TokenFedAuth {
-    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::FedAuthInfo as u8);
         let options_length = self.options.len() * 9;
         let mut token_length = 4 + options_length;
@@ -63,7 +65,7 @@ impl TdsTokenCodec for TokenFedAuth {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let mut options = Vec::new();
         let _token_length = src.get_u32_le();
         let count_of_ids = src.get_u32_le();
@@ -80,13 +82,9 @@ impl TdsTokenCodec for TokenFedAuth {
         for (ty, info_data_length, _) in items {
             let (_, buff) = src.read_and_advance(info_data_length as usize);
 
-            let content = String::from_utf8(buff.to_vec())
-                .map_err(|_| {
-                    unilake_common::error::Error::Protocol(
-                        "Failed to convert UTF-8 to String".to_string(),
-                    )
-                })
-                .unwrap();
+            let content = String::from_utf8(buff.to_vec()).map_err(|_| {
+                ErrorCode::TdsUtfConversionFailed("Failed to convert UTF-8 to String")
+            })?;
 
             match ty {
                 // STS URL as Token Endpoint
@@ -110,14 +108,14 @@ impl TdsTokenCodec for TokenFedAuth {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{
+    use crate::frontend::tds::codec::{
         TdsToken, TdsTokenCodec, TdsTokenType, TokenFedAuth, TokenFedAuthOption,
     };
     use tokio_util::bytes::{Buf, BytesMut};
-    use unilake_common::error::TdsWireResult;
+    use unilake_common::error::Result;
 
     #[test]
-    fn encode_decode_token_fed_auth() -> TdsWireResult<()> {
+    fn encode_decode_token_fed_auth() -> Result<()> {
         let input = TokenFedAuth {
             options: vec![
                 TokenFedAuthOption::StsUrl(String::from("https://example.com")),

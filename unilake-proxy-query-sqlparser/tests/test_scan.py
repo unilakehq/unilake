@@ -529,6 +529,27 @@ class TestScan(unittest.TestCase):
         self.assertSetEqual(result.objects[0].entities, expected_entities)
         self.assertEqual(result.target_entity, '"catalog"."database"."k2_order"')
 
+    def test_create_resource_group(self):
+        sql = """
+            CREATE RESOURCE GROUP rg1
+                TO 
+                    (user='rg1_user1', role='rg1_role1', query_type in ('select'), source_ip='192.168.x.x/24'),
+                    (user='rg1_user2', query_type in ('select'), source_ip='192.168.x.x/24'),
+                    (user='rg1_user3', source_ip='192.168.x.x/24'),
+                    (user='rg1_user4'),
+                    (db='db1')
+                WITH ('cpu_weight' = '10',
+                      'mem_limit' = '20%',
+                      'big_query_cpu_second_limit' = '100',
+                      'big_query_scan_rows_limit' = '100000',
+                      'big_query_mem_limit' = '1073741824'
+                );
+        """
+        result = scan(sql, "unilake", "catalog", "database")
+        self.assertIsNone(result.error)
+        self.assertIs(result.type, ScanOutputType.CREATE)
+        self.assertEqual(result.kind, "RESOURCE GROUP")
+
     def test_scan_truncate_table(self):
         sql = "TRUNCATE TABLE `catalog`.`database`.`employees`"
         result = scan(sql, "starrocks", "catalog", "database")
@@ -541,7 +562,7 @@ class TestScan(unittest.TestCase):
         self.assertEqual(len(result.objects[0].entities), 1)
         self.assertEqual(entity.catalog, "catalog")
         self.assertEqual(entity.db, "database")
-        self.assertEqual(entity.name, "employees")
+        self.assertEqual(entity.kind, "employees")
         self.assertEqual(entity.alias, "employees")
         self.assertEqual(result.target_entity, '"catalog"."database"."employees"')
 
@@ -557,7 +578,7 @@ class TestScan(unittest.TestCase):
         self.assertEqual(len(result.objects[0].entities), 2)
         self.assertEqual(entity.catalog, "catalog")
         self.assertEqual(entity.db, "test1")
-        self.assertEqual(entity.name, "table2")
+        self.assertEqual(entity.kind, "table2")
         self.assertEqual(entity.alias, "")
         self.assertEqual(result.target_entity, '"catalog"."test1"."table2"')
 
@@ -576,7 +597,7 @@ class TestScan(unittest.TestCase):
         self.assertEqual(len(result.objects[0].entities), 2)
         self.assertEqual(entity.catalog, "catalog")
         self.assertEqual(entity.db, "database")
-        self.assertEqual(entity.name, "table1")
+        self.assertEqual(entity.kind, "table1")
         self.assertEqual(entity.alias, "")
         self.assertEqual(result.target_entity, '"catalog"."database"."table1"')
 

@@ -1,7 +1,7 @@
 // todo(mhramburg): move this file one level up, should not belong here
 use std::{collections::HashMap, env, str::FromStr};
 
-use super::{codec::*, EncryptionLevel};
+use super::codec::*;
 
 const DEFAULT_PACKET_SIZE: u16 = 4096;
 
@@ -150,6 +150,23 @@ impl ServerContext {
                 _ => EncryptionLevel::Required,
             }
         }
+    }
+}
+
+uint_enum! {
+    /// The configured encryption level specifying if encryption is required
+    #[repr(u8)]
+    pub enum EncryptionLevel {
+        /// Only use encryption for the login procedure
+        Off = 0,
+        /// Encrypt everything if possible
+        On = 1,
+        /// Do not encrypt anything
+        NotSupported = 2,
+        /// Encrypt everything and fail if not possible
+        Required = 3,
+        /// None encryption type
+        None = 10,
     }
 }
 

@@ -1,23 +1,24 @@
+// todo: determine if this file stays or not
 // todo(mrhamburg): proper query handling, keep track of status and queue status as well, get id from backend and keep track there as well
 // we can get the query information from:
 //  - https://docs.starrocks.io/docs/administration/management/resource_management/query_queues/#enable-global-query-queues
 //  -
 
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::WireResult;
 
 // todo: this should have its own connection and check on other connections and queries
 struct BackendHandler {}
 
 impl BackendHandler {
-    pub fn get_query_status(&self, connection_id: u64) -> TdsWireResult<QueryStatus> {
+    pub fn get_query_status(&self, connection_id: u64) -> WireResult<QueryStatus> {
         todo!()
     }
 
-    pub fn get_connection_status(&self, connection_id: u64) -> TdsWireResult<ProcessInfo> {
+    pub fn get_connection_status(&self, connection_id: u64) -> WireResult<ProcessInfo> {
         todo!()
     }
 
-    pub fn get_backend_query_id(&self, connection_id: u64) -> TdsWireResult<String> {
+    pub fn get_backend_query_id(&self, connection_id: u64) -> WireResult<String> {
         todo!()
     }
 }

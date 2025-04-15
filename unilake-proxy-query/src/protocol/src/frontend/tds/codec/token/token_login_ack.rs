@@ -1,10 +1,11 @@
-use crate::frontend::tds::codec::{decode, encode};
+use crate::frontend::tds::codec::{
+    decode, encode, FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType,
+};
 use crate::frontend::tds::server_context::ServerContext;
-use crate::frontend::{FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType};
-use std::convert::TryFrom;
 use std::sync::Arc;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 /// LoginAck Token [2.2.7.14]
 /// Used to send a response to a login request (LOGIN7) to the client.
@@ -34,7 +35,7 @@ impl TokenLoginAck {
 }
 
 impl TdsTokenCodec for TokenLoginAck {
-    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::LoginAck as u8);
         let mut buff = BytesMut::new();
 
@@ -55,14 +56,13 @@ impl TdsTokenCodec for TokenLoginAck {
 
         Ok(())
     }
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let _length = src.get_u16_le();
 
         let interface = src.get_u8();
 
-        let tds_version = FeatureLevel::try_from(src.get_u32()).map_err(|_| {
-            unilake_common::error::Error::Protocol("Login ACK: Invalid TDS version".to_string())
-        })?;
+        let tds_version = FeatureLevel::try_from(src.get_u32())
+            .map_err(|_| ErrorCode::TdsInvalidPacket("Login ACK: Invalid TDS version"))?;
 
         let prog_name = decode::read_b_varchar(src)?;
         let major_version = src.get_u8();
@@ -80,9 +80,11 @@ impl TdsTokenCodec for TokenLoginAck {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType, TokenLoginAck};
+    use crate::frontend::tds::codec::{
+        FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType, TokenLoginAck,
+    };
     use tokio_util::bytes::{Buf, BytesMut};
-    use unilake_common::error::TdsWireResult;
+    use unilake_common::error::Result;
 
     const RAW_BYTES: &[u8] = &[
         0xAD, 0x36, 0x00, 0x01, 0x74, 0x00, 0x00, 0x04, 0x16, 0x4d, 0x00, 0x69, 0x00, 0x63, 0x00,
@@ -92,7 +94,7 @@ mod tests {
     ];
 
     #[test]
-    fn decode_encode_raw() -> TdsWireResult<()> {
+    fn decode_encode_raw() -> Result<()> {
         let mut bytes = BytesMut::from(&RAW_BYTES[1..]);
         let messsage = TokenLoginAck::decode(&mut bytes)?;
 
@@ -106,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_token_login_ack() -> TdsWireResult<()> {
+    fn encode_decode_token_login_ack() -> Result<()> {
         let input = TokenLoginAck {
             interface: 12,
             prog_name: "test".to_string(),

@@ -13,11 +13,10 @@ use casbin::{Cache, CachedEnforcer, CoreApi, DefaultModel};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use ulid::Ulid;
-use unilake_common::error::{TdsWireError, TokenError};
+use unilake_common::error_code::ErrorCode;
 use unilake_common::model::{
     AccessPolicyModel, EntityAttributeModel, EntityModel, GroupModel, SessionModel, UserModel,
 };
-use unilake_common::settings::settings_server_name;
 use unilake_sql::{
     run_scan_operation, run_secure_operation, run_transpile_operation, Catalog, ParserError,
     PolicyAccessRequestUrl, ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject,
@@ -49,10 +48,6 @@ pub enum HandleResult {
 
 #[derive(Debug)]
 pub enum SecurityHandlerResult {
-    /// In case we cannot find an entity from the attribute
-    EntityNotFoundFromAttribute(String),
-    /// Happens when a requested entity <catalog>.<schema>.<entity> does not exist
-    EntityNotFound(String),
     /// Happens when a requested entity <catalog>.<schema>.<entity> exists but is not allowed to be accessed
     EntityNotAllowed(String),
     /// Happens when the user groups cannot be found
@@ -67,83 +62,92 @@ pub enum SecurityHandlerResult {
     IterationLimitReached(usize),
 }
 
+#[derive(Debug)]
 pub struct SecurityError {
-    message: String,
-    audit_only: bool,
+    pub message: String,
+    pub audit_only: bool,
 }
 
+#[derive(Debug)]
 pub enum SecurityHandlerError {
-    /// Error code, TdsWireError
-    WireError(u32, TdsWireError),
-    /// Error code, Query Id, ParserError
-    QueryError(u32, String, ParserError),
-    /// Error code, Query Id, SecurityError
-    SecurityError(u32, String, SecurityError),
+    Error(ErrorCode),
+    ParserError(ErrorCode, ParserError),
+    SecurityError(ErrorCode, SecurityError),
 }
 
-impl From<SecurityHandlerError> for TokenError {
-    fn from(value: SecurityHandlerError) -> Self {
-        match value {
-            SecurityHandlerError::WireError(code, e) => TokenError {
-                code,
-                line: 0,
-                message: e.to_string(),
-                class: 0,
-                procedure: "".to_string(),
-                server: settings_server_name(),
-                state: 0,
-            },
-            SecurityHandlerError::QueryError(code, id, e) => {
-                if let Some(err) = e.errors.first() {
-                    return TokenError {
-                        code,
-                        message: format!(
-                            "{}. Line: {}, Col: {}. {}. Query Id: {}",
-                            err.start_context, err.line, err.col, err.description, id
-                        ),
-                        class: 0,
-                        line: err.line,
-                        procedure: "".to_string(),
-                        server: settings_server_name(),
-                        state: 1,
-                    };
-                }
-                TokenError {
-                    code,
-                    line: 0,
-                    message: format!("Parser error: {}. Query Id: {}", e.message, id),
-                    class: 0,
-                    procedure: "".to_string(),
-                    server: settings_server_name(),
-                    state: 0,
-                }
-            }
-            SecurityHandlerError::SecurityError(code, id, s) => match s.audit_only {
-                true => TokenError {
-                    code,
-                    line: 0,
-                    message: format!(
-                        "Unable to process query, check logs for more details. Query Id: {}",
-                        id
-                    ),
-                    class: 0,
-                    procedure: "".to_string(),
-                    server: settings_server_name(),
-                    state: 0,
-                },
-                false => TokenError {
-                    code,
-                    line: 0,
-                    message: format!("{}. Query Id: {}", s.message, id),
-                    class: 0,
-                    procedure: "".to_string(),
-                    server: settings_server_name(),
-                    state: 0,
-                },
-            },
+impl SecurityHandlerError {
+    pub fn get_code(&self) -> u16 {
+        match self {
+            SecurityHandlerError::ParserError(e, _)
+            | SecurityHandlerError::SecurityError(e, _)
+            | SecurityHandlerError::Error(e) => e.code(),
         }
     }
 }
+
+// impl From<SecurityHandlerError> for TokenError {
+//     fn from(value: SecurityHandlerError) -> Self {
+//         match value {
+//             SecurityHandlerError::WireError(code, e) => TokenError {
+//                 code,
+//                 line: 0,
+//                 message: e.to_string(),
+//                 class: 0,
+//                 procedure: "".to_string(),
+//                 server: settings_server_name(),
+//                 state: 0,
+//             },
+//             SecurityHandlerError::QueryError(code, id, e) => {
+//                 if let Some(err) = e.errors.first() {
+//                     return TokenError {
+//                         code,
+//                         message: format!(
+//                             "{}. Line: {}, Col: {}. {}. Query Id: {}",
+//                             err.start_context, err.line, err.col, err.description, id
+//                         ),
+//                         class: 0,
+//                         line: err.line,
+//                         procedure: "".to_string(),
+//                         server: settings_server_name(),
+//                         state: 1,
+//                     };
+//                 }
+//                 TokenError {
+//                     code,
+//                     line: 0,
+//                     message: format!("Parser error: {}. Query Id: {}", e.message, id),
+//                     class: 0,
+//                     procedure: "".to_string(),
+//                     server: settings_server_name(),
+//                     state: 0,
+//                 }
+//             }
+//             SecurityHandlerError::SecurityError(code, id, s) => match s.audit_only {
+//                 true => TokenError {
+//                     code,
+//                     line: 0,
+//                     message: format!(
+//                         "Unable to process query, check logs for more details. Query Id: {}",
+//                         id
+//                     ),
+//                     class: 0,
+//                     procedure: "".to_string(),
+//                     server: settings_server_name(),
+//                     state: 0,
+//                 },
+//                 false => TokenError {
+//                     code,
+//                     line: 0,
+//                     message: format!("{}. Query Id: {}", s.message, id),
+//                     class: 0,
+//                     procedure: "".to_string(),
+//                     server: settings_server_name(),
+//                     state: 0,
+//                 },
+//             },
+//         }
+//     }
+// }
 
 pub struct SecurityHandler {
     query_id: Ulid,
@@ -211,9 +215,9 @@ impl SecurityHandler {
     ) -> Result<ScanOutput, SecurityHandlerError> {
         Ok(
             run_scan_operation(query, dialect, catalog, database).map_err(|e| {
-                SecurityHandlerError::WireError(90102, TdsWireError::Input(e.to_string()))
-            })?,
-        )
+                SecurityHandlerError::Error(ErrorCode::FailedScanOperation(e.to_string()))
+            }),
+        )?
     }
 
     /// Handles a query by applying all necessary transformations and rules to the query.
@@ -249,9 +253,8 @@ impl SecurityHandler {
         let scan_output = self.scan(query, dialect, catalog, database)?;
         if let Some(error) = scan_output.error {
             self.close_handler();
-            return Err(SecurityHandlerError::QueryError(
-                90_200,
-                self.query_id.to_string(),
+            return Err(SecurityHandlerError::ParserError(
+                ErrorCode::QueryError(error.message.clone()),
                 error,
             ));
         }
@@ -261,6 +264,7 @@ impl SecurityHandler {
             // todo: return information on user, entity and action combination not being allowed
             // make use of entitynotallowed?
             // Something like: Access to entity {} with action {} not allowed. Query ID: {}
+            //
         }
 
         let mut iterations = 2;
@@ -274,9 +278,9 @@ impl SecurityHandler {
                 );
 
                 self.close_handler();
-                return Err(
-                    self.handle_error(SecurityHandlerResult::IterationLimitReached(iterations))
-                );
+                return Err(SecurityHandlerError::Error(
+                    ErrorCode::IterationLimitReached(iterations.to_string()),
+                ));
             }
 
             match QueryPolicyDecision::new(
@@ -294,8 +298,8 @@ impl SecurityHandler {
                     transpiler_input = Some(ti);
                     break;
                 }
-                Err(e) => match e {
-                    SecurityHandlerResult::InvalidCacheError => {
+                Err(e) => match e.get_code() {
+                    ErrorCode::INVALID_CACHE_ERROR => {
                         continue;
                     }
                     _ => {
@@ -303,9 +307,8 @@ impl SecurityHandler {
                             "Error occurred while processing query policy decision: {:?}",
                             e
                         );
-
                         self.close_handler();
-                        return Err(self.handle_error(e));
+                        return Err(e);
                     }
                 },
             }
@@ -338,45 +341,6 @@ impl SecurityHandler {
         self.output_query = Some(Arc::from("".to_string()));
     }
 
-    /// Properly handle the security handler error
-    fn handle_error(&mut self, error: SecurityHandlerResult) -> SecurityHandlerError {
-        let (error_code, error) = match error {
-            SecurityHandlerResult::EntityNotFoundFromAttribute(e) => (90300, SecurityError {
-                message: format!("Could not find entity from attribute: {}.", e),
-                audit_only: false,
-            }),
-            SecurityHandlerResult::EntityNotFound(e) => (90301, SecurityError {
-                message: format!("Could not find requested entity: {}", e),
-                audit_only: false,
-            }),
-            SecurityHandlerResult::EntityNotAllowed(e) => (90302, SecurityError {
-                message: format!("Access to entity {} not allowed", e),
-                audit_only: false,
-            }),
-            SecurityHandlerResult::UserGroupsNotFound(e) => (90303, SecurityError {
-                message: format!("Could not find user groups for user: {}", e),
-                audit_only: true,
-            }),
-            SecurityHandlerResult::UserNotFound(e) => (90304, SecurityError {
-                message: format!("Could not find user: {}", e),
-                audit_only: false,
-            }),
-            SecurityHandlerResult::PolicyError(e) => (90305, SecurityError {
-                message: format!("Policy error: {}", e),
-                audit_only: true,
-            }),
-            SecurityHandlerResult::InvalidCacheError => (90306, SecurityError {
-                message: "Invalid cache error, corrupted cache?".to_string(),
-                audit_only: true,
-            }),
-            SecurityHandlerResult::IterationLimitReached(e) => (90307, SecurityError {
-                message: format!("Iteration limit of {} reached. Could not processes query correctly, please check logs.", e),
-                audit_only: true,
-            }),
-        };
-        SecurityHandlerError::SecurityError(error_code, self.query_id.to_string(), error)
-    }
-
     /// Executes the transpile operation for transpiling an input query to an allowed executable SQL query.
     fn transpile_query(
         &self,
@@ -384,12 +348,11 @@ impl SecurityHandler {
         secure_output: bool,
     ) -> Result<String, SecurityHandlerError> {
         let transpiler_output = run_transpile_operation(scanned, secure_output).map_err(|e| {
-            SecurityHandlerError::WireError(90101, TdsWireError::Input(e.to_string()))
+            SecurityHandlerError::Error(ErrorCode::FailedTranspileOperation(e.to_string()))
         })?;
         if let Some(error) = transpiler_output.error {
-            return Err(SecurityHandlerError::QueryError(
-                90201,
-                self.query_id.to_string(),
+            return Err(SecurityHandlerError::ParserError(
+                ErrorCode::QueryError(error.message.clone()),
                 error,
             ));
         }
@@ -418,7 +381,7 @@ impl SecurityHandler {
 
         self.input_query_secured = Some(Arc::from(
             run_secure_operation(self.input_query.as_ref().unwrap().as_ref()).map_err(|e| {
-                SecurityHandlerError::WireError(90100, TdsWireError::Protocol(e.to_string()))
+                SecurityHandlerError::Error(ErrorCode::FailedSecureOperation(e.to_string()))
             })?,
         ));
         Ok(self.input_query_secured.as_ref().unwrap())
@@ -446,6 +409,7 @@ impl SecurityHandler {
             None
         };
 
+        // todo: implement this, it will proxy between gravitino api and our own security handler for permissions on actions (update|delete|create, etc...)
         // check if user has access to the entity involved with the given intent (gravitino api, select|update|delete|create|modify)
         // we handle select, create|update|modify|delete intents are done by gravitino api
         let result = self
@@ -531,7 +495,7 @@ impl<'a> QueryPolicyDecision<'a> {
     pub async fn process(
         &mut self,
         scan_output: &ScanOutput,
-    ) -> Result<TranspilerInput, SecurityHandlerResult> {
+    ) -> Result<TranspilerInput, SecurityHandlerError> {
         let abac_model = if let Some(abac_model) = self.abac_model.take() {
             // prefer to get it from the supplied value (quicker)
             abac_model
@@ -632,7 +596,9 @@ impl<'a> QueryPolicyDecision<'a> {
                             entity = entity_attribute_name,
                             "Entity not found in the provided entity model"
                         );
-                        return Err(SecurityHandlerResult::EntityNotFound(entity_attribute_name));
+                        return Err(SecurityHandlerError::Error(ErrorCode::EntityNotFound(
+                            entity_attribute_name,
+                        )));
                     }
                     Some(om) => om,
                 };
@@ -667,10 +633,9 @@ impl<'a> QueryPolicyDecision<'a> {
                             }
                             Err(err) => {
                                 tracing::error!("Failed to enforce policy: {}", err);
-                                return Err(SecurityHandlerResult::PolicyError(
-                                    "Failed to enforce policy, policy file is corrupted or invalid"
-                                        .to_string(),
-                                ));
+                                return Err(SecurityHandlerError::Error(ErrorCode::PolicyError(
+                                    "Failed to enforce policy, policy file is corrupted or invalid",
+                                )));
                             }
                         }
                     }
@@ -680,12 +645,14 @@ impl<'a> QueryPolicyDecision<'a> {
             // this will process the results and gather their associated policies
             let policies_found = match pm
                 .process_hits()
-                .map_err(|e| SecurityHandlerResult::PolicyError(e))?
+                .map_err(|e| SecurityHandlerError::Error(ErrorCode::PolicyError(e)))?
             {
                 PolicyCollectResult::Found(f) => f,
                 PolicyCollectResult::CacheInvalid => {
                     self.policy_hit_cache.clear();
-                    return Err(SecurityHandlerResult::InvalidCacheError);
+                    return Err(SecurityHandlerError::Error(ErrorCode::InvalidCacheError(
+                        "",
+                    )));
                 }
                 PolicyCollectResult::NotFound => {
                     vec![]
@@ -762,9 +729,9 @@ impl<'a> QueryPolicyDecision<'a> {
         let entities = entities.into_iter().map(|(_, v)| v).collect();
         let query = match scan_output.query.as_ref() {
             None => {
-                return Err(SecurityHandlerResult::PolicyError(
-                    "Query not found".to_owned(),
-                ))
+                return Err(SecurityHandlerError::Error(ErrorCode::PolicyError(
+                    "Query not found",
+                )));
             }
             Some(query) => query,
         }
@@ -802,7 +769,7 @@ impl<'a> QueryPolicyDecision<'a> {
         &self,
         user_model: &UserModel,
         policies: &mut BTreeMap<String, AccessPolicyModel>,
-    ) -> Result<(), SecurityHandlerResult> {
+    ) -> Result<(), SecurityHandlerError> {
         for policy_id in user_model.access_policy_ids.iter() {
             let found = self
                 .cached_backend
@@ -810,10 +777,10 @@ impl<'a> QueryPolicyDecision<'a> {
                 .get(policy_id)
                 .await
                 .ok_or_else(|| {
-                    SecurityHandlerResult::PolicyError(format!(
+                    SecurityHandlerError::Error(ErrorCode::PolicyNotFound(format!(
                         "Could not find policy: {}",
                         policy_id
-                    ))
+                    )))
                 })?;
             policies.insert(found.normalized_name.clone(), found);
         }
@@ -823,7 +790,7 @@ impl<'a> QueryPolicyDecision<'a> {
 
     async fn get_user_and_group_models(
         &self,
-    ) -> Result<(UserModel, GroupModel, Option<UserModel>, Option<GroupModel>), SecurityHandlerResult>
+    ) -> Result<(UserModel, GroupModel, Option<UserModel>, Option<GroupModel>), SecurityHandlerError>
     {
         let user_model = self.get_user_model(&self.session_model.user_id).await?;
         let group_model = self.get_group_model(&self.session_model.user_id).await?;
@@ -846,22 +813,25 @@ impl<'a> QueryPolicyDecision<'a> {
         ))
     }
 
-    async fn get_user_model(&self, user_id: &String) -> Result<UserModel, SecurityHandlerResult> {
+    async fn get_user_model(&self, user_id: &String) -> Result<UserModel, SecurityHandlerError> {
         self.cached_backend
             .user_model
             .get(user_id)
             .await
             .ok_or_else(|| {
-                SecurityHandlerResult::UserNotFound(self.session_model.user_id.to_owned())
+                SecurityHandlerError::Error(ErrorCode::UserNotFound(format!(
+                    "Could not find user: {}",
+                    self.session_model.user_id
+                )))
             })
     }
 
-    async fn get_group_model(&self, user_id: &String) -> Result<GroupModel, SecurityHandlerResult> {
+    async fn get_group_model(&self, user_id: &String) -> Result<GroupModel, SecurityHandlerError> {
         self.cached_backend
             .group_model
             .get(user_id)
             .await
-            .ok_or_else(|| SecurityHandlerResult::UserGroupsNotFound(user_id.to_owned()))
+            .ok_or_else(|| SecurityHandlerError::Error(ErrorCode::UserNotFound(user_id.to_owned())))
     }
 
     /// Checks if a stricter policy is preferred based on the policy rules found
@@ -870,7 +840,7 @@ impl<'a> QueryPolicyDecision<'a> {
         &self,
         policies: &[PolicyFound],
         is_impersonation: bool,
-    ) -> Result<bool, SecurityHandlerResult> {
+    ) -> Result<bool, SecurityHandlerError> {
         if is_impersonation {
             return Ok(true); // always prioritize impersonate rules over regular rules
         }
@@ -879,9 +849,8 @@ impl<'a> QueryPolicyDecision<'a> {
             let found = self.cached_backend.access_policy_model.get(policy_id).await;
             match found {
                 None => {
-                    return Err(SecurityHandlerResult::PolicyError(format!(
-                        "Could not find policy with id: {}",
-                        policy_id
+                    return Err(SecurityHandlerError::Error(ErrorCode::PolicyError(
+                        format!("Could not find policy with id: {}", policy_id),
                     )))
                 }
                 Some(p) => {
@@ -917,7 +886,7 @@ impl<'a> QueryPolicyDecision<'a> {
     async fn get_deny_access_url(
         &self,
         cause: &Vec<TranspilerDenyCause>,
-    ) -> Result<Vec<PolicyAccessRequestUrl>, SecurityHandlerResult> {
+    ) -> Result<Vec<PolicyAccessRequestUrl>, SecurityHandlerError> {
         let policy_ids: HashSet<_> = cause
             .iter()
             .map(|c| &c.policy_id)
@@ -934,10 +903,10 @@ impl<'a> QueryPolicyDecision<'a> {
                 )
                 .await
                 .map_err(|e| {
-                    SecurityHandlerResult::PolicyError(format!(
+                    SecurityHandlerError::Error(ErrorCode::PolicyError(format!(
                         "Could not get policy access request due to error: {}",
                         e
-                    ))
+                    )))
                 })?;
 
             requests.push(PolicyAccessRequestUrl {
@@ -953,7 +922,7 @@ impl<'a> QueryPolicyDecision<'a> {
     async fn get_entity_models(
         &self,
         output: &Vec<ScanOutputObject>,
-    ) -> Result<HashMap<String, EntityModel>, SecurityHandlerResult> {
+    ) -> Result<HashMap<String, EntityModel>, SecurityHandlerError> {
         let mut entity_models = HashMap::new();
         for entity in output.iter().flat_map(|obj| &obj.entities) {
             match (
@@ -970,9 +939,9 @@ impl<'a> QueryPolicyDecision<'a> {
                     {
                         entity_models.insert(entity.get_full_name(), found);
                     } else {
-                        return Err(SecurityHandlerResult::EntityNotFound(
-                            entity.get_full_name().to_owned(),
-                        ));
+                        return Err(SecurityHandlerError::Error(ErrorCode::EntityNotFound(
+                            entity.get_full_name(),
+                        )));
                     }
                 }
                 _ => continue,
@@ -995,6 +964,8 @@ impl<'a> QueryPolicyDecision<'a> {
         let mut items_found = HashMap::new();
         let entities: HashMap<_, _> = entities.iter().map(|v| (v.alias.as_str(), v)).collect();
 
+        // todo: https://stackoverflow.com/questions/26368288/how-do-i-stop-iteration-and-return-an-error-when-iteratormap-returns-a-result
+        // todo: make sure we have an iter over results, so we can return an error
         entities
             .iter()
             // check for any filtering attributes (we have an entity but no attribute)
@@ -1170,7 +1141,9 @@ impl<'a> QueryPolicyDecision<'a> {
 mod tests {
     use crate::adapter::cached_adapter::{CachedAdapter, CachedPolicyRules};
     use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
-    use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerResult};
+    use crate::handler::{
+        CacheContainer, QueryPolicyDecision, SecurityHandlerError,
+    };
     use crate::repository::RepoBackend;
     use crate::{HitRule, ABAC_MODEL};
     use async_trait::async_trait;
@@ -1180,11 +1153,22 @@ mod tests {
     use std::collections::{HashMap, HashSet};
     use std::hash::Hash;
     use std::sync::Arc;
+    use unilake_common::error_code::ErrorCode;
     use unilake_common::model::{
         AccessPolicyModel, AppInfoModel, DataAccessRequestResponse, EntityAttributeModel,
         EntityModel, GroupInstance, GroupModel, IpInfoModel, PolicyRule, SessionModel, UserModel,
     };
     use unilake_sql::{ScanAttribute, ScanEntity, ScanOutput, ScanOutputObject, TranspilerInput};
+
+    impl SecurityHandlerError {
+        pub fn get_message(&self) -> String {
+            match self {
+                SecurityHandlerError::ParserError(e, _)
+                | SecurityHandlerError::SecurityError(e, _)
+                | SecurityHandlerError::Error(e) => e.message(),
+            }
+        }
+    }
 
     async fn run_default_test(
         rules: Vec<PolicyRule>,
@@ -1194,7 +1178,7 @@ mod tests {
         entity_model_items: Option<HashMap<String, EntityModel>>,
         policy_model_items: Option<HashMap<String, AccessPolicyModel>>,
         session_model_input: Option<SessionModel>,
-    ) -> Result<TranspilerInput, SecurityHandlerResult> {
+    ) -> Result<TranspilerInput, SecurityHandlerError> {
         // get all defaults
         let (abac_model, default_scan_output, cache_container) = get_defaults(
             user_model_items,
@@ -1659,9 +1643,12 @@ mod tests {
         // check results
         assert!(result.is_err());
         let result = result.err().unwrap();
-        match result {
-            SecurityHandlerResult::EntityNotFound(entity) => {
-                assert_eq!(entity, "catalog.schema.orders");
+        match result.get_code() {
+            ErrorCode::ENTITY_NOT_FOUND => {
+                assert_eq!(
+                    result.get_message(),
+                    "Entity not found: catalog.schema.orders"
+                );
             }
             _ => panic!("Expected EntityNotFound"),
         }
@@ -1727,9 +1714,12 @@ mod tests {
         // check results
         assert!(result.is_err());
         let result = result.err().unwrap();
-        match result {
-            SecurityHandlerResult::EntityNotFound(entity) => {
-                assert_eq!(entity, "catalog.schema.orders.id");
+        match result.get_code() {
+            ErrorCode::ENTITY_NOT_FOUND => {
+                assert_eq!(
+                    result.get_message(),
+                    "Entity not found: catalog.schema.orders.unknown"
+                );
             }
             _ => panic!("Expected EntityNotFound"),
         }

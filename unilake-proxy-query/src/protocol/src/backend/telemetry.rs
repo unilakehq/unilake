@@ -1,6 +1,7 @@
-use crate::frontend::prot::{ServerInstance, ServerInstanceMessage};
+use crate::frontend::tds::codec::TokenInfo;
 use crate::frontend::tds::server_context::ServerContext;
-use crate::frontend::TokenInfo;
+use crate::server::ServerInstance;
+use crate::session::ServerInstanceMessage;
 use serde::Serialize;
 use std::sync::Arc;
 

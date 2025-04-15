@@ -1,7 +1,8 @@
 use crate::backend::starrocks::StarRocksBackend;
-use crate::frontend::prot::{ServerInstance, TdsSessionState};
+use crate::frontend::tds::codec::LoginMessage;
+use crate::frontend::tds::prot::TdsSessionState;
 use crate::frontend::tds::server_context::ServerContext;
-use crate::frontend::LoginMessage;
+use crate::server::ServerInstance;
 use crate::session::{
     SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE,
     SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SECURITY_IMPERSONATE,
@@ -16,7 +17,8 @@ use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
 use ulid::Ulid;
-use unilake_common::error::{TdsWireError, TdsWireResult};
+use unilake_common::error::{Result, WireError};
+use unilake_common::error_code::ErrorCode;
 use unilake_common::model::{AppInfoModel, IpInfoModel, SessionModel};
 use unilake_security::caching::layered_cache::MultiLayeredCache;
 use unilake_security::HitRule;
@@ -110,12 +112,12 @@ impl StarRocksSession {
         self.backend = Some(backend);
     }
 
-    pub async fn get_conn(&self) -> TdsWireResult<MutexGuard<Conn>> {
+    pub async fn get_conn(&self) -> Result<MutexGuard<Conn>> {
         if let Some(conn) = &self.conn {
             return Ok(conn.lock().await);
         }
-        Err(TdsWireError::Protocol(
-            "No connection available".to_string(),
+        Err(ErrorCode::StarRocksConnectionPoolError(
+            "No connection available",
         ))
     }
 
@@ -174,12 +176,12 @@ impl StarRocksSession {
         ip_info: Arc<Box<MultiLayeredCache<String, IpInfoModel>>>,
         app_info: Arc<Box<MultiLayeredCache<String, AppInfoModel>>>,
         policy_id: u64,
-    ) -> TdsWireResult<SessionModel> {
+    ) -> Result<SessionModel> {
         // get connecting IP info, if available
         let ip_info = ip_info.get(&self.socket_addr.ip().to_string()).await;
         if ip_info.is_none() {
             tracing::error!("Failed to get IP info for {}", self.socket_addr);
-            return Err(TdsWireError::Protocol("Failed to get IP info".to_string()));
+            return Err(WireError::Protocol("Failed to get IP info".to_string()));
         }
         let ip_info = ip_info.unwrap();
 
@@ -187,7 +189,7 @@ impl StarRocksSession {
         let app_info = app_info.get(&self.get_app_name()).await;
         if app_info.is_none() {
             tracing::error!("Failed to get app info for {}", self.socket_addr);
-            return Err(TdsWireError::Protocol("Failed to get app info".to_string()));
+            return Err(WireError::Protocol("Failed to get app info".to_string()));
         }
         let app_info = app_info.unwrap();
 

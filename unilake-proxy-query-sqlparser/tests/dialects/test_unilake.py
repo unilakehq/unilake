@@ -7,6 +7,11 @@ from sqlparser.dialects import Unilake
 
 
 class TestDialectUnilake(unittest.TestCase):
+    def test_bench(self):
+        query = "CREATE RESOURCE GROUP rg1"
+        result = parse_one(query, dialect="unilake")
+        self.assertEqual(result.this, "TRUNCATE")
+
     def test_parse_transpile_stmt(self):
         query = "TRANSPILE SELECT COUNT(1) FROM my_table"
         result = parse_one(query, dialect="unilake")

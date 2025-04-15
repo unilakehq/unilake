@@ -1,7 +1,7 @@
 use tokio_util::bytes::{BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
-pub fn write_us_varchar(dest: &mut BytesMut, s: &String) -> TdsWireResult<()> {
+pub fn write_us_varchar(dest: &mut BytesMut, s: &String) -> Result<()> {
     let length = s.len();
 
     // US_VARCHAR stores the length as 2 bytes, so the length must not exceed 65535
@@ -16,7 +16,7 @@ pub fn write_us_varchar(dest: &mut BytesMut, s: &String) -> TdsWireResult<()> {
     Ok(())
 }
 
-pub fn write_b_varchar(dest: &mut BytesMut, s: &String) -> TdsWireResult<()> {
+pub fn write_b_varchar(dest: &mut BytesMut, s: &String) -> Result<()> {
     let length = s.len();
 
     // B_VARCHAR stores the length as a single byte, so the length must not exceed 255
@@ -35,7 +35,7 @@ pub fn write_b_varchar(dest: &mut BytesMut, s: &String) -> TdsWireResult<()> {
 mod tests {
     use crate::frontend::tds::codec::{decode, encode};
     use tokio_util::bytes::BytesMut;
-    use unilake_common::error::TdsWireResult;
+    use unilake_common::error::Result;
 
     const RAW_BYTES_B_VARCHAR: &[u8] = &[
         0x14, 0x4d, 0x00, 0x69, 0x00, 0x63, 0x00, 0x72, 0x00, 0x6f, 0x00, 0x73, 0x00, 0x6f, 0x00,
@@ -47,7 +47,7 @@ mod tests {
     fn encode_decode_roundtrip_us_varchar() {}
 
     #[test]
-    fn encode_decode_roundtrip_b_varchar() -> TdsWireResult<()> {
+    fn encode_decode_roundtrip_b_varchar() -> Result<()> {
         let mut buff = BytesMut::from(&RAW_BYTES_B_VARCHAR[..]);
         let decoded = decode::read_b_varchar(&mut buff)?;
         encode::write_b_varchar(&mut buff, &decoded)?;

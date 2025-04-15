@@ -38,6 +38,7 @@ class TestQuery(unittest.TestCase):
                 {
                     "scope": 0,
                     "attribute": '"b"."a"',
+                    "attribute_id": "some_guid",
                     "policy_id": "some_guid",
                     "rule_definition": rule_definition,
                 }

@@ -1,6 +1,6 @@
-use crate::frontend::{
-    sqlstring::SqlString, BaseMetaDataColumn, ColumnData, DataFlags, MetaDataColumn, TokenRow,
-    TypeInfo, UpdatableFlags,
+use crate::frontend::tds::codec::sqlstring::SqlString;
+use crate::frontend::tds::codec::{
+    BaseMetaDataColumn, ColumnData, DataFlags, MetaDataColumn, TokenRow, TypeInfo, UpdatableFlags,
 };
 use bigdecimal::BigDecimal;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};

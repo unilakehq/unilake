@@ -1,14 +1,10 @@
 extern crate core;
-
-pub(crate) use crate::frontend::tds::codec::*;
-
 #[macro_use]
 mod macros;
-
-pub mod codec;
-pub mod prot;
+pub mod flight;
+pub mod mysql;
 pub mod tds;
-pub mod utils;
+pub(crate) mod utils;
 
 pub(crate) fn get_driver_version() -> u64 {
     env!("CARGO_PKG_VERSION")

@@ -1,9 +1,9 @@
-use crate::frontend::TdsTokenCodec;
+use crate::frontend::tds::codec::TdsTokenCodec;
 use bigdecimal::BigDecimal;
 use tokio_util::bytes::{BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
-pub(crate) fn encode(dest: &mut BytesMut, data: &Option<BigDecimal>) -> TdsWireResult<()> {
+pub(crate) fn encode(dest: &mut BytesMut, data: &Option<BigDecimal>) -> Result<()> {
     if let Some(n) = data {
         n.encode(dest)?
     } else {

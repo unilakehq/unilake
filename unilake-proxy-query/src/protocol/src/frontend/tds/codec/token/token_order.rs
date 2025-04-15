@@ -1,6 +1,6 @@
-use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::TdsWireResult;
+use unilake_common::error::Result;
 
 /// Order token [2.2.7.17]
 /// Used to inform the client by which columns the data is ordered.
@@ -11,7 +11,7 @@ pub struct TokenOrder {
 }
 
 impl TdsTokenCodec for TokenOrder {
-    fn encode(&self, dst: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dst: &mut BytesMut) -> Result<()> {
         dst.put_u8(TdsTokenType::Order as u8);
         dst.put_u16_le((self.column_indexes.len() * 2) as u16);
         for item in self.column_indexes.iter() {
@@ -21,7 +21,7 @@ impl TdsTokenCodec for TokenOrder {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let len = src.get_u16_le() / 2;
         let mut column_indexes = Vec::with_capacity(len as usize);
         for _ in 0..len {
@@ -34,12 +34,12 @@ impl TdsTokenCodec for TokenOrder {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType, TokenOrder};
+    use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType, TokenOrder};
     use tokio_util::bytes::{Buf, BytesMut};
-    use unilake_common::error::TdsWireResult;
+    use unilake_common::error::Result;
 
     #[test]
-    fn encode_decode_token_order() -> TdsWireResult<()> {
+    fn encode_decode_token_order() -> Result<()> {
         let input = TokenOrder {
             column_indexes: vec![1, 2, 3, 4, 5, 6, 7],
         };

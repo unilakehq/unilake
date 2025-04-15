@@ -37,6 +37,7 @@ class Unilake(Dialect):
             TokenType.DEFAULT: lambda self: self._parse_default(),
             TokenType.USE: lambda self: self._parse_use(),
             TokenType.SET: lambda self: self._parse_set(),
+            TokenType.COMMAND: lambda self: self._parse_command(),
         }
 
         def _parse_default(self) -> exp.Command:
@@ -72,11 +73,14 @@ class Unilake(Dialect):
                 self.raise_error(error_message)
             return self._parse_string().this
 
+        def _parse_command(self) -> exp.Command:
+            return super()._parse_command()
+
         def _parse_set(self, unset: bool = False, tag: bool = False) -> exp.Set | exp.Command:
             found = super()._parse_set()
             found_var: exp.EQ = found.find(exp.EQ)
             if found_var is not None:
-                return exp.Set(variable=found_var.this.name, value=found_var.expression.name, internal="true")
+                return exp.Set(variable=found_var.this.kind, value=found_var.expression.kind, internal="true")
             return found
 
         def _parse_impersonate(self) -> exp.Command:
@@ -139,6 +143,8 @@ class Unilake(Dialect):
                 return self.expression(exp.Create, replace=replace)
             elif super()._match_text_seq("TAG"):
                 return exp.Create(this="TAG", name="", description="")
+            elif self._match_text_seq("RESOURCE", "GROUP"):
+                return exp.Create(this="RESOURCE_GROUP", kind="RESOURCE GROUP", expression=self._advance_and_consume())
 
             return super()._parse_create()
 
@@ -196,5 +202,7 @@ class Unilake(Dialect):
 
 # ANALYZE ACCESS SELECT * FROM TABLE -- returns information about any security policies applied to the given query, this can be used for the split between local execution and sql flight. Should not trigger activity update
 
-# TODO(mrhamburg): this also needs functions for handling files
-# TODO(mrhamburg): this also needs to check for statements we will not support?
+# TODO(mrhamburg): this also needs functions for handling files / things we need to intercept
+#   PIPE
+#   
+# TODO(mrhamburg): this also need to check for statements we will not support?

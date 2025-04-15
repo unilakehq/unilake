@@ -1,11 +1,59 @@
-use crate::frontend::tds::codec::{decode, encode};
-use crate::frontend::TdsTokenCodec;
-use crate::frontend::{TdsToken, TdsTokenType};
+use crate::frontend::tds::codec::{decode, encode, TdsToken, TdsTokenCodec, TdsTokenType};
+use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use unilake_common::error::{TdsWireResult, TokenError};
+use unilake_common::error::Result;
+
+/// Error token [2.2.7.10]
+/// Used to send an error message to the client.
+#[derive(Clone, Debug)]
+pub struct TokenError {
+    /// ErrorCode
+    pub code: u32,
+    /// ErrorState (describing code)
+    pub state: u8,
+    /// The class (severity) of the error
+    pub class: u8,
+    /// The error message
+    pub message: String,
+    pub server: String,
+    pub procedure: String,
+    pub line: u32,
+}
+
+impl fmt::Display for TokenError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "'{}' on server {} executing {} on line {} (code: {}, state: {}, class: {})",
+            self.message, self.server, self.procedure, self.line, self.code, self.state, self.class
+        )
+    }
+}
+
+impl TokenError {
+    pub fn new(
+        code: u32,
+        state: u8,
+        class: u8,
+        message: String,
+        server: String,
+        procedure: String,
+        line: u32,
+    ) -> TokenError {
+        TokenError {
+            code,
+            state,
+            class,
+            message,
+            server,
+            procedure,
+            line,
+        }
+    }
+}
 
 impl TdsTokenCodec for TokenError {
-    fn encode(&self, dest: &mut BytesMut) -> TdsWireResult<()> {
+    fn encode(&self, dest: &mut BytesMut) -> Result<()> {
         dest.put_u8(TdsTokenType::Error as u8);
         let mut buff = BytesMut::new();
 
@@ -27,7 +75,7 @@ impl TdsTokenCodec for TokenError {
         Ok(())
     }
 
-    fn decode(src: &mut BytesMut) -> TdsWireResult<TdsToken> {
+    fn decode(src: &mut BytesMut) -> Result<TdsToken> {
         let _length = src.get_u16_le() as usize;
 
         let code = src.get_u32_le();
@@ -56,9 +104,9 @@ impl TdsTokenCodec for TokenError {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::{TdsToken, TdsTokenCodec, TdsTokenType};
+    use crate::frontend::tds::codec::token::token_error::TokenError;
+    use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType};
     use tokio_util::bytes::{Buf, BytesMut};
-    use unilake_common::error::TokenError;
 
     #[test]
     fn encode_decode_token_error() {
