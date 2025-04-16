@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::ColumnData;
+use crate::frontend::tds::codec::column_data::ColumnData;
 use tokio_util::bytes::{BufMut, BytesMut};
 
 /// Fixed length token [2.2.4.2.1.2]

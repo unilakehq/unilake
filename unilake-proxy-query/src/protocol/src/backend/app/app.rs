@@ -1,8 +1,10 @@
 use crate::backend::app::{FedResult, FedResultStream, FederatedRequestType, ResultSetBuilder};
-use crate::frontend::tds::codec::sqlstring::SqlString;
-use crate::frontend::tds::codec::{BatchRequest, ColumnData, DataFlags, TypeInfo};
+use crate::frontend::tds::codec::column_data::{ColumnData, SqlString};
+use crate::frontend::tds::codec::token::DataFlags;
+use crate::frontend::tds::codec::{BatchRequest, TypeInfo};
 use async_stream::stream;
 use unilake_common::error::Result;
+use unilake_common::EMPTY_STRING;
 
 pub(crate) fn process_static(hash: u64, req: &FederatedRequestType) -> Option<FedResultStream> {
     // hash based
@@ -42,22 +44,22 @@ fn server_edition(_req: &BatchRequest) -> FedResultStream {
     let stream = stream! {
     let result_set = ResultSetBuilder::new()
         .add_column(
-            Some("DatabaseEngineType"),
+            "DatabaseEngineType",
             TypeInfo::new_intn(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("DatabaseEngineEdition"),
+            "DatabaseEngineEdition",
             TypeInfo::new_intn(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("ProductVersion"),
+            "ProductVersion",
             TypeInfo::new_nvarchar(Some(40)),
             DataFlags::default(),
         )
         .add_column(
-            Some("MicrosoftVersion"),
+            "MicrosoftVersion",
             TypeInfo::new_intn(false),
             DataFlags::default(),
         )
@@ -72,14 +74,14 @@ fn server_edition(_req: &BatchRequest) -> FedResultStream {
         yield Ok(FedResult::Tabular(result_set.result));
 
        let result_set = ResultSetBuilder::new()
-            .add_column(Some("host_platform"), TypeInfo::new_nvarchar(Some(255)), DataFlags::default())
+            .add_column("host_platform", TypeInfo::new_nvarchar(Some(255)), DataFlags::default())
             .add_row(&[ColumnData::new_nvarchar(Some("Linux".to_string()), Some(255))]);
 
         // second resultset
         yield Ok(FedResult::Tabular(result_set.result));
 
         let result_set = ResultSetBuilder::new()
-            .add_column(Some("ConnectionProtocol"), TypeInfo::new_nvarchar(Some(255)), DataFlags::default())
+            .add_column("ConnectionProtocol", TypeInfo::new_nvarchar(Some(255)), DataFlags::default())
             .add_row(&[ColumnData::new_nvarchar(Some("TCP".to_string()), Some(255))]);
 
         // third resultset
@@ -101,17 +103,17 @@ fn noop() -> Result<FedResult> {
 fn backup_info(_req: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
-            Some("Within 24hrs"),
+            "Within 24hrs",
             TypeInfo::new_intn(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("Older than 24hrs"),
+            "Older than 24hrs",
             TypeInfo::new_intn(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("No backup found"),
+            "No backup found",
             TypeInfo::new_intn(false),
             DataFlags::default(),
         )
@@ -123,17 +125,17 @@ fn backup_info(_req: &BatchRequest) -> Result<FedResult> {
 fn database_size_info(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
-            Some("name"),
+            "name",
             TypeInfo::new_nvarchar(Some(2000)),
             DataFlags::default(),
         )
         .add_column(
-            Some("DataFileSizeMB"),
+            "DataFileSizeMB",
             TypeInfo::new_intn(true),
             DataFlags::default(),
         )
         .add_column(
-            Some("LogFileSizeMB"),
+            "LogFileSizeMB",
             TypeInfo::new_intn(true),
             DataFlags::default(),
         )
@@ -148,19 +150,18 @@ fn database_size_info(_: &BatchRequest) -> Result<FedResult> {
 
 fn context_info(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
-        .add_column(
-            None,
-            TypeInfo::new_nvarchar(Some(100)),
-            DataFlags::default(),
-        )
-        .add_row(&[ColumnData::String(SqlString::from_string(None, Some(100)))]);
+        .add_column("", TypeInfo::new_nvarchar(Some(100)), DataFlags::default())
+        .add_row(&[ColumnData::String(SqlString::from_string(
+            EMPTY_STRING,
+            Some(100),
+        ))]);
     Ok(FedResult::Tabular(result_set.result))
 }
 
 fn databases(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
-            Some("name"),
+            "name",
             TypeInfo::new_nvarchar(Some(100)),
             DataFlags::default(),
         )
@@ -173,8 +174,8 @@ fn databases(_: &BatchRequest) -> Result<FedResult> {
 
 fn session_properties(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
-        .add_column(None, TypeInfo::new_intn(false), DataFlags::default())
-        .add_column(None, TypeInfo::new_intn(false), DataFlags::default())
+        .add_column("", TypeInfo::new_intn(false), DataFlags::default())
+        .add_column("", TypeInfo::new_intn(false), DataFlags::default())
         .add_row(&[ColumnData::I32(1), ColumnData::I32(1)]);
 
     Ok(FedResult::Tabular(result_set.result))
@@ -182,35 +183,15 @@ fn session_properties(_: &BatchRequest) -> Result<FedResult> {
 
 fn engine_edition(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
-        .add_column(None, TypeInfo::new_intn(false), DataFlags::default())
+        .add_column("", TypeInfo::new_intn(false), DataFlags::default())
         // todo: 40
-        .add_column(
-            None,
-            TypeInfo::new_nvarchar(Some(100)),
-            DataFlags::default(),
-        )
-        .add_column(
-            None,
-            TypeInfo::new_nvarchar(Some(100)),
-            DataFlags::default(),
-        )
-        .add_column(
-            None,
-            TypeInfo::new_nvarchar(Some(100)),
-            DataFlags::default(),
-        )
+        .add_column("", TypeInfo::new_nvarchar(Some(100)), DataFlags::default())
+        .add_column("", TypeInfo::new_nvarchar(Some(100)), DataFlags::default())
+        .add_column("", TypeInfo::new_nvarchar(Some(100)), DataFlags::default())
         // todo: 4000
-        .add_column(
-            None,
-            TypeInfo::new_nvarchar(Some(100)),
-            DataFlags::default(),
-        )
-        .add_column(
-            None,
-            TypeInfo::new_nvarchar(Some(100)),
-            DataFlags::default(),
-        )
-        .add_column(None, TypeInfo::new_intn(false), DataFlags::default())
+        .add_column("", TypeInfo::new_nvarchar(Some(100)), DataFlags::default())
+        .add_column("", TypeInfo::new_nvarchar(Some(100)), DataFlags::default())
+        .add_column("", TypeInfo::new_intn(false), DataFlags::default())
         .add_row(&[
             ColumnData::I32(3),
             ColumnData::String(SqlString::from_string(

@@ -1,9 +1,12 @@
 // MS-TDS: [2.2.6.6]
+use crate::frontend::tds::codec::column_data::ColumnData;
 use crate::frontend::tds::codec::decode::read_b_varchar;
-use crate::frontend::tds::codec::{ColumnData, TdsMessage, TdsMessageCodec, TypeInfo};
+use crate::frontend::tds::codec::message::{TdsMessage, TdsMessageCodec};
+use crate::frontend::tds::codec::type_info::TypeInfo;
 use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BytesMut};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 uint_enum! {
     #[repr(u16)]
@@ -72,9 +75,8 @@ impl TdsMessageCodec for RpcRequest {
         let _procedure_name_length = src.get_u16_le();
 
         // Stored Procedure ID
-        let procedure_type = ProcedureType::try_from(src.get_u16_le()).map_err(|_| {
-            unilake_common::error::Error::Protocol("invalid procedure type".to_string())
-        })?;
+        let procedure_type = ProcedureType::try_from(src.get_u16_le())
+            .map_err(|_| ErrorCode::TdsInvalidRpcProcedureType("invalid procedure type"))?;
 
         // Options Flag
         let _options_flag = src.get_u16_le();
@@ -109,8 +111,8 @@ impl TdsMessageCodec for RpcRequest {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontend::tds::codec::message::{TdsMessage, TdsMessageCodec};
     use crate::frontend::tds::codec::rpc_request::RpcRequest;
-    use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
     use tokio_util::bytes::{Buf, BytesMut};
 
     const RAW_BYTES: &[u8] = &[

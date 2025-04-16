@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::TdsTokenType;
+use crate::frontend::tds::codec::token::TdsTokenType;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use unilake_common::error::Result;
 
@@ -31,7 +31,8 @@ impl TokenReturnStatus {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{TdsTokenType, TokenReturnStatus};
+    use crate::frontend::tds::codec::token::token_return_status::TokenReturnStatus;
+    use crate::frontend::tds::codec::token::TdsTokenType;
     use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
     use unilake_common::error::Result;
 

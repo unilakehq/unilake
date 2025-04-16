@@ -17,7 +17,7 @@ use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
 use ulid::Ulid;
-use unilake_common::error::{Result, WireError};
+use unilake_common::error::Result;
 use unilake_common::error_code::ErrorCode;
 use unilake_common::model::{AppInfoModel, IpInfoModel, SessionModel};
 use unilake_security::caching::layered_cache::MultiLayeredCache;
@@ -181,7 +181,7 @@ impl StarRocksSession {
         let ip_info = ip_info.get(&self.socket_addr.ip().to_string()).await;
         if ip_info.is_none() {
             tracing::error!("Failed to get IP info for {}", self.socket_addr);
-            return Err(WireError::Protocol("Failed to get IP info".to_string()));
+            return Err(ErrorCode::SessionIpInfoModel("Failed to get IP info"));
         }
         let ip_info = ip_info.unwrap();
 
@@ -189,7 +189,7 @@ impl StarRocksSession {
         let app_info = app_info.get(&self.get_app_name()).await;
         if app_info.is_none() {
             tracing::error!("Failed to get app info for {}", self.socket_addr);
-            return Err(WireError::Protocol("Failed to get app info".to_string()));
+            return Err(ErrorCode::SessionIpInfoModel("Failed to get app info"));
         }
         let app_info = app_info.unwrap();
 

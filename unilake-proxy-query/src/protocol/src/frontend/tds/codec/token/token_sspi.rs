@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::{TdsToken, TdsTokenType};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenType};
 use crate::frontend::utils::ReadAndAdvance;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
@@ -26,7 +26,7 @@ impl TokenSspi {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{TdsToken, TdsTokenType, TokenSspi};
+    use crate::frontend::tds::codec::token::{TdsToken, TdsTokenType, TokenSspi};
     use tokio_util::bytes::{Buf, BytesMut};
     use unilake_common::error::Result;
 

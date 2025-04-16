@@ -1,19 +1,21 @@
-use crate::frontend::tds::codec::{
-    BaseMetaDataColumn, BatchRequest, ColumnData, DataFlags, MetaDataColumn, RpcRequest,
-    TokenColMetaData, TokenInfo, TokenRow, TokenSessionState, TypeInfo,
-};
-use std::collections::VecDeque;
-use std::pin::Pin;
-use std::task::{Context, Poll};
-use tokio_stream::Stream;
-use unilake_common::error::Result;
-
 mod app;
 mod app_dbeaver;
 mod app_pbi;
 mod app_ssms;
 mod app_unilake;
 mod app_vscode;
+
+use crate::frontend::tds::codec::column_data::ColumnData;
+use crate::frontend::tds::codec::token::{
+    BaseMetaDataColumn, DataFlags, MetaDataColumn, TokenColMetaData, TokenInfo, TokenRow,
+    TokenSessionState,
+};
+use crate::frontend::tds::codec::{BatchRequest, RpcRequest, TypeInfo};
+use std::collections::VecDeque;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tokio_stream::Stream;
+use unilake_common::error::Result;
 
 pub enum FederatedRequestType<'a> {
     Query(&'a BatchRequest),
@@ -119,14 +121,9 @@ impl ResultSetBuilder {
         }
     }
 
-    pub fn add_column(
-        mut self,
-        name: Option<impl ToString>,
-        ty: TypeInfo,
-        flags: DataFlags,
-    ) -> Self {
+    pub fn add_column(mut self, name: impl ToString, ty: TypeInfo, flags: DataFlags) -> Self {
         self.result.columns.push_back(MetaDataColumn {
-            col_name: name.map(|s| s.to_string()).unwrap_or_default(),
+            col_name: name.to_string(),
             base: BaseMetaDataColumn { flags, ty },
         });
 

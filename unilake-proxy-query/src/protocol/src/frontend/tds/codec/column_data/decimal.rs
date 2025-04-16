@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec};
 use bigdecimal::{num_bigint::Sign, BigDecimal, ToPrimitive};
 use tokio_util::bytes::{BufMut, BytesMut};
 use unilake_common::error::Result;

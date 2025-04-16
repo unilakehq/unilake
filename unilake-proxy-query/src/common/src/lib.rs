@@ -5,3 +5,5 @@ mod metrics;
 pub mod model;
 pub mod settings;
 pub mod singleton_instance;
+
+pub const EMPTY_STRING: Option<String> = None;

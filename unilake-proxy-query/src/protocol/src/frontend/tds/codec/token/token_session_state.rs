@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
 use tokio_util::bytes::{BufMut, BytesMut};
 use unilake_common::error::Result;
 use unilake_common::error_code::ErrorCode;

@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
 use crate::frontend::utils::ReadAndAdvance;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
@@ -108,7 +108,7 @@ impl TdsTokenCodec for TokenFedAuth {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{
+    use crate::frontend::tds::codec::token::{
         TdsToken, TdsTokenCodec, TdsTokenType, TokenFedAuth, TokenFedAuthOption,
     };
     use tokio_util::bytes::{Buf, BytesMut};

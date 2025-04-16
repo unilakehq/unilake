@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::TokenInfo;
+use crate::frontend::tds::codec::token::TokenInfo;
 use crate::frontend::tds::server_context::ServerContext;
 use crate::server::ServerInstance;
 use crate::session::ServerInstanceMessage;

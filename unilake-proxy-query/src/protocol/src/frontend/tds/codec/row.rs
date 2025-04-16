@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::{FixedLenType, TypeInfo, VarLenType};
+use crate::frontend::tds::codec::type_info::{FixedLenType, TypeInfo, VarLenType};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// The type of the column.

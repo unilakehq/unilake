@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::ColumnData;
+use crate::frontend::tds::codec::column_data::ColumnData;
 use chrono::NaiveDate;
 use tokio_util::bytes::{BufMut, BytesMut};
 
@@ -22,8 +22,7 @@ pub(crate) fn encode(dst: &mut BytesMut, data: &ColumnData) {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::column_data::date;
-    use crate::frontend::tds::codec::ColumnData;
+    use crate::frontend::tds::codec::column_data::{date, ColumnData};
     use chrono::NaiveDate;
     use tokio_util::bytes::BytesMut;
     use unilake_common::error::Result;

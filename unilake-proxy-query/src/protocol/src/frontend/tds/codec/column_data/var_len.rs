@@ -1,6 +1,6 @@
+use crate::frontend::tds::codec::column_data::{ColumnData, SqlString};
 use crate::frontend::tds::codec::decode::read_us_varchar;
-use crate::frontend::tds::codec::sqlstring::SqlString;
-use crate::frontend::tds::codec::{ColumnData, VarLenContext, VarLenType};
+use crate::frontend::tds::codec::type_info::{VarLenContext, VarLenType};
 use tokio_util::bytes::{BufMut, BytesMut};
 use unilake_common::error::Result;
 

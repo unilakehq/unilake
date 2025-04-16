@@ -1,5 +1,6 @@
-use super::BaseMetaDataColumn;
-use crate::frontend::tds::codec::{encode, ColumnData, TdsToken, TdsTokenCodec, TdsTokenType};
+use super::{BaseMetaDataColumn, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::column_data::ColumnData;
+use crate::frontend::tds::codec::encode;
 use tokio_util::bytes::{BufMut, BytesMut};
 use unilake_common::error::Result;
 
@@ -40,10 +41,11 @@ impl TdsTokenCodec for TokenReturnValue {
 #[cfg(test)]
 mod tests {
     use super::BaseMetaDataColumn;
-    use crate::frontend::tds::codec::{
-        ColumnData, DataFlags, FixedLenType, TdsToken, TdsTokenCodec, TdsTokenType,
-        TokenReturnValue, TypeInfo,
+    use crate::frontend::tds::codec::column_data::ColumnData;
+    use crate::frontend::tds::codec::token::{
+        DataFlags, TdsToken, TdsTokenCodec, TdsTokenType, TokenReturnValue,
     };
+    use crate::frontend::tds::codec::type_info::{FixedLenType, TypeInfo};
     use tokio_util::bytes::{Buf, BytesMut};
     use unilake_common::error::Result;
 

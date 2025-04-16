@@ -1,13 +1,14 @@
+use crate::frontend::tds::codec::token::TdsToken;
 use crate::frontend::tds::codec::{
     BatchRequest, LoginMessage, PreloginMessage, RpcRequest, TdsBackendResponse, TdsMessage,
-    TdsToken,
 };
 use crate::server::ServerInstance;
 use crate::session::SessionInfo;
 use async_trait::async_trait;
 use futures::{Sink, SinkExt};
 use std::{net::SocketAddr, sync::Arc};
-use unilake_common::error::{Result, WireError};
+use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 #[derive(Debug, Default)]
 pub enum TdsSessionState {
@@ -110,7 +111,7 @@ where
         client
             .send(TdsBackendResponse::Message(msg.into()))
             .await
-            .map_err(|_| WireError::Protocol("Failed to feed message".to_string()))
+            .map_err(|_| ErrorCode::TdsProtocol("Failed to feed message"))
     }
 
     /// Send token to the client
@@ -122,7 +123,7 @@ where
         client
             .send(TdsBackendResponse::Token(token.into()))
             .await
-            .map_err(|_| WireError::Protocol("Failed to feed token".to_string()))
+            .map_err(|_| ErrorCode::TdsProtocol("Failed to feed token"))
     }
 
     /// Flush all results
@@ -133,6 +134,6 @@ where
         client
             .send(TdsBackendResponse::Done)
             .await
-            .map_err(|_| WireError::Protocol("Failed to feed completion".to_string()))
+            .map_err(|_| ErrorCode::TdsProtocol("Failed to feed completion"))
     }
 }

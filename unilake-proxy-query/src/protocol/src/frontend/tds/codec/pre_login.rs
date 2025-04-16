@@ -1,9 +1,10 @@
 use crate::frontend::tds::codec::guid::reorder_bytes;
-use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
+use crate::frontend::tds::codec::message::{TdsMessage, TdsMessageCodec};
 use crate::frontend::tds::server_context::EncryptionLevel;
 use crate::frontend::utils::ReadAndAdvance;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 use uuid::Uuid;
 
 /// Client application activity id token used for debugging purposes introduced in TDS 7.4.
@@ -116,9 +117,7 @@ impl TdsMessageCodec for PreloginMessage {
                 PRELOGIN_ENCRYPTION => {
                     let encrypt = src.get_u8();
                     ret.encryption = Some(EncryptionLevel::try_from(encrypt).map_err(|_| {
-                        unilake_common::error::Error::Protocol(
-                            format!("invalid encryption value: {}", encrypt).into(),
-                        )
+                        ErrorCode::TdsProtocol(format!("invalid encryption value: {}", encrypt))
                     })?);
                     decode_offset_initial += 1;
                 }
@@ -158,9 +157,10 @@ impl TdsMessageCodec for PreloginMessage {
                     // Data is a Guid, 16 bytes and ordered the wrong way around than Uuid.
                     let (length, data) = src.read_and_advance(16);
                     if length < 16 {
-                        return Err(unilake_common::error::Error::Protocol(
-                            format!("invalid trace length: {}", length).into(),
-                        ));
+                        return Err(ErrorCode::TdsProtocol(format!(
+                            "invalid trace length: {}",
+                            length
+                        )));
                     }
                     let mut data: [u8; 16] = data.to_vec().try_into().unwrap();
                     reorder_bytes(&mut data);
@@ -183,9 +183,10 @@ impl TdsMessageCodec for PreloginMessage {
                 PRELOGIN_NONCEOPT => {
                     let (length, data) = src.read_and_advance(32);
                     if length != 32 {
-                        return Err(unilake_common::error::Error::Protocol(
-                            format!("invalid nonce length: {}", length).into(),
-                        ));
+                        return Err(ErrorCode::TdsProtocol(format!(
+                            "invalid nonce length: {}",
+                            length
+                        )));
                     }
                     ret.nonce = Some(data.to_vec().try_into().unwrap());
                     decode_offset_initial += 32;
@@ -277,7 +278,7 @@ impl TdsMessageCodec for PreloginMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::frontend::tds::codec::{PacketHeader, TdsMessage};
+    use crate::frontend::tds::codec::header::PacketHeader;
 
     const RAW_BYTES: &[u8] = &[
         0x12, 0x01, 0x00, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x06, 0x01, 0x00,

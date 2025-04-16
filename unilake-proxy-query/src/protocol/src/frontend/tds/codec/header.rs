@@ -2,6 +2,7 @@ use enumflags2::{bitflags, BitFlags};
 use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 uint_enum! {
     /// the type of the packet [2.2.3.1.1]
@@ -136,9 +137,7 @@ impl PacketHeader {
     pub fn decode(src: &mut BytesMut) -> Result<Self> {
         let raw_ty = src.get_u8();
         let ty = PacketType::try_from(raw_ty).map_err(|_| {
-            unilake_common::error::Error::Protocol(
-                format!("header: invalid packet type: {}", raw_ty).into(),
-            )
+            ErrorCode::TdsProtocol(format!("header: invalid packet type: {}", raw_ty))
         })?;
 
         let status = BitFlags::from_bits_truncate(src.get_u8());
@@ -161,7 +160,7 @@ impl PacketHeader {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{PacketHeader, PacketType};
+    use crate::frontend::tds::codec::header::{PacketHeader, PacketType};
     use tokio_util::bytes::BytesMut;
 
     const RAW_BYTES: [u8; 8] = [0x12, 0x01, 0x00, 0x2f, 0x00, 0x00, 0x01, 0x00];

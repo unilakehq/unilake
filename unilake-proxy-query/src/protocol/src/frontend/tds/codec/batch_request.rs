@@ -1,9 +1,11 @@
-use crate::frontend::tds::codec::{AllHeaderTy, TdsMessage, TdsMessageCodec, ALL_HEADERS_LEN_TX};
+use crate::frontend::tds::codec::message::{TdsMessage, TdsMessageCodec};
+use crate::frontend::tds::{AllHeaderTy, ALL_HEADERS_LEN_TX};
 use crate::frontend::utils::ReadAndAdvance;
 use byteorder::{ByteOrder, LittleEndian};
 use std::hash::{DefaultHasher, Hasher};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 /// SQLBatch Message [2.2.6.7]
 #[derive(Debug)]
@@ -46,16 +48,9 @@ impl TdsMessageCodec for BatchRequest {
                 if len < 1024 {
                     break;
                 } else if qtx.len() >= max_len {
-                    // TODO: set proper handling of this error and probably any other possible errors
-                    return Err(Error::Server(TokenError::new(
-                        12,
-                        12,
-                        12,
-                        String::from("QueryTooLong"),
-                        String::from("Some Server"),
-                        String::from("a"),
-                        12,
-                    )));
+                    return Err(ErrorCode::TdsProtocol(
+                        "Query too long (maximum length 100,000,000)",
+                    ));
                 }
             }
             qtx.chunks(2).map(LittleEndian::read_u16).collect()
@@ -89,7 +84,7 @@ impl TdsMessageCodec for BatchRequest {
 #[cfg(test)]
 mod tests {
     use crate::frontend::tds::codec::batch_request::BatchRequest;
-    use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
+    use crate::frontend::tds::codec::message::{TdsMessage, TdsMessageCodec};
     use tokio_util::bytes::BytesMut;
     use unilake_common::error::Result;
 

@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::{TdsMessage, TdsMessageCodec};
+use crate::frontend::tds::codec::message::{TdsMessage, TdsMessageCodec};
 use tokio_util::bytes::BytesMut;
 use unilake_common::error::Result;
 

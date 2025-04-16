@@ -1,5 +1,5 @@
-use super::{TdsToken, TdsTokenCodec};
-use crate::frontend::tds::codec::{ColumnData, TdsTokenType};
+use super::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::column_data::ColumnData;
 use tokio_util::bytes::{BufMut, BytesMut};
 use unilake_common::error::Result;
 

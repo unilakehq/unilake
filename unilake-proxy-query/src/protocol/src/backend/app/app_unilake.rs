@@ -1,5 +1,7 @@
 use crate::backend::app::{FedResult, FedResultStream, FederatedRequestType, ResultSetBuilder};
-use crate::frontend::tds::codec::{BatchRequest, ColumnData, DataFlags, TypeInfo};
+use crate::frontend::tds::codec::column_data::ColumnData;
+use crate::frontend::tds::codec::token::DataFlags;
+use crate::frontend::tds::codec::{BatchRequest, TypeInfo};
 use async_stream::stream;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
@@ -30,11 +32,7 @@ pub(crate) fn process_static(hash: u64, request: &FederatedRequestType) -> Optio
 }
 fn test_generic(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
-        .add_column(
-            Some("date"),
-            TypeInfo::new_daten(false),
-            DataFlags::default(),
-        )
+        .add_column("date", TypeInfo::new_daten(false), DataFlags::default())
         .add_row(&[ColumnData::DateN(Some(Utc::now().naive_utc().date()))]);
 
     Ok(FedResult::Tabular(result_set.result))
@@ -43,83 +41,75 @@ fn test_generic(_: &BatchRequest) -> Result<FedResult> {
 fn test_datatypes(_: &BatchRequest) -> Result<FedResult> {
     let result_set = ResultSetBuilder::new()
         .add_column(
-            Some("nvarchar(40)"),
+            "nvarchar(40)",
             TypeInfo::new_nvarchar(Some(40)),
             DataFlags::default(),
         )
         .add_column(
-            Some("big_int_nullable"),
+            "big_int_nullable",
             TypeInfo::new_big_intn(true),
             DataFlags::default(),
         )
         .add_column(
-            Some("big_int_non_null"),
+            "big_int_non_null",
             TypeInfo::new_big_intn(false),
             DataFlags::default(),
         )
-        .add_column(Some("bit"), TypeInfo::new_bit(), DataFlags::default())
+        .add_column("bit", TypeInfo::new_bit(), DataFlags::default())
+        .add_column("date", TypeInfo::new_daten(false), DataFlags::default())
+        .add_column("datetime", TypeInfo::new_datetime2(), DataFlags::default())
         .add_column(
-            Some("date"),
-            TypeInfo::new_daten(false),
-            DataFlags::default(),
-        )
-        .add_column(
-            Some("datetime"),
-            TypeInfo::new_datetime2(),
-            DataFlags::default(),
-        )
-        .add_column(
-            Some("decimal(19,2)"),
+            "decimal(19,2)",
             TypeInfo::new_decimaln(19, 2),
             DataFlags::default(),
         )
         .add_column(
-            Some("float_nullable"),
+            "float_nullable",
             TypeInfo::new_floatn_32(true),
             DataFlags::default(),
         )
         .add_column(
-            Some("float_non_null"),
+            "float_non_null",
             TypeInfo::new_floatn_32(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("bigfloat_nullable"),
+            "bigfloat_nullable",
             TypeInfo::new_floatn_64(true),
             DataFlags::default(),
         )
         .add_column(
-            Some("bigfloat_non_null"),
+            "bigfloat_non_null",
             TypeInfo::new_floatn_64(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("int_nullable"),
+            "int_nullable",
             TypeInfo::new_intn(true),
             DataFlags::default(),
         )
         .add_column(
-            Some("int_non_null"),
+            "int_non_null",
             TypeInfo::new_intn(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("smallint_nullable"),
+            "smallint_nullable",
             TypeInfo::new_small_intn(true),
             DataFlags::default(),
         )
         .add_column(
-            Some("smallint_non_null"),
+            "smallint_non_null",
             TypeInfo::new_small_intn(false),
             DataFlags::default(),
         )
         .add_column(
-            Some("tinyint_nullable"),
+            "tinyint_nullable",
             TypeInfo::new_tiny_intn(true),
             DataFlags::default(),
         )
         .add_column(
-            Some("tinyint_non_null"),
+            "tinyint_non_null",
             TypeInfo::new_tiny_intn(false),
             DataFlags::default(),
         )

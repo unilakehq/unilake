@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::TypeInfo;
+use crate::frontend::tds::codec::type_info::TypeInfo;
 use tokio_util::bytes::BytesMut;
 use unilake_common::error::Result;
 
@@ -24,7 +24,14 @@ impl SqlString {
     /// Returns a new `SqlString` instance with the specified value and maximum length.
     pub fn from_string(value: Option<impl ToString>, max_length: Option<usize>) -> SqlString {
         let max_length = max_length.unwrap_or(usize::MAX);
-        SqlString { max_length, value }
+        SqlString {
+            max_length,
+            value: if let Some(s) = value {
+                Some(s.to_string())
+            } else {
+                None
+            },
+        }
     }
 
     pub(crate) fn encode(&self, dest: &mut BytesMut) -> Result<()> {

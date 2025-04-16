@@ -1,6 +1,7 @@
-use crate::frontend::tds::codec::{
-    decode, encode, Column, ColumnType, TdsToken, TdsTokenCodec, TdsTokenType, TypeInfo,
-};
+use crate::frontend::tds::codec::row::{Column, ColumnType};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::type_info::TypeInfo;
+use crate::frontend::tds::codec::{decode, encode};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
 
@@ -232,7 +233,7 @@ impl BaseMetaDataColumn {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{DataFlags, UpdatableFlags};
+    use crate::frontend::tds::codec::token::token_col_metadata::{DataFlags, UpdatableFlags};
     use tokio_util::bytes::{BufMut, BytesMut};
     use unilake_common::error::Result;
 

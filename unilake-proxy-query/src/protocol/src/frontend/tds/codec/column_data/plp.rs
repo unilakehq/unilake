@@ -44,9 +44,10 @@ pub(crate) fn decode(src: &mut BytesMut, type_length: &usize) -> Result<Option<S
         n if n < 0xffff => {
             let length = src.get_u16_le() as usize / 2;
             let iter = (0..length).map(|_| u16::from_le_bytes([src.get_u8(), src.get_u8()]));
-            Ok(std::char::decode_utf16(iter)
-                .collect::<Result<String, _>>()
-                .ok())
+            todo!()
+            // Ok(std::char::decode_utf16(iter)
+            //     .collect::<Result<String, _>>()
+            //     .ok())
         }
         _ => {
             todo!()

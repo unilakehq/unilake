@@ -1,4 +1,5 @@
-use crate::frontend::tds::codec::{FeatureExt, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::login::FeatureExt;
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
 use crate::frontend::utils::ReadAndAdvance;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
@@ -83,8 +84,9 @@ impl TdsTokenCodec for TokenFeatureExtAck {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{
-        FeatureAck, FedAuthAck, TdsToken, TdsTokenCodec, TdsTokenType, TokenFeatureExtAck,
+    use crate::frontend::tds::codec::token::token_feature_ext_ack::{FeatureAck, FedAuthAck};
+    use crate::frontend::tds::codec::token::{
+        TdsToken, TdsTokenCodec, TdsTokenType, TokenFeatureExtAck,
     };
     use tokio_util::bytes::{Buf, BytesMut};
 

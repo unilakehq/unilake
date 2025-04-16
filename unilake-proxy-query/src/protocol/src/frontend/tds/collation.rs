@@ -7,6 +7,7 @@
 ///! [2] https://github.com/lifthrasiir/rust-encoding/blob/496823171f15d9b9446b2ec3fb7765f22346256b/src/label.rs#L282
 use encoding::{self, Encoding};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 
 #[derive(Debug, Clone, Copy)]
@@ -51,14 +52,11 @@ impl Collation {
         };
 
         res.ok_or_else(|| {
-            Error::Encoding(
-                format!(
-                    "encoding: unspported encoding (LCID: {:#02x}, charset ID: {})",
-                    self.lcid(),
-                    self.charset_id(),
-                )
-                .into(),
-            )
+            ErrorCode::TdsEncodingUnsupported(format!(
+                "encoding: unspported encoding (LCID: {:#02x}, charset ID: {})",
+                self.lcid(),
+                self.charset_id(),
+            ))
         })
     }
 }

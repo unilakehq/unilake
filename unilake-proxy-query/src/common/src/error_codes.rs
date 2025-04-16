@@ -58,6 +58,10 @@ build_exceptions! {
     InvalidCacheError(0),
     /// Happens when the iteration limit is reached for processing the security checks
     IterationLimitReached(0),
+
+    // todo: model errors
+    SessionIpInfoModel(0),
+    SessionAppInfoModel(0)
 }
 
 // TDS protocol errors [0, 2000].
@@ -67,7 +71,14 @@ build_exceptions! {
     TdsInvalidEnvChangeType(0),
     TdsUtfConversionFailed(0),
     TdsInvalidPacket(0),
-    TdsProtocolError(0)
+    TdsProtocolError(0),
+    TdsInvalidTimeScale(0),
+    TdsProtocol(0),
+    TdsEncodingUnsupported(0),
+    TdsIncorrectState(0),
+    TdsInvalidRpcProcedureType(0),
+    TdsUnknownTokenType(0),
+    TdsStringLengthTooLong(0),
 }
 
 // StarRocks Backend errors [0, 2000].

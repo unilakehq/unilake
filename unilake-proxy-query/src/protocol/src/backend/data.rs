@@ -1,4 +1,4 @@
-// intent is that here we define the logic to maintain these caches and handle their updates via sse (single sse consumer for all caches) -> use remove_local(key) function on the cache
+// intent is that here we define the logic to maintain caches and handle their updates via sse (single sse consumer for all caches) -> use remove_local(key) function on the cache
 
 use casbin::{Cache, DefaultCache};
 use redis::cluster::{ClusterClient, ClusterClientBuilder};

@@ -1,3 +1,5 @@
+use tokio_util::bytes::BytesMut;
+
 mod token_col_metadata;
 mod token_done;
 mod token_env_change;
@@ -17,21 +19,17 @@ mod token_type;
 pub use token_col_metadata::*;
 pub use token_done::*;
 pub use token_env_change::*;
+pub use token_error::*;
 pub use token_feature_ext_ack::*;
 pub use token_fed_auth::*;
 pub use token_info::*;
 pub use token_login_ack::*;
 pub use token_order::*;
-pub use token_return_status::*;
 pub use token_return_value::*;
 pub use token_row::*;
 pub use token_session_state::*;
 pub use token_sspi::*;
 pub use token_type::*;
-
-use crate::frontend::tds::codec::token::token_error::TokenError;
-use tokio_util::bytes::BytesMut;
-use unilake_common::error::Result;
 
 #[derive(Debug)]
 pub enum TdsToken {
@@ -51,8 +49,8 @@ pub enum TdsToken {
 }
 
 pub trait TdsTokenCodec {
-    fn encode(&self, dst: &mut BytesMut) -> Result<()>;
-    fn decode(src: &mut BytesMut) -> Result<TdsToken>;
+    fn encode(&self, dst: &mut BytesMut) -> unilake_common::error::Result<()>;
+    fn decode(src: &mut BytesMut) -> unilake_common::error::Result<TdsToken>;
 }
 
 macro_rules! encode_match {
@@ -66,7 +64,7 @@ macro_rules! encode_match {
 }
 
 impl TdsToken {
-    pub fn encode(&self, dst: &mut BytesMut) -> Result<()> {
+    pub fn encode(&self, dst: &mut BytesMut) -> unilake_common::error::Result<()> {
         encode_match!(
             self,
             dst,

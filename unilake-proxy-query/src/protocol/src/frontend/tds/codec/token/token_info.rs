@@ -1,4 +1,5 @@
-use crate::frontend::tds::codec::{decode, encode, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::tds::server_context::ServerContext;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
@@ -86,7 +87,7 @@ impl TdsTokenCodec for TokenInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType, TokenInfo};
+    use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType, TokenInfo};
     use tokio_util::bytes::{Buf, BytesMut};
     use unilake_common::error::Result;
 

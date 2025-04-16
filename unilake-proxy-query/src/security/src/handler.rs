@@ -47,22 +47,6 @@ pub enum HandleResult {
 }
 
 #[derive(Debug)]
-pub enum SecurityHandlerResult {
-    /// Happens when a requested entity <catalog>.<schema>.<entity> exists but is not allowed to be accessed
-    EntityNotAllowed(String),
-    /// Happens when the user groups cannot be found
-    UserGroupsNotFound(String),
-    /// Happens when the user cannot be found
-    UserNotFound(String),
-    /// Happens when there are issues with the policy being used
-    PolicyError(String),
-    /// Happens when the cache is in an invalid state, retry the process. Returns the current iteration count
-    InvalidCacheError,
-    /// Happens when the iteration limit is reached for processing the security checks
-    IterationLimitReached(usize),
-}
-
-#[derive(Debug)]
 pub struct SecurityError {
     pub message: String,
     pub audit_only: bool,
@@ -960,7 +944,7 @@ impl<'a> QueryPolicyDecision<'a> {
         entities: &'b HashSet<ScanEntity>,
         attributes: &HashSet<ScanAttribute>,
         entity_models: &'b HashMap<String, EntityModel>,
-    ) -> Result<Vec<ScanEntityAttribute<'b>>, SecurityHandlerResult> {
+    ) -> Result<Vec<ScanEntityAttribute<'b>>, SecurityHandlerError> {
         let mut items_found = HashMap::new();
         let entities: HashMap<_, _> = entities.iter().map(|v| (v.alias.as_str(), v)).collect();
 
@@ -1141,9 +1125,7 @@ impl<'a> QueryPolicyDecision<'a> {
 mod tests {
     use crate::adapter::cached_adapter::{CachedAdapter, CachedPolicyRules};
     use crate::caching::layered_cache::{BackendProvider, MultiLayeredCache};
-    use crate::handler::{
-        CacheContainer, QueryPolicyDecision, SecurityHandlerError,
-    };
+    use crate::handler::{CacheContainer, QueryPolicyDecision, SecurityHandlerError};
     use crate::repository::RepoBackend;
     use crate::{HitRule, ABAC_MODEL};
     use async_trait::async_trait;

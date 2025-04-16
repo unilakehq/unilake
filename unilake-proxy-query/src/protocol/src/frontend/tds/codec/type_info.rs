@@ -1,6 +1,7 @@
 use crate::frontend::tds::collation::Collation;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 #[derive(Debug)]
 pub enum TypeInfo {
@@ -193,9 +194,10 @@ impl TypeInfo {
         }
 
         match VarLenType::try_from(ty) {
-            Err(()) => Err(Error::Protocol(
-                format!("invalid or unsupported column type: {:?}", ty).into(),
-            )),
+            Err(()) => Err(ErrorCode::TdsProtocol(format!(
+                "invalid or unsupported column type: {:?}",
+                ty
+            ))),
             Ok(ty) => {
                 let len = match ty {
                     VarLenType::Timen | VarLenType::DatetimeOffsetn | VarLenType::Datetime2 => {

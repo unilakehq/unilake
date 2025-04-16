@@ -13,6 +13,7 @@ use unilake_common::error::Result;
 use unilake_common::singleton_instance::GlobalInstance;
 use unilake_security::ABAC_MODEL;
 
+// todo: implement this trait for TDS and Flight
 #[async_trait::async_trait]
 pub trait Server: Send {
     async fn start(&mut self, bind: SocketAddr) -> Result<SocketAddr>;
@@ -155,7 +156,7 @@ impl ServerInstance {
     pub fn process_message(
         &self,
         msg: ServerInstanceMessage,
-    ) -> Result<(), tokio::sync::mpsc::error::SendError<ServerInstanceMessage>> {
+    ) -> std::result::Result<(), tokio::sync::mpsc::error::SendError<ServerInstanceMessage>> {
         self.inner.sender.clone().send(msg)
     }
 }

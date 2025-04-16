@@ -1,4 +1,5 @@
-use crate::frontend::tds::codec::{decode, encode, TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::tds::collation::Collation;
 use crate::frontend::utils::ReadAndAdvance;
 use std::fmt::{self, Debug};
@@ -232,7 +233,9 @@ impl TdsTokenCodec for TokenEnvChange {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType, TokenEnvChange};
+    use crate::frontend::tds::codec::token::{
+        TdsToken, TdsTokenCodec, TdsTokenType, TokenEnvChange,
+    };
     use tokio_util::bytes::{Buf, BytesMut};
     use unilake_common::error::Result;
 

@@ -1,7 +1,5 @@
-// todo(mhramburg): move this file one level up, should not belong here
+use crate::frontend::tds::codec::token::TokenPreLoginFedAuthRequiredOption;
 use std::{collections::HashMap, env, str::FromStr};
-
-use super::codec::*;
 
 const DEFAULT_PACKET_SIZE: u16 = 4096;
 
@@ -117,31 +115,31 @@ impl ServerContext {
             match client.unwrap() {
                 // Not supported
                 EncryptionLevel::NotSupported
-                    if (ctx.encryption == EncryptionLevel::Off
-                        || ctx.encryption == EncryptionLevel::NotSupported) =>
+                    if ctx.encryption == EncryptionLevel::Off
+                        || ctx.encryption == EncryptionLevel::NotSupported =>
                 {
                     EncryptionLevel::NotSupported
                 }
                 EncryptionLevel::NotSupported => EncryptionLevel::Required,
 
                 // Off
-                EncryptionLevel::Off if (ctx.encryption == EncryptionLevel::Off) => {
+                EncryptionLevel::Off if ctx.encryption == EncryptionLevel::Off => {
                     EncryptionLevel::Off
                 }
-                EncryptionLevel::Off if (ctx.encryption == EncryptionLevel::NotSupported) => {
+                EncryptionLevel::Off if ctx.encryption == EncryptionLevel::NotSupported => {
                     EncryptionLevel::NotSupported
                 }
                 EncryptionLevel::Off => EncryptionLevel::Required,
 
                 // On
                 EncryptionLevel::On
-                    if (ctx.encryption == EncryptionLevel::Off
+                    if ctx.encryption == EncryptionLevel::Off
                         || ctx.encryption == EncryptionLevel::On
-                        || ctx.encryption == EncryptionLevel::Required) =>
+                        || ctx.encryption == EncryptionLevel::Required =>
                 {
                     EncryptionLevel::On
                 }
-                EncryptionLevel::On if (ctx.encryption == EncryptionLevel::None) => {
+                EncryptionLevel::On if ctx.encryption == EncryptionLevel::None => {
                     EncryptionLevel::None
                 }
                 // todo(mrhamburg): see below, function should return result

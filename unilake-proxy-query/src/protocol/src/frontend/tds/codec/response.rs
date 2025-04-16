@@ -1,11 +1,12 @@
 use tokio_util::bytes::{Buf, BytesMut};
 
-use super::{
-    TdsMessageCodec, TdsToken, TdsTokenCodec, TdsTokenType, TokenColMetaData, TokenInfo,
-    TokenLoginAck, TokenOrder, TokenReturnValue,
+use crate::frontend::tds::codec::message::{TdsMessage, TdsMessageCodec};
+use crate::frontend::tds::codec::token::{
+    TdsToken, TdsTokenCodec, TdsTokenType, TokenColMetaData, TokenError, TokenInfo, TokenLoginAck,
+    TokenOrder, TokenReturnValue,
 };
-
-use unilake_common::error::{Result, WireError};
+use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 #[derive(Debug)]
 pub struct ResponseMessage {
@@ -46,15 +47,14 @@ impl ResponseMessage {
 }
 
 impl TdsMessageCodec for ResponseMessage {
-    fn decode(src: &mut BytesMut) -> Result<super::TdsMessage>
+    fn decode(src: &mut BytesMut) -> Result<TdsMessage>
     where
         Self: Sized,
     {
         let mut ret = ResponseMessage::new();
         while src.has_remaining() {
             let token_type = TdsTokenType::try_from(src.get_u8())
-                .map_err(|_| WireError::Protocol("Unknown token type".to_string()))?;
-
+                .map_err(|_| ErrorCode::TdsUnknownTokenType("Unknown token type"))?;
             let token = match token_type {
                 TdsTokenType::ColMetaData => TokenColMetaData::decode(src)?,
                 TdsTokenType::Error => TokenError::decode(src)?,
@@ -67,7 +67,7 @@ impl TdsMessageCodec for ResponseMessage {
             ret.add_token(token);
         }
 
-        Ok(super::TdsMessage::Response(ret))
+        Ok(TdsMessage::Response(ret))
     }
 
     fn encode(&self, dst: &mut BytesMut) -> Result<()> {
@@ -81,7 +81,7 @@ impl TdsMessageCodec for ResponseMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::frontend::tds::codec::{PacketHeader, TdsMessage};
+    use crate::frontend::tds::codec::header::PacketHeader;
     use tokio_util::bytes::BytesMut;
 
     const RAW_BYTES: &[u8] = &[

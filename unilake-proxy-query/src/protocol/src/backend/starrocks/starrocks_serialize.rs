@@ -1,7 +1,8 @@
-use crate::frontend::tds::codec::sqlstring::SqlString;
-use crate::frontend::tds::codec::{
-    BaseMetaDataColumn, ColumnData, DataFlags, MetaDataColumn, TokenRow, TypeInfo, UpdatableFlags,
+use crate::frontend::tds::codec::column_data::{ColumnData, SqlString};
+use crate::frontend::tds::codec::token::{
+    BaseMetaDataColumn, DataFlags, MetaDataColumn, TokenRow, UpdatableFlags,
 };
+use crate::frontend::tds::codec::TypeInfo;
 use bigdecimal::BigDecimal;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use mysql_async::consts::ColumnFlags;

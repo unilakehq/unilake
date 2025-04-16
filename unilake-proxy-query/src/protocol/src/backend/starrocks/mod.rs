@@ -7,10 +7,12 @@ use crate::backend::app::{
 use crate::backend::data::BackendInstance;
 use crate::backend::starrocks::starrocks_session::StarRocksSession;
 use crate::backend::telemetry::{QueryTelemetry, QueryTelemetryHandler};
+use crate::frontend::tds::codec::token::{
+    TokenColMetaData, TokenDone, TokenEnvChange, TokenError, TokenInfo, TokenLoginAck,
+    TokenPreLoginFedAuthRequiredOption, TokenRow,
+};
 use crate::frontend::tds::codec::{
     BatchRequest, LoginMessage, OptionFlag2, PreloginMessage, RpcRequest, TdsBackendResponse,
-    TokenColMetaData, TokenDone, TokenEnvChange, TokenInfo, TokenLoginAck,
-    TokenPreLoginFedAuthRequiredOption, TokenRow,
 };
 use crate::frontend::tds::collation::Collation;
 use crate::frontend::tds::prot::TdsWireHandlerFactory;
@@ -29,7 +31,7 @@ use std::str::FromStr;
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
-use unilake_common::error::{Result, WireError};
+use unilake_common::error::Result;
 use unilake_common::error_code::ErrorCode;
 use unilake_common::settings::{
     settings_backend_register_activity_timeout_in_seconds, settings_server_transparent_mode,
@@ -545,20 +547,21 @@ impl StarRocksTdsHandlerFactory {
             0,
         );
 
+        // todo: properly handle these
         match error {
-            SecurityHandlerError::WireError(error_code, error) => {
-                error_token.code = error_code;
-                error_token.message = error.to_string();
-                error_token.procedure = "WIRE".to_string();
+            SecurityHandlerError::Error(e) => {
+                error_token.code = e.code() as u32;
+                error_token.message = e.message();
+                error_token.procedure = "PROTOCOL".to_string();
             }
-            SecurityHandlerError::QueryError(error_code, query_id, parser_err) => {
-                error_token.code = error_code;
-                error_token.message = format!("{}. Query ID: {}", parser_err.message, query_id);
-                error_token.procedure = parser_err.error_type;
+            SecurityHandlerError::ParserError(e, p) => {
+                error_token.code = e.code() as u32;
+                error_token.message = e.message();
+                error_token.procedure = "PARSER".to_string();
             }
-            SecurityHandlerError::SecurityError(error_code, query_id, security_err) => {
-                error_token.code = error_code;
-                error_token.message = format!("{}. Query ID: {}", security_err.message, query_id);
+            SecurityHandlerError::SecurityError(e, s) => {
+                error_token.code = e.code() as u32;
+                error_token.message = e.message();
                 error_token.procedure = "SECURITY".to_string();
             }
         }
@@ -657,8 +660,8 @@ impl TdsWireHandlerFactory<StarRocksSession> for StarRocksTdsHandlerFactory {
 
         // check for sspi (which we do not support)
         if msg.option_flags_2.contains(OptionFlag2::IntegratedSecurity) {
-            return Err(WireError::Protocol(
-                "SSPI authentication is not supported".to_string(),
+            return Err(ErrorCode::TdsProtocol(
+                "SSPI authentication is not supported",
             ));
         }
 

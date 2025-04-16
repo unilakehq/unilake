@@ -1,4 +1,4 @@
-use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
 use enumflags2::{bitflags, BitFlags};
 use std::fmt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
@@ -185,7 +185,7 @@ impl fmt::Display for TokenDone {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{TdsToken, TdsTokenCodec, TdsTokenType, TokenDone};
+    use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType, TokenDone};
     use enumflags2::BitFlags;
     use tokio_util::bytes::{Buf, BytesMut};
     use unilake_common::error::Result;

@@ -1,6 +1,6 @@
-use crate::frontend::tds::codec::{
-    decode, encode, FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType,
-};
+use crate::frontend::tds::codec::login::FeatureLevel;
+use crate::frontend::tds::codec::token::{TdsToken, TdsTokenCodec, TdsTokenType};
+use crate::frontend::tds::codec::{decode, encode};
 use crate::frontend::tds::server_context::ServerContext;
 use std::sync::Arc;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
@@ -80,8 +80,9 @@ impl TdsTokenCodec for TokenLoginAck {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::tds::codec::{
-        FeatureLevel, TdsToken, TdsTokenCodec, TdsTokenType, TokenLoginAck,
+    use crate::frontend::tds::codec::login::FeatureLevel;
+    use crate::frontend::tds::codec::token::{
+        TdsToken, TdsTokenCodec, TdsTokenType, TokenLoginAck,
     };
     use tokio_util::bytes::{Buf, BytesMut};
     use unilake_common::error::Result;

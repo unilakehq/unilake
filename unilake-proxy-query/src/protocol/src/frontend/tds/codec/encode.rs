@@ -1,13 +1,14 @@
 use tokio_util::bytes::{BufMut, BytesMut};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 pub fn write_us_varchar(dest: &mut BytesMut, s: &String) -> Result<()> {
     let length = s.len();
 
     // US_VARCHAR stores the length as 2 bytes, so the length must not exceed 65535
     if length > 65535 {
-        return Err(unilake_common::error::Error::Protocol(
-            "String length exceeds maximum US_VARCHAR size of 65535".to_string(),
+        return Err(ErrorCode::TdsStringLengthTooLong(
+            "String length exceeds maximum US_VARCHAR size of 65535",
         ));
     }
     dest.put_u16_le(length as u16);
@@ -21,8 +22,8 @@ pub fn write_b_varchar(dest: &mut BytesMut, s: &String) -> Result<()> {
 
     // B_VARCHAR stores the length as a single byte, so the length must not exceed 255
     if length > 255 {
-        return Err(unilake_common::error::Error::Protocol(
-            "String length exceeds maximum B_VARCHAR size of 255".to_string(),
+        return Err(ErrorCode::TdsStringLengthTooLong(
+            "String length exceeds maximum B_VARCHAR size of 255",
         ));
     }
     dest.put_u8(length as u8);

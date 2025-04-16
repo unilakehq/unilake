@@ -1,6 +1,7 @@
 use byteorder::{ByteOrder, LittleEndian};
 use tokio_util::bytes::{BufMut, BytesMut};
 use unilake_common::error::Result;
+use unilake_common::error_code::ErrorCode;
 
 /// A presentation of `date` type in the server.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -143,9 +144,10 @@ impl Time {
             3..=4 => 4,
             5..=7 => 5,
             _ => {
-                return Err(Error::Protocol(
-                    format!("time: invalid scale {}", self.scale).into(),
-                ))
+                return Err(ErrorCode::TdsInvalidTimeScale(format!(
+                    "time: invalid scale {}",
+                    self.scale
+                )))
             }
         })
     }
