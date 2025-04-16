@@ -7,8 +7,9 @@ use tokio::net::TcpListener;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use unilake_protocol::backend::starrocks::StarRocksTdsHandlerFactory;
-use unilake_protocol::frontend::tds::prot::ServerInstance;
+use unilake_protocol::frontend::tds::process_socket;
 use unilake_protocol::frontend::tds::server_context::ServerContext;
+use unilake_protocol::ServerInstance;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

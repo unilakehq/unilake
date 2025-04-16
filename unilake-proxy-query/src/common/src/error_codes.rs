@@ -73,7 +73,7 @@ build_exceptions! {
     TdsInvalidPacket(0),
     TdsProtocolError(0),
     TdsInvalidTimeScale(0),
-    TdsProtocol(0),
+    TdsProtocol(10),
     TdsEncodingUnsupported(0),
     TdsIncorrectState(0),
     TdsInvalidRpcProcedureType(0),

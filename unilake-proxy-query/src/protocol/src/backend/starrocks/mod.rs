@@ -552,17 +552,17 @@ impl StarRocksTdsHandlerFactory {
             SecurityHandlerError::Error(e) => {
                 error_token.code = e.code() as u32;
                 error_token.message = e.message();
-                error_token.procedure = "PROTOCOL".to_string();
+                error_token.procedure = e.name()
             }
             SecurityHandlerError::ParserError(e, p) => {
                 error_token.code = e.code() as u32;
                 error_token.message = e.message();
-                error_token.procedure = "PARSER".to_string();
+                error_token.procedure = e.name()
             }
             SecurityHandlerError::SecurityError(e, s) => {
                 error_token.code = e.code() as u32;
                 error_token.message = e.message();
-                error_token.procedure = "SECURITY".to_string();
+                error_token.procedure = e.name()
             }
         }
 

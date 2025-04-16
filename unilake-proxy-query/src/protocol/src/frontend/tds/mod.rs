@@ -1,3 +1,10 @@
+pub mod codec;
+pub mod collation;
+pub mod prot;
+pub mod server_context;
+pub mod time;
+
+use crate::frontend::tds::codec::token::{TokenDone, TokenError};
 use crate::frontend::tds::codec::{
     PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage,
 };
@@ -14,13 +21,8 @@ use tokio_rustls::TlsAcceptor;
 use tokio_stream::StreamExt;
 use tokio_util::bytes::{Buf, BytesMut};
 use tokio_util::codec::{Decoder, Encoder, Framed};
+use unilake_common::error::Result;
 use unilake_common::error_code::ErrorCode;
-
-pub mod codec;
-pub mod collation;
-pub mod prot;
-pub mod server_context;
-pub mod time;
 
 pub const ALL_HEADERS_LEN_TX: usize = 8;
 pub const MAX_PACKET_SIZE: usize = 32767;
@@ -51,11 +53,7 @@ impl TdsWireMessageServerCodec {
         }
     }
 
-    fn flush_response(
-        &mut self,
-        dst: &mut BytesMut,
-        is_done: bool,
-    ) -> unilake_common::error::Result<()> {
+    fn flush_response(&mut self, dst: &mut BytesMut, is_done: bool) -> Result<()> {
         while self.current_response.has_remaining() {
             // get the length (or maximum length of the packet)
             let len = std::cmp::min(self.max_packet_size(), self.current_response.len());
@@ -73,7 +71,9 @@ impl TdsWireMessageServerCodec {
             dst.extend_from_slice(slice);
 
             if header.is_end_of_message && self.current_response.has_remaining() {
-                panic!("Cannot send more data after sending EOM packet");
+                return Err(ErrorCode::TdsProtocolError(
+                    "Cannot send more data after sending EOM packet",
+                ));
             }
 
             // wait for more data if we are not done yet
@@ -148,11 +148,7 @@ impl Decoder for TdsWireMessageServerCodec {
 impl Encoder<TdsBackendResponse> for TdsWireMessageServerCodec {
     type Error = ErrorCode;
 
-    fn encode(
-        &mut self,
-        item: TdsBackendResponse,
-        dst: &mut BytesMut,
-    ) -> unilake_common::error::Result<()> {
+    fn encode(&mut self, item: TdsBackendResponse, dst: &mut BytesMut) -> Result<()> {
         match item {
             TdsBackendResponse::Token(t) => {
                 t.encode(&mut self.current_response)?;
@@ -176,12 +172,43 @@ impl Encoder<TdsBackendResponse> for TdsWireMessageServerCodec {
     }
 }
 
+async fn process_error<T, H, S>(
+    error: ErrorCode,
+    socket: &mut Framed<T, TdsWireMessageServerCodec>,
+    session_info: &mut S,
+    handlers: Arc<H>,
+) -> Result<()>
+where
+    T: AsyncRead + AsyncWrite + Unpin + Send + Sync,
+    S: SessionInfo,
+    H: TdsWireHandlerFactory<S>,
+{
+    handlers
+        .send_token(
+            socket,
+            TokenError::new(
+                error.code() as u32,
+                0,
+                0,
+                error.message(),
+                session_info.tds_server_context().server_name.clone(),
+                "TDS Proxy".to_string(),
+                0,
+            ),
+        )
+        .await?;
+    handlers.send_token(socket, TokenDone::new_error(0)).await?;
+    // todo(mrhamburg): improve this section
+    handlers.flush(socket).await?;
+    Ok(())
+}
+
 async fn process_request<T, H, S>(
     request: TdsFrontendRequest,
     socket: &mut Framed<T, TdsWireMessageServerCodec>,
     session_info: &mut S,
     handlers: Arc<H>,
-) -> unilake_common::error::Result<()>
+) -> Result<()>
 where
     T: AsyncRead + AsyncWrite + Unpin + Send + Sync,
     S: SessionInfo,
@@ -246,7 +273,7 @@ pub async fn process_socket<H, S>(
     _tls_acceptor: Option<Arc<TlsAcceptor>>,
     handler: Arc<H>,
     instance: Arc<ServerInstance>,
-) -> unilake_common::error::Result<()>
+) -> Result<()>
 where
     S: SessionInfo,
     H: TdsWireHandlerFactory<S>,
@@ -284,10 +311,8 @@ where
                     if let Err(e) =
                         process_request(msg, &mut socket, &mut session_info, handler.clone()).await
                     {
-                        tracing::error!("Error processing request: {}", e);
-                        // todo(mrhamburg): error handling + close session on error
-                        // process_error(&mut socket, e).await?;
-                        todo!()
+                        tracing::info!("Error processing request: {}", e);
+                        process_error(e, &mut socket, &mut session_info, handler.clone()).await?;
                     }
                 }
                 Err(e) => {
