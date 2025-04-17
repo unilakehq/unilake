@@ -2,6 +2,8 @@ pub mod codec;
 pub mod collation;
 pub mod prot;
 pub mod server_context;
+mod tds_server;
+mod tds_session;
 pub mod time;
 
 use crate::frontend::tds::codec::token::{TokenDone, TokenError};
@@ -197,8 +199,8 @@ where
             ),
         )
         .await?;
+
     handlers.send_token(socket, TokenDone::new_error(0)).await?;
-    // todo(mrhamburg): improve this section
     handlers.flush(socket).await?;
     Ok(())
 }

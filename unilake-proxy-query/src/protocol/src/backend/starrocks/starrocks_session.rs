@@ -3,11 +3,8 @@ use crate::frontend::tds::codec::LoginMessage;
 use crate::frontend::tds::prot::TdsSessionState;
 use crate::frontend::tds::server_context::ServerContext;
 use crate::server::ServerInstance;
-use crate::session::{
-    SessionInfo, SessionVariable, SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE,
-    SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SECURITY_IMPERSONATE,
-    SESSION_VARIABLE_SEND_TELEMETRY,
-};
+use crate::session::SessionInfo;
+use crate::sessions::{SessionVariable, SESSION_VARIABLE_SECURITY_IMPERSONATE};
 use casbin::{Cache, DefaultModel};
 use chrono::Datelike;
 use mysql_async::Conn;
@@ -70,7 +67,8 @@ impl StarRocksSession {
             tds_server_context: server_instance.ctx.clone(),
             client_nonce: None,
             server_nonce: None,
-            session_variables: StarRocksSession::get_default_session_variable(),
+            // session_variables: StarRocksSession::get_default_session_variable(),
+            session_variables: HashMap::new(),
             connection_reset_request_count: 0,
             branch_name: Arc::from(""),
             compute_id: Arc::from(""),
@@ -130,28 +128,6 @@ impl StarRocksSession {
             return cached_rules.clone();
         }
         panic!("No cached rules available");
-    }
-
-    fn get_default_session_variable() -> HashMap<String, SessionVariable> {
-        let mut variables = HashMap::new();
-        variables.insert(
-            SESSION_VARIABLE_CATALOG.to_string(),
-            SessionVariable::new_default("default_catalog"),
-        );
-        variables.insert(
-            SESSION_VARIABLE_DIALECT.to_string(),
-            SessionVariable::new_default("tsql"),
-        );
-        variables.insert(
-            SESSION_VARIABLE_DATABASE.to_string(),
-            // todo: return back to default_schema when we have proper session variable support
-            SessionVariable::new_default("dwh"),
-        );
-        variables.insert(
-            SESSION_VARIABLE_SEND_TELEMETRY.to_string(),
-            SessionVariable::new_default("false"),
-        );
-        variables
     }
 
     pub async fn close(&self) {

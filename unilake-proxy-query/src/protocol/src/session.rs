@@ -1,18 +1,13 @@
 use crate::backend::telemetry::QueryTelemetry;
 use crate::frontend::tds::prot::TdsSessionState;
 use crate::frontend::tds::server_context::ServerContext;
+use crate::sessions::SessionVariable;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use ulid::Ulid;
 use unilake_security::handler::SecurityHandler;
-
-pub const SESSION_VARIABLE_DIALECT: &str = "proxy_dialect";
-pub const SESSION_VARIABLE_CATALOG: &str = "proxy_catalog";
-pub const SESSION_VARIABLE_DATABASE: &str = "proxy_database";
-pub const SESSION_VARIABLE_SECURITY_IMPERSONATE: &str = "proxy_security_impersonate";
-pub const SESSION_VARIABLE_SEND_TELEMETRY: &str = "proxy_send_telemetry";
 
 pub trait SessionInfo: Send + Sync {
     /// Currently in use socket
@@ -109,34 +104,6 @@ pub trait SessionInfo: Send + Sync {
 
     /// Get all session variables
     fn get_session_variables(&self) -> HashMap<&str, &SessionVariable>;
-}
-
-pub enum SessionVariable {
-    Some(Arc<str>),
-    Default(Arc<str>),
-    None,
-}
-
-impl SessionVariable {
-    pub fn new(value: &str) -> Self {
-        SessionVariable::Some(Arc::from(value))
-    }
-
-    pub fn new_default(value: &str) -> Self {
-        SessionVariable::Default(Arc::from(value))
-    }
-
-    pub fn new_none() -> Self {
-        SessionVariable::None
-    }
-
-    pub fn get_value_or_default(&self) -> Arc<str> {
-        match self {
-            SessionVariable::Some(value) => value.clone(),
-            SessionVariable::Default(default_value) => default_value.clone(),
-            SessionVariable::None => Arc::from(""),
-        }
-    }
 }
 
 pub enum ServerInstanceMessage {

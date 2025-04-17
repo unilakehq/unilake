@@ -18,10 +18,10 @@ use crate::frontend::tds::collation::Collation;
 use crate::frontend::tds::prot::TdsWireHandlerFactory;
 use crate::frontend::tds::server_context::ServerContext;
 use crate::server::ServerInstance;
-use crate::session::{
-    ServerInstanceMessage, SessionAuditMessage, SessionInfo, SessionUserInfoEto,
-    SESSION_VARIABLE_CATALOG, SESSION_VARIABLE_DATABASE, SESSION_VARIABLE_DIALECT,
-    SESSION_VARIABLE_SEND_TELEMETRY,
+use crate::session::{ServerInstanceMessage, SessionAuditMessage, SessionInfo, SessionUserInfoEto};
+use crate::sessions::{
+    Session, SESSION_VARIABLE_CATALOG_NAME, SESSION_VARIABLE_DATABASE_NAME,
+    SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SEND_TELEMETRY,
 };
 use async_trait::async_trait;
 use chrono::{DateTime, TimeDelta, Utc};
@@ -340,8 +340,8 @@ impl StarRocksTdsHandlerFactory {
         let values = session_info.get_values_or_default(
             &[
                 SESSION_VARIABLE_DIALECT,
-                SESSION_VARIABLE_CATALOG,
-                SESSION_VARIABLE_DATABASE,
+                SESSION_VARIABLE_CATALOG_NAME,
+                SESSION_VARIABLE_DATABASE_NAME,
             ],
             true,
         );
@@ -351,8 +351,8 @@ impl StarRocksTdsHandlerFactory {
             .handle_query(
                 query,
                 values[SESSION_VARIABLE_DIALECT].as_ref(),
-                values[SESSION_VARIABLE_CATALOG].as_ref(),
-                values[SESSION_VARIABLE_DATABASE].as_ref(),
+                values[SESSION_VARIABLE_CATALOG_NAME].as_ref(),
+                values[SESSION_VARIABLE_DATABASE_NAME].as_ref(),
             )
             .await;
         tracing::trace!(

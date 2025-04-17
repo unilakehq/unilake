@@ -38,6 +38,8 @@ build_exceptions! {
     FailedSecureOperation(1001),
     PolicyNotFound(1001),
     QueryError(1002),
+    TooManySessions(1003),
+    ServerShutdown(1004)
 }
 
 // Security errors [0, 2000].

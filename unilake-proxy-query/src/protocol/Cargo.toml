@@ -38,3 +38,4 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }
 reqwest-eventsource = { workspace = true }
+parking_lot = { workspace = true }

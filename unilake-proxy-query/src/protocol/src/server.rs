@@ -13,11 +13,10 @@ use unilake_common::error::Result;
 use unilake_common::singleton_instance::GlobalInstance;
 use unilake_security::ABAC_MODEL;
 
-// todo: implement this trait for TDS and Flight
 #[async_trait::async_trait]
-pub trait Server: Send {
+pub trait FrontendServer: Send {
     async fn start(&mut self, bind: SocketAddr) -> Result<SocketAddr>;
-    async fn stop(&mut self);
+    async fn stop(&mut self, graceful: bool);
 }
 
 pub struct ServerInstance {

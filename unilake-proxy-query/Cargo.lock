@@ -3338,6 +3338,7 @@ dependencies = [
  "enumflags2",
  "futures",
  "mysql_async",
+ "parking_lot",
  "rand",
  "redis",
  "reqwest",
