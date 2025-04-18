@@ -1,6 +1,7 @@
 use crate::sessions::{
-    SessionVariable, SESSION_VARIABLE_CATALOG_NAME, SESSION_VARIABLE_DATABASE_NAME,
-    SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SEND_TELEMETRY,
+    SessionVariable, SESSION_VARIABLE_BRANCH_NAME, SESSION_VARIABLE_CATALOG_NAME,
+    SESSION_VARIABLE_DATABASE_NAME, SESSION_VARIABLE_DIALECT, SESSION_VARIABLE_SEND_TELEMETRY,
+    SESSION_VARIABLE_TENANT_ID,
 };
 use parking_lot::RwLock;
 use std::any::Any;
@@ -158,6 +159,24 @@ impl SessionContext {
         self.set_session_variable(
             SESSION_VARIABLE_DIALECT.to_string(),
             SessionVariable::Some(dialect),
+        );
+    }
+
+    pub fn get_current_tenant_id(&self) -> Option<Arc<str>> {
+        self.get_session_variable(SESSION_VARIABLE_TENANT_ID, true)
+    }
+
+    pub fn set_current_tenant_id(&self, tenant_id: Arc<str>) {
+        self.set_session_variable(
+            SESSION_VARIABLE_TENANT_ID.to_string(),
+            SessionVariable::Some(tenant_id),
+        );
+    }
+
+    pub fn set_current_branch_name(&self, branch_name: Arc<str>) {
+        self.set_session_variable(
+            SESSION_VARIABLE_BRANCH_NAME.to_string(),
+            SessionVariable::Some(branch_name),
         );
     }
 }

@@ -10,9 +10,9 @@ use unilake_common::error_code::ErrorCode;
 use unilake_common::singleton_instance::GlobalInstance;
 
 pub struct SessionManager {
-    pub max_sessions: usize,
-    pub active_sessions: Arc<RwLock<HashMap<Ulid, Weak<Session>>>>,
-    pub status: Arc<RwLock<SessionManagerStatus>>,
+    max_sessions: usize,
+    active_sessions: Arc<RwLock<HashMap<Ulid, Weak<Session>>>>,
+    status: Arc<RwLock<SessionManagerStatus>>,
 }
 
 impl SessionManager {
@@ -22,8 +22,13 @@ impl SessionManager {
         Ok(())
     }
 
-    pub fn create() -> Arc<SessionManager> {
-        todo!()
+    fn create() -> Arc<SessionManager> {
+        Arc::new(SessionManager {
+            // todo: get from some env config
+            max_sessions: 1000,
+            active_sessions: Arc::new(RwLock::new(HashMap::new())),
+            status: Arc::new(RwLock::new(SessionManagerStatus::default())),
+        })
     }
 
     pub fn instance() -> Arc<SessionManager> {
@@ -41,7 +46,14 @@ impl SessionManager {
         }
     }
 
-    pub fn add_session(&self, session: Arc<Session>) -> Result<()> {
+    pub fn next_session_id(&self) -> Ulid {
+        let session_id = Ulid::new();
+        tracing::trace!("Generating new session ID: {}", session_id.to_string());
+        session_id
+    }
+
+    pub fn add_session(&self, session: Session) -> Result<Arc<Session>> {
+        let session = Arc::new(session);
         self.validate_max_session_count(
             self.active_sessions.read().len() + 1,
             &format!("{}", session.typ),
@@ -49,7 +61,7 @@ impl SessionManager {
 
         let mut active_sessions = self.active_sessions.write();
         active_sessions.insert(session.get_session_id(), Arc::downgrade(&session));
-        Ok(())
+        Ok(session)
     }
 
     pub fn get_session_by_id(&self, session_id: Ulid) -> Option<Arc<Session>> {

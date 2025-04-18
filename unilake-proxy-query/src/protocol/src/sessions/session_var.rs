@@ -9,6 +9,7 @@ pub const SESSION_VARIABLE_BRANCH_NAME: &str = "proxy_branch_name";
 pub const SESSION_VARIABLE_TENANT_ID: &str = "proxy_tenant_id";
 pub const SESSION_VARIABLE_DOMAIN_ID: &str = "proxy_domain_id";
 pub const SESSION_VARIABLE_WORKSPACE_ID: &str = "proxy_workspace_id";
+pub const SESSION_VARIABLE_DIALECT_NAME: &str = "proxy_dialect_name";
 
 #[derive(Clone)]
 pub enum SessionVariable {

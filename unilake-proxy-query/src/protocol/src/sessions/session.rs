@@ -54,12 +54,12 @@ impl Session {
         self.ctx.get_current_database().unwrap_or_default()
     }
 
-    pub fn set_current_database(&self, database: Arc<str>) {
-        self.ctx.set_current_database(database);
+    pub fn set_current_database(&self, database: String) {
+        self.ctx.set_current_database(Arc::from(database));
     }
 
-    pub fn get_current_query_id(&self) -> Arc<str> {
-        todo!()
+    pub fn get_current_query_id(&self) -> Option<String> {
+        self.info.read().current_query_id.clone()
     }
 
     pub fn get_current_user_id(&self) -> Arc<str> {
@@ -76,7 +76,11 @@ impl Session {
     }
 
     pub fn get_current_tenant_id(&self) -> Arc<str> {
-        todo!()
+        self.ctx.get_current_tenant_id().unwrap_or_default()
+    }
+
+    pub fn set_current_tenant_id(&self, tenant_id: Arc<str>) {
+        self.ctx.set_current_tenant_id(tenant_id);
     }
 
     pub fn set_current_user_id(&self, user_id: Arc<str>) -> Arc<str> {
@@ -85,6 +89,30 @@ impl Session {
 
     pub fn get_all_variables(&self) -> HashMap<String, SessionVariable> {
         self.ctx.get_session_variables()
+    }
+
+    pub fn get_compute_id(&self) -> Arc<str> {
+        todo!()
+    }
+
+    pub fn set_compute_id(&self, compute_id: Arc<str>) -> Arc<str> {
+        todo!()
+    }
+
+    pub fn get_workspace_id(&self) -> Arc<str> {
+        todo!()
+    }
+
+    pub fn set_workspace_id(&self, workspace_id: Arc<str>) -> Arc<str> {
+        todo!()
+    }
+
+    pub fn get_domain_id(&self) -> Arc<str> {
+        todo!()
+    }
+
+    pub fn set_domain_id(&self, domain_id: Arc<str>) -> Arc<str> {
+        todo!()
     }
 }
 

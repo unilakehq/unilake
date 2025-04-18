@@ -36,7 +36,7 @@ tokio-rustls = { version = "0.26", optional = false, default-features = false, f
     "logging",
     "tls12",
 ] }
-tokio-stream = { version = "0.1.16" }
+tokio-stream = { version = "0.1.16", features = ["net"] }
 async-stream = { version = "0.3.6" }
 futures = { version = "0.3.30" }
 thiserror = { version = "1.0.63" }
@@ -71,6 +71,8 @@ once_cell = { version = "1.21.3" }
 state = { version = "0.6.0" }
 parking_lot = { version = "0.12.3" }
 paste = { version = "1.0.15" }
+opensrv-mysql = { version = "0.7.0" }
+async-backtrace = { version = "0.2.7" }
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.

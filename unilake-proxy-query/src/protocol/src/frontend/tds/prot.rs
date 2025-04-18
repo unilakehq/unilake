@@ -2,8 +2,7 @@ use crate::frontend::tds::codec::token::TdsToken;
 use crate::frontend::tds::codec::{
     BatchRequest, LoginMessage, PreloginMessage, RpcRequest, TdsBackendResponse, TdsMessage,
 };
-use crate::server::ServerInstance;
-use crate::session::SessionInfo;
+use crate::sessions::Session;
 use async_trait::async_trait;
 use futures::{Sink, SinkExt};
 use std::{net::SocketAddr, sync::Arc};
@@ -40,25 +39,18 @@ pub enum TdsSessionState {
 }
 
 #[async_trait]
-pub trait TdsWireHandlerFactory<S>: Send + Sync
-where
-    S: SessionInfo + Send + Sync,
-{
+pub trait TdsWireHandlerFactory: Send + Sync {
     /// Create a new TDS server session
-    async fn open_session(
-        &self,
-        socket_addr: &SocketAddr,
-        instance_info: Arc<ServerInstance>,
-    ) -> Result<S>;
+    async fn open_session(&self, socket_addr: &SocketAddr) -> Result<Session>;
 
     /// Close TDS server session
-    async fn close_session(&self, session: &mut S);
+    async fn close_session(&self, session: Arc<Session>);
 
     /// Called when pre-login request arrives
     async fn on_prelogin_request<C>(
         &self,
         client: &mut C,
-        session_info: &mut S,
+        session: Arc<Session>,
         msg: &PreloginMessage,
     ) -> Result<()>
     where
@@ -68,7 +60,7 @@ where
     async fn on_login7_request<C>(
         &self,
         client: &mut C,
-        session_info: &mut S,
+        session: Arc<Session>,
         msg: &LoginMessage,
     ) -> Result<()>
     where
@@ -77,13 +69,13 @@ where
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
     /// token is part of a login request.
-    fn on_federated_authentication_token_message(&self, session: &S);
+    fn on_federated_authentication_token_message(&self, session: Arc<Session>);
 
     /// Called when RPC request arrives
     async fn on_remote_procedure_call<C>(
         &self,
         client: &mut C,
-        session_info: &mut S,
+        session: Arc<Session>,
         rpc: &RpcRequest,
     ) -> Result<()>
     where
@@ -93,14 +85,14 @@ where
     async fn on_sql_batch_request<C>(
         &self,
         client: &mut C,
-        session_info: &mut S,
+        session: Arc<Session>,
         msg: &BatchRequest,
     ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send;
 
     /// Called when attention arrives
-    fn on_attention(&self, session: &S);
+    fn on_attention(&self, session: Arc<Session>);
 
     /// Send message to the client
     async fn send_message<C, M>(&self, client: &mut C, msg: M) -> Result<()>

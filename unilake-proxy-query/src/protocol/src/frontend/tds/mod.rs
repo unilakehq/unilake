@@ -11,8 +11,9 @@ use crate::frontend::tds::codec::{
     PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage,
 };
 use crate::frontend::tds::prot::{TdsSessionState, TdsWireHandlerFactory};
-use crate::server::ServerInstance;
+use crate::server_instance::ServerInstance;
 use crate::session::SessionInfo;
+use crate::sessions::{Session, SessionManager};
 use derive_new::new;
 use futures::SinkExt;
 use std::sync::atomic::{AtomicU16, Ordering};
@@ -43,11 +44,11 @@ enum AllHeaderTy {
 pub struct TdsWireMessageServerCodec {
     packet_number: u8,
     current_response: BytesMut,
-    packet_size: Arc<AtomicU16>,
+    packet_size: u16,
 }
 
 impl TdsWireMessageServerCodec {
-    fn new(packet_size: Arc<AtomicU16>) -> Self {
+    fn new(packet_size: u16) -> Self {
         TdsWireMessageServerCodec {
             packet_number: 0,
             current_response: BytesMut::new(),
@@ -177,13 +178,13 @@ impl Encoder<TdsBackendResponse> for TdsWireMessageServerCodec {
 async fn process_error<T, H, S>(
     error: ErrorCode,
     socket: &mut Framed<T, TdsWireMessageServerCodec>,
-    session_info: &mut S,
+    session: Arc<Session>,
     handlers: Arc<H>,
 ) -> Result<()>
 where
     T: AsyncRead + AsyncWrite + Unpin + Send + Sync,
     S: SessionInfo,
-    H: TdsWireHandlerFactory<S>,
+    H: TdsWireHandlerFactory,
 {
     handlers
         .send_token(
@@ -193,7 +194,7 @@ where
                 0,
                 0,
                 error.message(),
-                session_info.tds_server_context().server_name.clone(),
+                session.tds_server_context().server_name.clone(),
                 "TDS Proxy".to_string(),
                 0,
             ),
@@ -208,30 +209,28 @@ where
 async fn process_request<T, H, S>(
     request: TdsFrontendRequest,
     socket: &mut Framed<T, TdsWireMessageServerCodec>,
-    session_info: &mut S,
+    session: Arc<Session>,
     handlers: Arc<H>,
 ) -> Result<()>
 where
     T: AsyncRead + AsyncWrite + Unpin + Send + Sync,
     S: SessionInfo,
-    H: TdsWireHandlerFactory<S>,
+    H: TdsWireHandlerFactory,
 {
     for (_header, message) in request.messages {
-        match session_info.state() {
+        match session.state() {
             TdsSessionState::Initial => {
                 if let TdsMessage::PreLogin(p) = message {
-                    handlers
-                        .on_prelogin_request(socket, session_info, &p)
-                        .await?;
-                    session_info.set_state(TdsSessionState::PreLoginProcessed);
+                    handlers.on_prelogin_request(socket, session, &p).await?;
+                    session.set_state(TdsSessionState::PreLoginProcessed);
                 } else {
                     return Err(ErrorCode::TdsIncorrectState("PreLogin"));
                 }
             }
             TdsSessionState::PreLoginProcessed => {
                 if let TdsMessage::Login(l) = message {
-                    handlers.on_login7_request(socket, session_info, &l).await?;
-                    session_info.set_state(TdsSessionState::LoggedIn);
+                    handlers.on_login7_request(socket, session, &l).await?;
+                    session.set_state(TdsSessionState::LoggedIn);
                 } else {
                     return Err(ErrorCode::TdsIncorrectState("Login"));
                 }
@@ -242,12 +241,10 @@ where
             TdsSessionState::Login7FederatedAuthenticationInformationRequestProcessed => todo!(),
             TdsSessionState::LoggedIn => {
                 if let TdsMessage::BatchRequest(b) = message {
-                    handlers
-                        .on_sql_batch_request(socket, session_info, &b)
-                        .await?;
+                    handlers.on_sql_batch_request(socket, session, &b).await?;
                 } else if let TdsMessage::RemoteProcedureCall(rpc) = message {
                     handlers
-                        .on_remote_procedure_call(socket, session_info, &rpc)
+                        .on_remote_procedure_call(socket, session, &rpc)
                         .await?;
                 }
 
@@ -274,32 +271,21 @@ pub async fn process_socket<H, S>(
     tcp_socket: TcpStream,
     _tls_acceptor: Option<Arc<TlsAcceptor>>,
     handler: Arc<H>,
-    instance: Arc<ServerInstance>,
 ) -> Result<()>
 where
     S: SessionInfo,
-    H: TdsWireHandlerFactory<S>,
+    H: TdsWireHandlerFactory,
 {
     let addr = tcp_socket.peer_addr()?;
     tcp_socket.set_nodelay(true)?;
 
-    let session_info = handler.open_session(&addr, instance.clone()).await;
-
-    let mut session_info = match session_info {
-        Ok(s) => {
-            instance.increment_session_counter();
-            s
-        }
-        Err(_) => {
-            // todo(mrhamburg): handle error and close connection
-            // process_error(&mut socket, e).await?;
-            return Ok(());
-        }
-    };
+    let session_mgr = SessionManager::instance();
+    let session = handler.open_session(&addr).await?;
+    let session = session_mgr.add_session(session)?;
 
     let tcp_socket = Framed::new(
         tcp_socket,
-        TdsWireMessageServerCodec::new(session_info.packet_size()),
+        TdsWireMessageServerCodec::new(session.packet_size()),
     );
     // let ssl = peek_for_sslrequest(&mut tcp_socket, tls_acceptor.is_some()).await?;
 
@@ -311,10 +297,10 @@ where
             match packet {
                 Ok(msg) => {
                     if let Err(e) =
-                        process_request(msg, &mut socket, &mut session_info, handler.clone()).await
+                        process_request(msg, &mut socket, session.clone(), handler.clone()).await
                     {
                         tracing::info!("Error processing request: {}", e);
-                        process_error(e, &mut socket, &mut session_info, handler.clone()).await?;
+                        process_error(e, &mut socket, session.clone(), handler.clone()).await?;
                     }
                 }
                 Err(e) => {
@@ -327,8 +313,7 @@ where
         }
 
         // remove session
-        handler.close_session(&mut session_info).await;
-        instance.decrement_session_counter();
+        handler.close_session(session).await;
     }
 
     Ok(())

@@ -1,9 +1,9 @@
 use crate::frontend::tds::codec::token::TokenInfo;
 use crate::frontend::tds::server_context::ServerContext;
-use crate::server::ServerInstance;
 use crate::session::ServerInstanceMessage;
 use serde::Serialize;
 use std::sync::Arc;
+use crate::server_instance::ServerInstance;
 
 #[derive(Serialize, Clone)]
 pub struct QueryTelemetry {
@@ -83,7 +83,8 @@ pub struct QueryTelemetryHandler {
 impl QueryTelemetryHandler {
     /// Initializes a new QueryTelemetry instance with the given query ID.
     /// Starts the timer on initialization
-    pub fn new(server_instance: Arc<ServerInstance>) -> Self {
+    pub fn new() -> Self {
+        let server_instance = ServerInstance::instance();
         QueryTelemetryHandler {
             server_instance,
             query_telemetry: Some(QueryTelemetry::new()),

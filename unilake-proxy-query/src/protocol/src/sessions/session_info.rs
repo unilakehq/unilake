@@ -7,8 +7,6 @@ pub struct SessionProcessInfo {
     pub current_query_id: Option<String>,
 }
 
-impl SessionProcessInfo {}
-
 impl Default for SessionProcessInfo {
     fn default() -> Self {
         SessionProcessInfo {

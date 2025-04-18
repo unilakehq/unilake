@@ -32,6 +32,9 @@ macro_rules! build_exceptions {
 // Internal errors [0, 2000].
 build_exceptions! {
     Ok(0),
+    Internal(1),
+    TokioError(2),
+    PanicError(3),
     UnknownDatabase(1003),
     FailedScanOperation(1001),
     FailedTranspileOperation(1001),
@@ -85,5 +88,5 @@ build_exceptions! {
 
 // StarRocks Backend errors [0, 2000].
 build_exceptions! {
-    StarRocksConnectionPoolError(0)
+    StarrocksConnectionPoolError(0)
 }

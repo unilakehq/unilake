@@ -14,6 +14,9 @@ serde = { workspace = true }
 config = { workspace = true }
 tracing = { workspace = true }
 once_cell = { workspace = true }
-state = { workspace = true }
 parking_lot = { workspace = true }
 paste = { workspace = true }
+tokio = { workspace = true }
+state = { workspace = true }
+futures = { workspace = true }
+async-backtrace = { workspace = true }

@@ -9,4 +9,5 @@ mod session_var;
 
 pub use session::Session;
 pub use session_ctx::*;
+pub use session_mgr::SessionManager;
 pub use session_var::*;

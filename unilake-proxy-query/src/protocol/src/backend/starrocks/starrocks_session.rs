@@ -2,7 +2,6 @@ use crate::backend::starrocks::StarRocksBackend;
 use crate::frontend::tds::codec::LoginMessage;
 use crate::frontend::tds::prot::TdsSessionState;
 use crate::frontend::tds::server_context::ServerContext;
-use crate::server::ServerInstance;
 use crate::session::SessionInfo;
 use crate::sessions::{SessionVariable, SESSION_VARIABLE_SECURITY_IMPERSONATE};
 use casbin::{Cache, DefaultModel};
@@ -19,6 +18,7 @@ use unilake_common::error_code::ErrorCode;
 use unilake_common::model::{AppInfoModel, IpInfoModel, SessionModel};
 use unilake_security::caching::layered_cache::MultiLayeredCache;
 use unilake_security::HitRule;
+use crate::server_instance::ServerInstance;
 
 pub struct StarRocksSession {
     socket_addr: SocketAddr,
@@ -42,20 +42,19 @@ pub struct StarRocksSession {
     backend: Option<Arc<StarRocksBackend>>,
     conn: Option<Mutex<Conn>>,
     cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
-    server_instance: Arc<ServerInstance>,
     login_message: Option<LoginMessage>,
 }
 
 impl StarRocksSession {
     pub fn new(
         socket_addr: SocketAddr,
-        server_instance: Arc<ServerInstance>,
         conn: Option<Mutex<Conn>>,
         cached_rules: Option<Arc<Box<dyn Cache<u64, (String, HitRule)>>>>,
     ) -> Self {
         // let e = Arc::new(Mutex::new(
         //     CachedEnforcer::new(abac_model, adapter).await.unwrap(),
         // ));
+        let server_instance = ServerInstance::instance();
         StarRocksSession {
             socket_addr,
             packet_size: Arc::new(AtomicU16::new(server_instance.ctx.packet_size)),
