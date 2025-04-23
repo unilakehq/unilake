@@ -31,6 +31,7 @@ chrono = { version = "0.4.38" }
 tokio-util = { version = "0.7.11", features = [
     "codec",
     "io",
+    "rt"
 ], optional = false }
 tokio-rustls = { version = "0.26", optional = false, default-features = false, features = [
     "logging",

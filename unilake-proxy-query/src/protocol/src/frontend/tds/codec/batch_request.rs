@@ -59,8 +59,8 @@ impl TdsMessageCodec for BatchRequest {
         let query_text = String::from_utf16_lossy(&qtx[..]);
 
         Ok(TdsMessage::BatchRequest(BatchRequest {
-            query: query_text.clone(),
             query_lowercased: query_text.to_lowercase(),
+            query: query_text,
             transaction_descriptor: tx_descriptor.to_vec(),
         }))
     }

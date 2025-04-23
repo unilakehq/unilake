@@ -1,6 +1,6 @@
-// intent is that here we define the logic to maintain caches and handle their updates via sse (single sse consumer for all caches) -> use remove_local(key) function on the cache
-
+use crate::server_instance::ServerInstance;
 use casbin::{Cache, DefaultCache};
+use parking_lot::RwLock;
 use redis::cluster::{ClusterClient, ClusterClientBuilder};
 use reqwest_eventsource::{Event, EventSource};
 use serde::de::DeserializeOwned;
@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::select;
 use tokio_stream::StreamExt;
 use unilake_common::model::{
     AccessPolicyModel, AppInfoModel, EntityModel, GroupModel, IpInfoModel, UserModel,
@@ -17,6 +17,7 @@ use unilake_common::settings::{
     settings_cache_invalidation_enabled, settings_cache_redis_host, settings_cache_redis_password,
     settings_cache_redis_port, settings_cache_redis_username, settings_server_api_endpoint,
 };
+use unilake_common::singleton_instance::GlobalInstance;
 use unilake_security::adapter::cached_adapter::{CachedAdapter, CachedPolicyRules};
 use unilake_security::caching::layered_cache::{
     BackendProvider, MultiLayeredCache, NoOpCache, RedisBackendProvider,
@@ -24,7 +25,7 @@ use unilake_security::caching::layered_cache::{
 use unilake_security::repository::{CacheContainer, RepoRest};
 use unilake_security::HitRule;
 
-pub struct BackendInstance {
+pub struct BackendData {
     tenant_id: String,
     user_model: Arc<Box<MultiLayeredCache<String, UserModel>>>,
     group_model: Arc<Box<MultiLayeredCache<String, GroupModel>>>,
@@ -37,7 +38,7 @@ pub struct BackendInstance {
     rest_client: reqwest::Client,
 }
 
-impl BackendInstance {
+impl BackendData {
     /// Get the cache container, contains models used for query evaluation (all context)
     pub fn get_cache_container(&self) -> CacheContainer {
         CacheContainer::new(
@@ -54,13 +55,13 @@ impl BackendInstance {
     }
 
     pub async fn add_user_session(&self, sql_userid: String) {
-        if let Some(items) = self.user_rule_hits.write().await.get_mut(&sql_userid) {
+        if let Some(items) = self.user_rule_hits.write().get_mut(&sql_userid) {
             items.0 += 1;
         }
     }
 
     pub async fn remove_user_session(&self, sql_userid: String) {
-        let mut items = self.user_rule_hits.write().await;
+        let mut items = self.user_rule_hits.write();
         if let Some((counter, _)) = items.get_mut(&sql_userid) {
             *counter -= 1;
             if *counter == 0 {
@@ -76,10 +77,10 @@ impl BackendInstance {
         &self,
         sql_userid: String,
     ) -> Arc<Box<dyn Cache<u64, (String, HitRule)>>> {
-        if let Some(cached_hits) = self.user_rule_hits.read().await.get(&sql_userid) {
+        if let Some(cached_hits) = self.user_rule_hits.read().get(&sql_userid) {
             return cached_hits.1.clone();
         }
-        let mut items = self.user_rule_hits.write().await;
+        let mut items = self.user_rule_hits.write();
         let cache: Arc<Box<dyn Cache<u64, (String, HitRule)>>> =
             Arc::new(Box::new(DefaultCache::new(100)));
         items.insert(sql_userid, (1, cache.clone()));
@@ -125,7 +126,7 @@ impl BackendInstance {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct SseEventDto {
+pub struct SseEventDto {
     #[serde(rename = "tenantId")]
     tenant_id: String,
     #[serde(rename = "invalidationRequest")]
@@ -133,28 +134,172 @@ struct SseEventDto {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct SseInvalidateRequestDto {
+pub struct SseInvalidateRequestDto {
     #[serde(rename = "cacheType")]
     cache_type: String,
     key: String,
 }
 
 pub struct BackendHandler {
-    instances: RwLock<HashMap<String, Arc<BackendInstance>>>,
-    redis_client: Option<Arc<ClusterClient>>,
     backend_running: RwLock<bool>,
-    rest_client: Option<reqwest::Client>,
+    inner: Arc<InnerBackendHandler>,
 }
 
 impl BackendHandler {
-    pub fn new() -> Self {
-        let redis_client = Self::get_redis_client();
-        BackendHandler {
-            redis_client,
-            instances: RwLock::new(HashMap::new()),
+    pub fn init() -> Arc<Self> {
+        let global_instance = Self::create();
+        GlobalInstance::set(global_instance.clone());
+        global_instance
+    }
+
+    fn create() -> Arc<Self> {
+        Arc::new(BackendHandler {
             backend_running: RwLock::new(false),
-            rest_client: Some(reqwest::Client::new()),
+            inner: Arc::new(InnerBackendHandler::default()),
+        })
+    }
+
+    /// Starts an SSE Consumer for all tenants to check for SSE updates and invalidate local caches.
+    /// Depending on your permission, this sse consumer will either receive all tenants data or just your own tenant
+    pub fn start(&self) {
+        if *self.backend_running.read() {
+            panic!("SSE consumer already running, only one instance is allowed.");
         }
+
+        let server_instance = ServerInstance::instance();
+        let ct = server_instance.get_cancellation_token();
+        let cloned_ct = ct.clone();
+        let inner = self.inner.clone();
+        *self.backend_running.write() = true;
+
+        let join_handle = tokio::spawn(async move {
+            let mut backoff = 1;
+            // todo: add hmac based authentication
+            let endpoint = format!(
+                "{}/security/proxy/event-stream",
+                settings_server_api_endpoint()
+            );
+            tracing::info!("Starting SSE consumer at {}", endpoint);
+            loop {
+                let mut es = EventSource::get(endpoint.clone());
+                select! {
+                    _ = ct.cancelled() => {}
+                    _ = async {} => {
+                        while let Some(event) = es.next().await {
+                            match event {
+                                Ok(Event::Open) => {
+                                    tracing::info!(
+                                        "SSE consumer connected, clearing caches on initial run."
+                                    );
+                                    inner.clear_all_instances();
+                                }
+                                Ok(Event::Message(message)) => {
+                                    tracing::info!("Received SSE update: {:?}", message);
+                                    match message.event.as_str() {
+                                        "update" => {
+                                            match serde_json::from_str::<SseEventDto>(&message.data) {
+                                                Ok(event) => {
+                                                    inner.on_sse_event(event).await;
+                                                }
+                                                Err(e) => {
+                                                    tracing::error!("Error parsing SSE update: {}", e);
+                                                }
+                                            }
+                                        }
+                                        _ => tracing::warn!("Unknown SSE event: {}", message.event),
+                                    }
+                                }
+                                Err(err) => {
+                                    backoff *= 2;
+                                    backoff = std::cmp::min(backoff, 30);
+                                    tracing::error!(
+                                        "Error in SSE consumer: {}. Reconnecting in {} seconds",
+                                        err,
+                                        backoff
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        server_instance.spawn(join_handle, cloned_ct);
+    }
+}
+
+struct InnerBackendHandler {
+    redis_client: Option<Arc<ClusterClient>>,
+    instances: RwLock<HashMap<String, Arc<BackendData>>>,
+    rest_client: Option<reqwest::Client>,
+}
+
+impl InnerBackendHandler {
+    pub async fn on_sse_event(&self, update: SseEventDto) {
+        tracing::info!("Received SSE action: {:?}", update);
+        let instance = self.get_backend_instance(update.tenant_id.clone());
+        if let Some(invalidation_reques) = update.invalidation_request {
+            match invalidation_reques.cache_type.as_str() {
+                "user" => {
+                    instance
+                        .user_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "group" => {
+                    instance
+                        .group_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "entity" => {
+                    instance
+                        .entity_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "access_policy" => {
+                    instance
+                        .access_policy_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "ip_info" => {
+                    instance
+                        .ip_info_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "app_info" => {
+                    instance
+                        .app_info_model
+                        .remove_local(&invalidation_reques.key)
+                        .await
+                }
+                "policy" => instance.policy_cache.clear(),
+                "all" => {
+                    self.clear_tenant_instances(&update.tenant_id, true);
+                }
+                _ => {
+                    tracing::warn!("Unknown cache type: {}", invalidation_reques.cache_type);
+                }
+            }
+        }
+    }
+
+    /// Clears all local data for all tenants.
+    fn clear_all_instances(&self) {
+        let instances = self.instances.write();
+        for (tenant_id, _) in instances.iter() {
+            self.clear_tenant_instances(tenant_id, true);
+        }
+    }
+
+    pub fn get_rest_client(&self) -> reqwest::Client {
+        self.rest_client
+            .clone()
+            .unwrap_or_else(|| panic!("No REST client configured"))
     }
 
     fn get_redis_client() -> Option<Arc<ClusterClient>> {
@@ -187,12 +332,6 @@ impl BackendHandler {
         }
     }
 
-    pub fn get_rest_client(&self) -> reqwest::Client {
-        self.rest_client
-            .clone()
-            .unwrap_or_else(|| panic!("No REST client configured"))
-    }
-
     /// Returns either a distributed cache (redis) or a no-op cache (local)
     fn get_distributed_cache<K, V>(
         &self,
@@ -214,9 +353,9 @@ impl BackendHandler {
     }
 
     /// Add a new tenant to the backend handler
-    async fn add_tenant(&self, tenant_id: String) -> Arc<BackendInstance> {
+    pub fn add_tenant(&self, tenant_id: String) -> Arc<BackendData> {
         let local_cap = 100;
-        let backend_instance = BackendInstance {
+        let backend_instance = BackendData {
             tenant_id: tenant_id.to_owned(),
             user_rule_hits: RwLock::new(HashMap::new()),
             user_model: Arc::new(Box::new(MultiLayeredCache::new(
@@ -260,7 +399,6 @@ impl BackendHandler {
         let backend_instance = Arc::new(backend_instance);
         self.instances
             .write()
-            .await
             .insert(tenant_id, Arc::clone(&backend_instance));
 
         backend_instance
@@ -268,18 +406,18 @@ impl BackendHandler {
 
     /// Get the backend instance for a specific tenant.
     /// will add the tenant if it doesn't exist.
-    pub async fn get_backend_instance(&self, tenant_id: String) -> Arc<BackendInstance> {
-        if let Some(instance) = self.instances.read().await.get(&tenant_id) {
+    pub fn get_backend_instance(&self, tenant_id: String) -> Arc<BackendData> {
+        if let Some(instance) = self.instances.read().get(&tenant_id) {
             return instance.clone();
         }
-        self.add_tenant(tenant_id).await
+        self.add_tenant(tenant_id)
     }
 
     /// Clears all instances for a specific tenant.
     /// To be called when a tenant has no connections left on this proxy.
     /// Tenant can get the data from the distribute cache on reconnect. In case this instance is used in
     /// a single tenant environment, you can disable the cache invalidation feature for improved performance.
-    pub async fn clear_tenant_instances(&self, tenant_id: &str, forced: bool) {
+    pub fn clear_tenant_instances(&self, tenant_id: &str, forced: bool) {
         if settings_cache_invalidation_enabled() || forced {
             tracing::warn!(
                 "Invalidating cache for tenant {}, forced: {}",
@@ -287,125 +425,18 @@ impl BackendHandler {
                 forced
             );
             self.get_backend_instance(tenant_id.to_string())
-                .await
                 .clear_local_data();
         }
     }
+}
 
-    async fn on_sse_event(&self, update: SseEventDto) {
-        tracing::info!("Received SSE action: {:?}", update);
-        let instance = self.get_backend_instance(update.tenant_id.clone()).await;
-        if let Some(invalidation_reques) = update.invalidation_request {
-            match invalidation_reques.cache_type.as_str() {
-                "user" => {
-                    instance
-                        .user_model
-                        .remove_local(&invalidation_reques.key)
-                        .await
-                }
-                "group" => {
-                    instance
-                        .group_model
-                        .remove_local(&invalidation_reques.key)
-                        .await
-                }
-                "entity" => {
-                    instance
-                        .entity_model
-                        .remove_local(&invalidation_reques.key)
-                        .await
-                }
-                "access_policy" => {
-                    instance
-                        .access_policy_model
-                        .remove_local(&invalidation_reques.key)
-                        .await
-                }
-                "ip_info" => {
-                    instance
-                        .ip_info_model
-                        .remove_local(&invalidation_reques.key)
-                        .await
-                }
-                "app_info" => {
-                    instance
-                        .app_info_model
-                        .remove_local(&invalidation_reques.key)
-                        .await
-                }
-                "policy" => instance.policy_cache.clear(),
-                "all" => {
-                    self.clear_tenant_instances(&update.tenant_id, true).await;
-                }
-                _ => {
-                    tracing::warn!("Unknown cache type: {}", invalidation_reques.cache_type);
-                }
-            }
+impl Default for InnerBackendHandler {
+    fn default() -> Self {
+        let redis_client = InnerBackendHandler::get_redis_client();
+        InnerBackendHandler {
+            redis_client,
+            instances: RwLock::new(HashMap::new()),
+            rest_client: Some(reqwest::Client::new()),
         }
-    }
-
-    /// Clears all local data for all tenants.
-    async fn clear_all_instances(&self) {
-        let instances = self.instances.write().await;
-        for (tenant_id, _) in instances.iter() {
-            self.clear_tenant_instances(tenant_id, true).await;
-        }
-    }
-
-    /// Starts an SSE Consumer for all tenants to check for SSE updates and invalidate local caches.
-    /// Depending on your permission, this sse consumer will either receive all tenants data or just your own tenant
-    pub async fn start_sse_consumer(backend_handler: Arc<Self>) {
-        if *backend_handler.backend_running.read().await {
-            panic!("SSE consumer already running, only one instance is allowed.");
-        }
-
-        tokio::spawn(async move {
-            let mut backoff = 1;
-            *backend_handler.backend_running.write().await = true;
-
-            // todo: add hmac based authentication
-            let endpoint = format!(
-                "{}/security/proxy/event-stream",
-                settings_server_api_endpoint()
-            );
-            tracing::info!("Starting SSE consumer at {}", endpoint);
-            loop {
-                tokio::time::sleep(std::time::Duration::from_secs(backoff)).await;
-                let mut es = EventSource::get(endpoint.clone());
-                while let Some(event) = es.next().await {
-                    match event {
-                        Ok(Event::Open) => {
-                            tracing::info!(
-                                "SSE consumer connected, clearing caches on initial run."
-                            );
-                            backend_handler.clear_all_instances().await;
-                        }
-                        Ok(Event::Message(message)) => {
-                            tracing::info!("Received SSE update: {:?}", message);
-                            match message.event.as_str() {
-                                "update" => {
-                                    match serde_json::from_str::<SseEventDto>(&message.data) {
-                                        Ok(event) => backend_handler.on_sse_event(event).await,
-                                        Err(e) => {
-                                            tracing::error!("Error parsing SSE update: {}", e);
-                                        }
-                                    }
-                                }
-                                _ => tracing::warn!("Unknown SSE event: {}", message.event),
-                            }
-                        }
-                        Err(err) => {
-                            backoff *= 2;
-                            backoff = std::cmp::min(backoff, 30);
-                            tracing::error!(
-                                "Error in SSE consumer: {}. Reconnecting in {} seconds",
-                                err,
-                                backoff
-                            );
-                        }
-                    }
-                }
-            }
-        });
     }
 }

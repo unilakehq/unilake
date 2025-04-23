@@ -1,7 +1,7 @@
 use crate::backend::app::{
     FedResult, FedResultStream, FederatedFrontendHandler, FederatedRequestType,
 };
-use crate::backend::data::BackendInstance;
+use crate::backend::backend_data::BackendData;
 use crate::backend::starrocks::starrocks_session::StarRocksSession;
 use crate::backend::telemetry::{QueryTelemetry, QueryTelemetryHandler};
 use crate::frontend::tds::codec::token::{
@@ -39,7 +39,7 @@ pub struct StarRocksTdsHandlerFactory {
 }
 
 impl StarRocksTdsHandlerFactory {
-    pub fn new(server_instance: Arc<ServerInstance>) -> Self {
+    pub fn new() -> Self {
         StarRocksTdsHandlerFactory {
             inner: StarRocksTdsHandlerFactoryInnnerState::new(server_instance),
         }
@@ -119,7 +119,7 @@ impl StarRocksTdsHandlerFactory {
         Ok(())
     }
 
-    async fn get_backend_instance(&self, session_info: &StarRocksSession) -> Arc<BackendInstance> {
+    async fn get_backend_instance(&self, session_info: &StarRocksSession) -> Arc<BackendData> {
         self.inner
             .server_instance
             .backend_handler

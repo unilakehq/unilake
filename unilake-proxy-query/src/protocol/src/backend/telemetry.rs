@@ -1,11 +1,11 @@
 use crate::frontend::tds::codec::token::TokenInfo;
 use crate::frontend::tds::server_context::ServerContext;
+use crate::server_instance::ServerInstance;
 use crate::session::ServerInstanceMessage;
 use serde::Serialize;
 use std::sync::Arc;
-use crate::server_instance::ServerInstance;
 
-#[derive(Serialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct QueryTelemetry {
     proxy_time: i64,
     backend_time: i64,

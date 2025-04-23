@@ -1,48 +1,54 @@
-use crate::backend::data::BackendHandler;
+use crate::backend::backend_data::BackendHandler;
+use crate::server_messages::ServerMessageHandler;
 use crate::session::ServerInstanceMessage;
 use casbin::DefaultModel;
+use parking_lot::RwLock;
+use std::collections::HashMap;
+use std::future::Future;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::Semaphore;
-use tokio::time::sleep;
+use tokio::task;
+use tokio::task::{Id, JoinHandle};
+use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
 use unilake_common::error::Result;
 use unilake_common::singleton_instance::GlobalInstance;
 use unilake_security::ABAC_MODEL;
 
-// todo: also requires abort_handle, abort_registration, and join_handle
+// todo: also requires cancellation, tasktracker, and join_handle
 pub struct ServerInstance {
     backend_handler: Arc<BackendHandler>,
     default_model: Option<DefaultModel>,
-    inner: InnerServerInstance,
-}
-
-pub struct InnerServerInstance {
-    receiver: Option<tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>>,
-    sender: Arc<tokio::sync::mpsc::UnboundedSender<ServerInstanceMessage>>,
-    semaphore: Arc<Semaphore>,
+    tracker: TaskTracker,
+    cancellation_token: CancellationToken,
+    tasks: Arc<RwLock<HashMap<Id, CancellationToken>>>,
+    message_handler: Arc<ServerMessageHandler>,
 }
 
 impl ServerInstance {
-    pub async fn init() -> Result<tokio::task::JoinHandle<()>> {
-        let (global_instance, join_handle) = Self::create().await;
+    pub async fn init() -> Result<JoinHandle<()>> {
+        let global_instance = Self::create().await;
         GlobalInstance::set(global_instance.clone());
-        Ok(join_handle)
+
+        global_instance.backend_handler.start();
+        global_instance.message_handler.start();
+
+        Ok(tokio::spawn(async move {
+            global_instance.tracker.wait().await;
+        }))
     }
 
-    async fn create() -> (Arc<Self>, tokio::task::JoinHandle<()>) {
-        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<ServerInstanceMessage>();
+    async fn create() -> Arc<Self> {
         let mut instance = ServerInstance {
-            backend_handler: Arc::new(BackendHandler::new()),
-            inner: InnerServerInstance {
-                receiver: Some(receiver),
-                sender: Arc::new(sender),
-                semaphore: Arc::new(Semaphore::new(4)),
-            },
+            backend_handler: BackendHandler::init(),
+            tracker: TaskTracker::new(),
+            cancellation_token: CancellationToken::new(),
+            tasks: Arc::new(RwLock::new(HashMap::new())),
             default_model: None,
+            message_handler: Arc::new(ServerMessageHandler::default()),
         };
 
         instance.load_abac_model().await;
-        instance.start().await
+        Arc::new(instance)
     }
 
     pub fn instance() -> Arc<ServerInstance> {
@@ -59,61 +65,42 @@ impl ServerInstance {
         self.default_model.clone()
     }
 
-    async fn inner_process_message(&self, _msg: ServerInstanceMessage) {
-        tracing::error!(message = "Received server instance message, processing has not been implemented, dropping message!".to_string());
-    }
-
-    /// Starts the background job server instance for processing server messages.
-    /// Currently, is set to max 4 messages being processed in parallel.
-    /// In case 4 messages are already being processed, the process will check every 10 milliseconds for
-    /// an open slot to process new messages.
-    /// Note: the server instance can only be started once, will panic in case the background process has
-    /// already been started
-    async fn start(mut self) -> (Arc<Self>, tokio::task::JoinHandle<()>) {
-        tracing::info!(
-            "Starting server instance background jobs (SSE consumer, Background Workers({}))",
-            self.inner.semaphore.available_permits()
-        );
-
-        // also start the sse cache handler
-        BackendHandler::start_sse_consumer(self.backend_handler.clone()).await;
-
-        async fn run(
-            instance: Arc<ServerInstance>,
-            mut receiver: tokio::sync::mpsc::UnboundedReceiver<ServerInstanceMessage>,
-        ) {
-            while let Some(msg) = receiver.recv().await {
-                let instance = instance.clone();
-                let semaphore = instance.inner.semaphore.clone();
-                while semaphore.available_permits() == 0 {
-                    sleep(Duration::from_millis(10)).await;
-                }
-                tokio::task::spawn(async move {
-                    let semaphore = semaphore.acquire().await.unwrap();
-                    instance.inner_process_message(msg).await;
-                    drop(semaphore);
-                });
-            }
-        }
-
-        if self.inner.receiver.is_none() {
-            panic!("server instance is already started")
-        }
-        let r = self.inner.receiver.take().unwrap();
-        let instance = Arc::new(self);
-
-        tracing::info!("Server instance background jobs started");
-        let running_instance = instance.clone();
-        (
-            instance,
-            tokio::spawn(async move { run(running_instance, r).await }),
-        )
-    }
-
     pub fn process_message(
         &self,
         msg: ServerInstanceMessage,
     ) -> std::result::Result<(), tokio::sync::mpsc::error::SendError<ServerInstanceMessage>> {
-        self.inner.sender.clone().send(msg)
+        self.message_handler.process_message(msg)
+    }
+
+    pub fn spawn(&self, join_handle: JoinHandle<()>, ct: CancellationToken) -> Id {
+        let tasks = self.tasks.clone();
+        let task = self.tracker.spawn(async move {
+            {
+                tasks.write().insert(task::id(), ct);
+            }
+            let _ = join_handle.await;
+            {
+                tasks.write().remove(&task::id());
+            }
+        });
+        task.id()
+    }
+
+    pub fn tokio_spawn<F>(&self, future: F, ct: CancellationToken) -> Id
+    where
+        F: Future<Output = ()> + Send + 'static,
+        F::Output: Send + 'static,
+    {
+        self.spawn(tokio::spawn(future), ct)
+    }
+
+    pub fn cancel_task(&self, task_id: &Id) {
+        if let Some(ct) = self.tasks.write().get_mut(task_id) {
+            ct.cancel();
+        }
+    }
+
+    pub fn get_cancellation_token(&self) -> CancellationToken {
+        self.cancellation_token.child_token()
     }
 }

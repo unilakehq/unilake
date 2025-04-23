@@ -1,32 +1,48 @@
-use crate::frontend::tds::codec::token::TokenPreLoginFedAuthRequiredOption;
-use crate::frontend::tds::codec::TdsFrontendRequest;
+use crate::frontend::tds::codec::token::{
+    TokenDone, TokenError, TokenPreLoginFedAuthRequiredOption,
+};
+use crate::frontend::tds::prot::TdsWireHandlerFactory;
 use crate::frontend::tds::server_context::EncryptionLevel;
-use crate::frontend::tds::{process_error, process_request, TdsWireMessageServerCodec};
-use crate::server::{FrontendServer, ListeningStream};
-use crate::sessions::SessionManager;
-use futures::future::AbortHandle;
-use futures::future::{AbortRegistration, Abortable};
+use crate::frontend::tds::TdsWireMessageServerCodec;
+use crate::server::Server;
+use crate::server_instance::ServerInstance;
+use crate::sessions::{Session, SessionManager};
 use futures::StreamExt;
-use std::future::Future;
+use parking_lot::Mutex;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::codec::Framed;
+use tokio_util::sync::CancellationToken;
 use unilake_common::error::Result;
 use unilake_common::error_code::ErrorCode;
 
+pub struct TdsServerContext {
+    pub server_principal_name: String,
+    pub sts_url: String,
+    /// The version of the server, as reported by the server. (major, minor, build, sub_build)
+    server_version: (u8, u8, u16, u8),
+    pub default_packet_size: u16,
+    pub encryption: EncryptionLevel,
+    pub encryption_certificate: Option<Vec<u8>>,
+    pub fed_auth_options: TokenPreLoginFedAuthRequiredOption,
+    pub session_recovery_enabled: bool,
+}
+
 pub struct TdsServer {
     ctx: Arc<TdsServerContext>,
-    abort_handle: AbortHandle,
-    abort_registration: Option<AbortRegistration>,
-    join_handle: Option<JoinHandle<()>>,
+    cancellation_token: CancellationToken,
+    is_running: Mutex<bool>,
+    handler: Arc<dyn TdsWireHandlerFactory>,
 }
 
 impl TdsServer {
-    pub fn new() -> Self {
-        let (abort_handle, abort_registration) = AbortHandle::new_pair();
+    pub fn new(handler: Handler) -> Self {
+        let cancellation_token = ServerInstance::instance().get_cancellation_token();
+        let factory = Arc::new(handler);
+
         TdsServer {
             ctx: Arc::new(TdsServerContext {
                 server_principal_name: "unilake".to_string(),
@@ -38,26 +54,61 @@ impl TdsServer {
                 fed_auth_options: TokenPreLoginFedAuthRequiredOption::FedAuthNotRequired,
                 session_recovery_enabled: false,
             }),
-            abort_handle,
-            abort_registration: Some(abort_registration),
-            join_handle: None,
+            is_running: Mutex::new(false),
+            cancellation_token,
+            handler: factory,
         }
     }
 
-    fn accept_connection(&self, session_mgr: Arc<SessionManager>, socket: TcpStream) {
-        executor.spawn(async move {
-            let mut socket = Framed::new(
+    async fn process_error<T, H>(
+        error: ErrorCode,
+        socket: &mut Framed<T, TdsWireMessageServerCodec>,
+        session: Arc<Session>,
+        handlers: Arc<H>,
+    ) -> Result<()>
+    where
+        T: AsyncRead + AsyncWrite + Unpin + Send + Sync,
+        H: TdsWireHandlerFactory,
+    {
+        handlers
+            .send_token(
                 socket,
-                TdsWireMessageServerCodec::new(self.ctx.default_packet_size),
-            );
+                TokenError::new(
+                    error.code() as u32,
+                    0,
+                    0,
+                    error.message(),
+                    session.tds_server_context().server_name.clone(),
+                    "TDS Proxy".to_string(),
+                    0,
+                ),
+            )
+            .await?;
 
-            while let Some(packet) = socket.next().await {
-                match packet {
-                    Ok(p) => {}
-                    Err(e) => {}
-                }
+        handlers.send_token(socket, TokenDone::new_error(0)).await?;
+        handlers.flush(socket).await?;
+        Ok(())
+    }
+
+    async fn handle_connection<H>(
+        socket: TcpStream,
+        ctx: Arc<TdsServerContext>,
+        handler: Arc<H>,
+        ct: CancellationToken,
+    ) where
+        H: TdsWireHandlerFactory,
+    {
+        let mut socket = Framed::new(
+            socket,
+            TdsWireMessageServerCodec::new(ctx.default_packet_size),
+        );
+
+        while let Some(packet) = socket.next().await {
+            match packet {
+                Ok(p) => {}
+                Err(e) => TdsServer::process_error(e, socket, todo!(), handler.clone()).unwrap(),
             }
-        });
+        }
     }
 
     // async fn process_socket(tcp_socket: TcpStream) -> Result<()> {
@@ -102,7 +153,7 @@ impl TdsServer {
     //         handler.close_session(session).await;
     //     }
 
-    async fn listener_tcp(bind: SocketAddr) -> Result<(TcpListenerStream, SocketAddr)> {
+    async fn listener_tcp(&self, bind: SocketAddr) -> Result<(TcpListenerStream, SocketAddr)> {
         let listener = TcpListener::bind(bind).await.map_err(|e| {
             ErrorCode::TokioError(format!("{}:{} error: {}", bind.ip(), bind.port(), e))
         })?;
@@ -110,58 +161,60 @@ impl TdsServer {
         Ok((TcpListenerStream::new(listener), listener_addr))
     }
 
-    fn listen_loop(&self, stream: ListeningStream) -> impl Future<Output = ()> {
-        stream.for_each(move |accept_socket| {
-            let sessions = SessionManager::instance();
-            async move {
-                match accept_socket {
-                    Err(err) => tracing::error!("Error accepting socket: {}", err),
-                    Ok(socket) => {
-                        self.accept_connection(sessions, socket);
-                    }
+    async fn listen_loop(
+        mut stream: TcpListenerStream,
+        ctx: Arc<TdsServerContext>,
+        ct: CancellationToken,
+        handler: Arc<Handler>,
+    ) {
+        while let Some(socket) = stream.next().await {
+            match socket {
+                Ok(socket) => {
+                    let ctx = ctx.clone();
+                    let ct = ct.child_token();
+                    let inner_ct = ct.clone();
+                    let handler = handler.clone();
+                    ServerInstance::instance().tokio_spawn(
+                        async move {
+                            TdsServer::<Handler>::handle_connection(socket, ctx, handler, inner_ct)
+                                .await;
+                        },
+                        ct,
+                    );
+                }
+                Err(e) => {
+                    tracing::error!("Error accepting connection: {}", e);
                 }
             }
-        })
+        }
+        tracing::info!("Server stopped");
     }
 }
 
 #[async_trait::async_trait]
-impl FrontendServer for TdsServer {
+impl<Handler> Server for TdsServer<Handler>
+where
+    Handler: TdsWireHandlerFactory + 'static,
+{
     async fn start(&mut self, bind: SocketAddr) -> Result<SocketAddr> {
-        match self.abort_registration.take() {
-            None => Err(ErrorCode::Internal("TdsServer is already running")),
-            Some(registration) => {
-                let (stream, listener) = TdsServer::listener_tcp(bind).await?;
-                let stream = Abortable::new(stream, registration);
-                self.join_handle = Some(unilake_common::runtime::spawn(self.listen_loop(stream)));
-                Ok(listener)
-            }
+        let running = *self.is_running.lock();
+        if running {
+            return Err(ErrorCode::Internal("TdsServer is already running"));
         }
+
+        let (stream, listener) = self.listener_tcp(bind).await?;
+        let ctx = self.ctx.clone();
+        let ct = self.cancellation_token.clone();
+        let handler = self.handler.clone();
+
+        ServerInstance::instance().tokio_spawn(
+            async move {
+                TdsServer::listen_loop(stream, ctx, ct, handler).await;
+            },
+            self.cancellation_token.clone(),
+        );
+
+        *self.is_running.get_mut() = true;
+        Ok(listener)
     }
-
-    async fn stop(&mut self, graceful: bool) {
-        if !graceful {
-            return;
-        }
-
-        self.abort_handle.abort();
-
-        if let Some(join_handle) = self.join_handle.take() {
-            if let Err(error) = join_handle.await {
-                tracing::error!("Unexpected error during shutdown TDS Server: {}", error);
-            }
-        }
-    }
-}
-
-pub struct TdsServerContext {
-    pub server_principal_name: String,
-    pub sts_url: String,
-    /// The version of the server, as reported by the server. (major, minor, build, sub_build)
-    server_version: (u8, u8, u16, u8),
-    pub default_packet_size: u16,
-    pub encryption: EncryptionLevel,
-    pub encryption_certificate: Option<Vec<u8>>,
-    pub fed_auth_options: TokenPreLoginFedAuthRequiredOption,
-    pub session_recovery_enabled: bool,
 }

@@ -1,7 +1,7 @@
 // todo: add implementation of backend handling here (sessions, pools, backend management)
 
 use crate::backend::app::{FedResult, FedResultStream};
-use crate::backend::data::BackendInstance;
+use crate::backend::backend_data::BackendData;
 use crate::backend::starrocks::starrocks_session::StarRocksSession;
 use crate::backend::telemetry::{QueryTelemetry, QueryTelemetryHandler};
 use crate::frontend::tds::codec::token::{TokenColMetaData, TokenDone, TokenError, TokenRow};

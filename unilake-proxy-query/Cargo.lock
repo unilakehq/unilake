@@ -97,33 +97,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
-name = "async-backtrace"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dcb391558246d27a13f195c1e3a53eda422270fdd452bd57a5aa9c1da1bb198"
-dependencies = [
- "async-backtrace-attributes",
- "dashmap",
- "futures",
- "loom",
- "once_cell",
- "pin-project-lite",
- "rustc-hash",
- "static_assertions",
-]
-
-[[package]]
-name = "async-backtrace-attributes"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "affbba0d438add06462a0371997575927bc05052f7ec486e7a4ca405c956c3d7"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.89",
-]
-
-[[package]]
 name = "async-channel"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3532,6 +3505,8 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
+ "hashbrown 0.14.5",
  "pin-project-lite",
  "tokio",
 ]
@@ -3741,16 +3716,13 @@ checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 name = "unilake-common"
 version = "0.1.0"
 dependencies = [
- "async-backtrace",
  "config",
- "futures",
  "once_cell",
  "parking_lot",
  "paste",
  "serde",
  "state",
  "thiserror 1.0.63",
- "tokio",
  "tracing",
 ]
 
