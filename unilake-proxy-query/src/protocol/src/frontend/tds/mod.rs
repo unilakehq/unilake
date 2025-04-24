@@ -6,6 +6,8 @@ mod tds_server;
 mod tds_session;
 pub mod time;
 
+// todo: this mod.rs needs to be free of implementations, move to file where most applicable
+
 use crate::frontend::tds::codec::token::{TokenDone, TokenError};
 use crate::frontend::tds::codec::{
     PacketHeader, TdsBackendResponse, TdsFrontendRequest, TdsMessage,
@@ -111,7 +113,7 @@ impl Decoder for TdsWireMessageServerCodec {
     type Item = TdsFrontendRequest;
     type Error = ErrorCode;
 
-    fn decode(&mut self, src: &mut BytesMut) -> unilake_common::error::Result<Option<Self::Item>> {
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>> {
         // sanity checks on network level are done here, fully decoding is done afterward
         if let Some(header) = src.get(..ALL_HEADERS_LEN_TX) {
             // check if header is correct and as expected

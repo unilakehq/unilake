@@ -9,7 +9,7 @@ use std::{net::SocketAddr, sync::Arc};
 use unilake_common::error::Result;
 use unilake_common::error_code::ErrorCode;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub enum TdsSessionState {
     #[default]
     /// Initial State
@@ -40,6 +40,9 @@ pub enum TdsSessionState {
 
 #[async_trait]
 pub trait TdsWireHandlerFactory: Send + Sync {
+    /// Create a new instance of TdsWireHandlerFactory
+    fn new() -> Self;
+
     /// Create a new TDS server session
     async fn open_session(&self, socket_addr: &SocketAddr) -> Result<Session>;
 
@@ -54,7 +57,7 @@ pub trait TdsWireHandlerFactory: Send + Sync {
         msg: &PreloginMessage,
     ) -> Result<()>
     where
-        C: Sink<TdsBackendResponse> + Unpin + Send;
+        C: Sink<TdsBackendResponse, Error = ErrorCode> + Unpin + Send;
 
     /// Called when login request arrives
     async fn on_login7_request<C>(
@@ -64,7 +67,7 @@ pub trait TdsWireHandlerFactory: Send + Sync {
         msg: &LoginMessage,
     ) -> Result<()>
     where
-        C: Sink<TdsBackendResponse> + Unpin + Send;
+        C: Sink<TdsBackendResponse, Error = ErrorCode> + Unpin + Send;
 
     /// Called when federated authentication token message arrives. Called only when
     /// such a message arrives in response to federated authentication info, not when the
@@ -79,7 +82,7 @@ pub trait TdsWireHandlerFactory: Send + Sync {
         rpc: &RpcRequest,
     ) -> Result<()>
     where
-        C: Sink<TdsBackendResponse> + Unpin + Send;
+        C: Sink<TdsBackendResponse, Error = ErrorCode> + Unpin + Send;
 
     /// Called when SQL batch request arrives
     async fn on_sql_batch_request<C>(
@@ -89,7 +92,7 @@ pub trait TdsWireHandlerFactory: Send + Sync {
         msg: &BatchRequest,
     ) -> Result<()>
     where
-        C: Sink<TdsBackendResponse> + Unpin + Send;
+        C: Sink<TdsBackendResponse, Error = ErrorCode> + Unpin + Send;
 
     /// Called when attention arrives
     fn on_attention(&self, session: Arc<Session>);
@@ -97,7 +100,7 @@ pub trait TdsWireHandlerFactory: Send + Sync {
     /// Send message to the client
     async fn send_message<C, M>(&self, client: &mut C, msg: M) -> Result<()>
     where
-        C: Sink<TdsBackendResponse> + Unpin + Send,
+        C: Sink<TdsBackendResponse, Error = ErrorCode> + Unpin + Send,
         M: Into<TdsMessage> + Send,
     {
         client
@@ -109,7 +112,7 @@ pub trait TdsWireHandlerFactory: Send + Sync {
     /// Send token to the client
     async fn send_token<C, T>(&self, client: &mut C, token: T) -> Result<()>
     where
-        C: Sink<TdsBackendResponse> + Unpin + Send,
+        C: Sink<TdsBackendResponse, Error = ErrorCode> + Unpin + Send,
         T: Into<TdsToken> + Send,
     {
         client
@@ -121,7 +124,7 @@ pub trait TdsWireHandlerFactory: Send + Sync {
     /// Flush all results
     async fn flush<C>(&self, client: &mut C) -> Result<()>
     where
-        C: Sink<TdsBackendResponse> + Unpin + Send,
+        C: Sink<TdsBackendResponse, Error = ErrorCode> + Unpin + Send,
     {
         client
             .send(TdsBackendResponse::Done)

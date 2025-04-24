@@ -22,6 +22,7 @@ pub struct ServerInstance {
     cancellation_token: CancellationToken,
     tasks: Arc<RwLock<HashMap<Id, CancellationToken>>>,
     message_handler: Arc<ServerMessageHandler>,
+    server_name: String,
 }
 
 impl ServerInstance {
@@ -45,6 +46,7 @@ impl ServerInstance {
             tasks: Arc::new(RwLock::new(HashMap::new())),
             default_model: None,
             message_handler: Arc::new(ServerMessageHandler::default()),
+            server_name: Arc::new("Unilake SQL Proxy"),
         };
 
         instance.load_abac_model().await;
@@ -63,6 +65,10 @@ impl ServerInstance {
     pub fn get_abac_model(&self) -> Option<DefaultModel> {
         // expect cloning to be faster than re-initializing the model, since casbin takes ownership of the model we can't reference it
         self.default_model.clone()
+    }
+
+    pub fn get_server_name(&self) -> String {
+        self.server_name.clone()
     }
 
     pub fn process_message(

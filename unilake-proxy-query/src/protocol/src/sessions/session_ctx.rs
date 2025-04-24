@@ -4,7 +4,6 @@ use crate::sessions::{
     SESSION_VARIABLE_TENANT_ID,
 };
 use parking_lot::RwLock;
-use std::any::Any;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -15,9 +14,9 @@ pub struct SessionContext {
     /// Session ID
     pub(in crate::sessions) id: Ulid,
     /// Front-end session information
-    pub frontend: RwLock<Box<dyn FeSessionContext>>,
+    pub frontend: Arc<Box<dyn FeSessionContext>>,
     /// Back-end session information
-    pub backend: RwLock<Box<dyn BeSessionContext>>,
+    pub backend: Arc<Box<dyn BeSessionContext>>,
     /// Current state of the session variables
     variables: RwLock<HashMap<String, SessionVariable>>,
 }
@@ -25,14 +24,14 @@ pub struct SessionContext {
 impl SessionContext {
     pub fn new(
         id: Ulid,
-        frontend: Box<dyn FeSessionContext>,
-        backend: Box<dyn BeSessionContext>,
+        frontend: Arc<Box<dyn FeSessionContext>>,
+        backend: Arc<Box<dyn BeSessionContext>>,
     ) -> Self {
         let default_variables = SessionContext::get_default_session_variable(&frontend, &backend);
         SessionContext {
             id,
-            frontend: RwLock::new(frontend),
-            backend: RwLock::new(backend),
+            frontend,
+            backend,
             variables: RwLock::new(default_variables),
         }
     }
@@ -193,14 +192,9 @@ pub trait FeSessionContext: Send + Sync {
         self.get_username().is_some()
     }
 
-    /// Return an any type of this instance which can be downcast to the specific type
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-
     fn set_default_variables(&self, variables: &mut HashMap<String, SessionVariable>);
 }
 
 pub trait BeSessionContext: Send + Sync {
-    /// Return an any type of this instance which can be downcast to the specific type
-    fn as_any_mut(&mut self) -> &mut dyn Any;
     fn set_default_variables(&self, variables: &mut HashMap<String, SessionVariable>);
 }

@@ -9,8 +9,4 @@ impl Server for MysqlServer {
     async fn start(&mut self, bind: SocketAddr) -> Result<SocketAddr> {
         todo!()
     }
-
-    async fn stop(&mut self, graceful: bool) {
-        todo!()
-    }
 }

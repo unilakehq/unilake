@@ -34,9 +34,7 @@ use unilake_security::handler::{HandleResult, SecurityHandler, SecurityHandlerEr
 use unilake_security::repository::RepoRest;
 use unilake_sql::{PolicyAccessRequestUrl, TranspilerDenyCause};
 
-pub struct StarRocksTdsHandlerFactory {
-    inner: StarRocksTdsHandlerFactoryInnnerState,
-}
+pub struct StarRocksTdsHandlerFactory {}
 
 impl StarRocksTdsHandlerFactory {
     pub fn new() -> Self {
@@ -404,6 +402,10 @@ impl StarRocksTdsHandlerFactory {
 }
 #[async_trait]
 impl TdsWireHandlerFactory for StarRocksTdsHandlerFactory {
+    fn new() -> StarRocksTdsHandlerFactory {
+        todo!()
+    }
+
     async fn open_session(&self, socket_addr: &SocketAddr) -> Result<Session> {
         tracing::info!("New session for: {}", socket_addr);
         todo!()
@@ -432,6 +434,7 @@ impl TdsWireHandlerFactory for StarRocksTdsHandlerFactory {
     ) -> Result<()>
     where
         C: Sink<TdsBackendResponse> + Unpin + Send,
+        Self: Sized,
     {
         let server_context = session_info.tds_server_context();
         let encryption = ServerContext::encryption_response(
