@@ -1,0 +1,89 @@
+@namespace Unilake.WebApp.Components
+@using Unilake.WebApp.DesignSystem
+@inherits UnilakeBaseComponent
+
+<div class="flex-row rounded-lg bg-neutral-background-faded dark:bg-neutral-background-dark-faded border border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider w-fit hover:shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.05)] hover:shadow-md">
+    <div class="flex p-3 text-typography-faded dark:text-typography-dark-faded font-bold border-b border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider divide-x divide-neutral-background-border-divider dark:divide-neutral-background-dark-border-divider justify-between">
+        <div class="flex p-3 gap-1 items-center">
+            <Icon IconInstance="AnronIcons.Activity" Size="16"/>
+            <span>@ConnectorTypeText</span>
+        </div>
+        <div class="flex p-3 gap-1 items-center">
+            <Icon IconInstance="AnronIcons.Atom" Size="16"/>
+            <span>@ConnectorSourceText</span>
+        </div>
+        <div class="flex p-3">
+            <ConnectorQualityBadge QualityBadge="QualityLevel"/>
+        </div>
+    </div>
+    <div class="flex bg-neutral-background-default dark:bg-neutral-background-dark-default px-3 py-6 border-b border-neutral-background-border-divider dark:border-neutral-background-dark-border-divider">
+        <div>
+            <img src="@ConnectorLogoHref" width="28px" height="28px" alt="gitlab"/>
+        </div>
+        <div class="flex flex-col pl-3">
+            <span class="font-bold text-typography-headline dark:text-typography-dark-headline text-large">@ConnectorNameText</span>
+            <span>@ConnectorCategoryText</span>
+        </div>
+    </div>
+    <div class="flex p-3 gap-3 justify-between items-center">
+        <div class="@IntegrationStatusClassNames(CurrentState, null)">
+            @CurrentStateText
+        </div>
+        <div class="@IntegrationStatusClassNames(null, ConnectionCount)">
+            @ConnectionCount Connections
+        </div>
+        <Tooltip Text="Create Pipeline" class="p-2 text-small">
+            <Button IsIcon="@true" Variant="ButtonVariant.Bravo" Size="ButtonSize.Small">
+                <Icon IconInstance="@AnronIcons.Plus" Size="16"/>
+            </Button>
+        </Tooltip>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required ConnectorType Type { get; init; }
+    [Parameter, EditorRequired]
+    public required ConnectorSource Source { get; init; }
+    [Parameter, EditorRequired]
+    public required ConnectorQualityLevel QualityLevel { get; init; }
+    [Parameter, EditorRequired]
+    public required string ConnectorNameText { get; init; }
+    [Parameter, EditorRequired]
+    public required string ConnectorCategoryText { get; init; }
+    [Parameter, EditorRequired]
+    public required int ConnectionCount { get; init; }
+    [Parameter, EditorRequired]
+    public required string ConnectorLogoHref { get; init; }
+    [Parameter, EditorRequired]
+    public required ConnectorState CurrentState { get; init; }
+
+    private string CurrentStateText => CurrentState switch
+    {
+        ConnectorState.UpToDate => "Up to date",
+        ConnectorState.Outdated => "Outdated",
+        _ => throw new ArgumentOutOfRangeException()
+    };
+
+    private string ConnectorTypeText => Type switch
+    {
+        ConnectorType.Streaming => "Streaming",
+        ConnectorType.Batch => "Batch",
+        _ => throw new ArgumentOutOfRangeException()
+    };
+
+    private string ConnectorSourceText => Source switch
+    {
+        ConnectorSource.Airbyte => "Airbyte",
+        ConnectorSource.Unilake => "Unilake",
+        _ => throw new ArgumentOutOfRangeException()
+    };
+
+    private string IntegrationStatusClassNames(ConnectorState? connectorState, int? count) => new ClassBuilder("text-small font-bold border rounded-lg px-4 py-1")
+        .AddIf("text-typography-body border-typography-body dark:text-typography-dark-body dark:border-typography-dark-body", count is 0)
+        .AddIf("text-feedback-success-text border-feedback-success-text dark:text-feedback-dark-success-text dark:border-feedback-dark-success-text", count is > 0)
+        .AddIf("text-feedback-warning-text border-feedback-warning-text dark:text-feedback-dark-warning-text dark:border-feedback-dark-warning-text", connectorState is ConnectorState.Outdated)
+        .AddIf("text-feedback-info-text border-feedback-info-text dark:text-feedback-dark-info-text dark:border-feedback-dark-info-text", connectorState is ConnectorState.UpToDate)
+        .ToString();
+
+}
